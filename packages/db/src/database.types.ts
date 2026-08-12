@@ -1615,6 +1615,58 @@ export type Database = {
           },
         ]
       }
+      reserva_stock: {
+        Row: {
+          cantidad: number
+          creado_en: string
+          id: string
+          liberada_en: string | null
+          orden_id: string
+          producto_id: string
+          vence_en: string
+        }
+        Insert: {
+          cantidad: number
+          creado_en?: string
+          id?: string
+          liberada_en?: string | null
+          orden_id: string
+          producto_id: string
+          vence_en?: string
+        }
+        Update: {
+          cantidad?: number
+          creado_en?: string
+          id?: string
+          liberada_en?: string | null
+          orden_id?: string
+          producto_id?: string
+          vence_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reserva_stock_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "orden"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserva_stock_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "producto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserva_stock_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "stock_actual"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       turno: {
         Row: {
           actualizado_en: string | null
@@ -1917,7 +1969,20 @@ export type Database = {
         Args: { p_perfil_id: string; p_rol: Database["public"]["Enums"]["rol"] }
         Returns: undefined
       }
+      cancelar_orden: { Args: { p_orden_id: string }; Returns: undefined }
       cancelar_turno: { Args: { p_turno_id: string }; Returns: undefined }
+      catalogo_tienda: {
+        Args: never
+        Returns: {
+          categoria: string
+          descripcion: string
+          disponible: number
+          id: string
+          imagen_url: string
+          nombre: string
+          precio: number
+        }[]
+      }
       cerrar_caja: {
         Args: { p_monto_declarado: number; p_notas?: string }
         Returns: {
@@ -1938,6 +2003,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      confirmar_pago_online: {
+        Args: {
+          p_monto: number
+          p_mp_payment_id: string
+          p_orden_id: string
+          p_payload?: Json
+        }
+        Returns: undefined
       }
       crear_mascota: {
         Args: {
@@ -1971,6 +2045,27 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "mascota"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      crear_orden_online: {
+        Args: { p_items: Json }
+        Returns: {
+          actualizado_en: string | null
+          canal: string
+          cliente_id: string | null
+          creado_en: string
+          creado_por: string | null
+          estado: Database["public"]["Enums"]["estado_orden"]
+          id: string
+          notas: string | null
+          total: number
+          turno_caja_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orden"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2266,6 +2361,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      stock_disponible: { Args: { p_producto_id: string }; Returns: number }
       transferir_titularidad: {
         Args: { p_mascota_id: string; p_nuevo_titular: string }
         Returns: undefined

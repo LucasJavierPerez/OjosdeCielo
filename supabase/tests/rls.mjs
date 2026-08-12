@@ -1536,6 +1536,245 @@ console.log('\n=== 69. Cancelar libera el horario y cancela el recordatorio ==='
     : fail('Quedó un recordatorio activo de un turno cancelado');
 }
 
+// ===========================================================================
+// Inventario, ventas y caja (fase 7)
+//
+// Acá los errores cuestan dinero, así que se verifica más fino.
+// ===========================================================================
+
+// service_role: sólo para simular al webhook de MercadoPago, que corre en el
+// servidor. Nunca sale del navegador en la app real.
+const SERVICE_ROLE =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+const comoWebhook = createClient(URL, SERVICE_ROLE, { auth: { persistSession: false } });
+
+let productoId;
+console.log('\n=== 70. El stock no puede quedar negativo ===');
+{
+  const { data: p } = await recepcion.sb
+    .from('producto')
+    .insert({ nombre: `Producto ${Date.now()}`, precio: 1000, visible_en_tienda: true })
+    .select()
+    .single();
+  productoId = p.id;
+
+  await recepcion.sb.rpc('registrar_movimiento', {
+    p_producto_id: productoId,
+    p_tipo: 'ingreso',
+    p_cantidad: 5,
+  });
+
+  const { error } = await recepcion.sb.rpc('registrar_movimiento', {
+    p_producto_id: productoId,
+    p_tipo: 'venta',
+    p_cantidad: -10,
+  });
+  error ? ok('No se puede vender más de lo que hay') : fail('STOCK NEGATIVO');
+
+  const { error: errCliente } = await ana.sb.rpc('registrar_movimiento', {
+    p_producto_id: productoId,
+    p_tipo: 'ingreso',
+    p_cantidad: 100,
+  });
+  errCliente
+    ? ok('Un cliente no registra movimientos de stock')
+    : fail('FUGA: cliente movió stock');
+}
+
+console.log('\n=== 71. Los movimientos son inmutables ===');
+{
+  const { data: movs } = await recepcion.sb
+    .from('movimiento_stock')
+    .select('id')
+    .eq('producto_id', productoId)
+    .limit(1);
+
+  await recepcion.sb.from('movimiento_stock').update({ cantidad: 999 }).eq('id', movs[0].id);
+  await recepcion.sb.from('movimiento_stock').delete().eq('id', movs[0].id);
+
+  const { data: sigue } = await recepcion.sb
+    .from('movimiento_stock')
+    .select('cantidad')
+    .eq('id', movs[0].id)
+    .single();
+  sigue?.cantidad === 5
+    ? ok('Ni el personal puede editar o borrar un movimiento')
+    : fail(`El movimiento cambió: ${JSON.stringify(sigue)}`);
+}
+
+console.log('\n=== 72. El precio se congela al vender ===');
+{
+  await recepcion.sb.rpc('abrir_caja', { p_monto_inicial: 1000 });
+  const { data: orden } = await recepcion.sb.rpc('vender_mostrador', {
+    p_items: [{ producto_id: productoId, cantidad: 2 }],
+    p_medio: 'efectivo',
+  });
+  Number(orden?.total) === 2000 ? ok('Venta registrada por $2000') : fail(`Total ${orden?.total}`);
+
+  await recepcion.sb.from('producto').update({ precio: 50000 }).eq('id', productoId);
+
+  const { data: items } = await recepcion.sb
+    .from('orden_item')
+    .select('precio_unitario')
+    .eq('orden_id', orden.id);
+  Number(items?.[0]?.precio_unitario) === 1000
+    ? ok('Cambiar el precio no altera la orden ya emitida')
+    : fail(`El precio de la orden cambió a ${items?.[0]?.precio_unitario}`);
+
+  await recepcion.sb.from('producto').update({ precio: 1000 }).eq('id', productoId);
+}
+
+console.log('\n=== 73. La caja es sólo del personal ===');
+{
+  const { error: errVender } = await ana.sb.rpc('vender_mostrador', {
+    p_items: [{ producto_id: productoId, cantidad: 1 }],
+    p_medio: 'efectivo',
+  });
+  errVender ? ok('Un cliente no puede registrar una venta') : fail('FUGA: cliente vendió');
+
+  const { data: caja } = await ana.sb.from('movimiento_caja').select('id');
+  caja?.length === 0
+    ? ok('Un cliente no ve la caja')
+    : fail(`FUGA: ve ${caja?.length} movimientos`);
+
+  const { error: errCaja } = await ana.sb.rpc('resumen_caja');
+  errCaja ? ok('Ni el resumen') : fail('FUGA: cliente ve el resumen de caja');
+}
+
+console.log('\n=== 74. Los productos con receta no llegan a la tienda ===');
+{
+  const { data: recetado } = await recepcion.sb
+    .from('producto')
+    .insert({
+      nombre: `Recetado ${Date.now()}`,
+      precio: 3000,
+      requiere_receta: true,
+      visible_en_tienda: true,
+    })
+    .select()
+    .single();
+
+  const { data: catalogo } = await ana.sb.rpc('catalogo_tienda');
+  catalogo?.some((p) => p.id === recetado.id)
+    ? fail('FUGA: un producto con receta aparece en la tienda')
+    : ok('El catálogo excluye lo que requiere receta');
+
+  const { data: visible } = await ana.sb.from('producto').select('id').eq('id', recetado.id);
+  visible?.length === 0
+    ? ok('Tampoco es visible por consulta directa')
+    : fail('FUGA: el cliente lo ve en la tabla');
+}
+
+console.log('\n=== 75. Reserva de stock en el checkout online ===');
+{
+  const disponibleAntes = (await ana.sb.rpc('catalogo_tienda')).data.find(
+    (p) => p.id === productoId,
+  )?.disponible;
+
+  const { data: orden } = await ana.sb.rpc('crear_orden_online', {
+    p_items: [{ producto_id: productoId, cantidad: 2 }],
+  });
+  orden?.estado === 'pendiente_pago'
+    ? ok('La orden queda pendiente de pago')
+    : fail(`Estado ${orden?.estado}`);
+
+  const disponibleDespues = (await clara.sb.rpc('catalogo_tienda')).data.find(
+    (p) => p.id === productoId,
+  )?.disponible;
+  disponibleDespues === disponibleAntes - 2
+    ? ok('La reserva descuenta disponibilidad para los demás')
+    : fail(`Disponible ${disponibleAntes} → ${disponibleDespues}`);
+
+  // El stock real no se toca hasta que el pago se confirma.
+  const { data: stock } = await recepcion.sb
+    .from('stock_actual')
+    .select('cantidad')
+    .eq('producto_id', productoId)
+    .single();
+  stock?.cantidad === 3
+    ? ok('El stock real no se descuenta antes de pagar')
+    : fail(`Stock ${stock?.cantidad}, esperaba 3`);
+
+  const { error } = await clara.sb.rpc('crear_orden_online', {
+    p_items: [{ producto_id: productoId, cantidad: 99 }],
+  });
+  error ? ok('No se puede sobrevender lo reservado') : fail('SOBREVENTA');
+
+  await ana.sb.rpc('cancelar_orden', { p_orden_id: orden.id });
+  const trasCancelar = (await clara.sb.rpc('catalogo_tienda')).data.find(
+    (p) => p.id === productoId,
+  )?.disponible;
+  trasCancelar === disponibleAntes
+    ? ok('Cancelar la orden libera la reserva')
+    : fail(`Disponible tras cancelar: ${trasCancelar}`);
+}
+
+console.log('\n=== 76. Sólo el webhook confirma un pago online ===');
+{
+  const { data: orden } = await ana.sb.rpc('crear_orden_online', {
+    p_items: [{ producto_id: productoId, cantidad: 1 }],
+  });
+
+  // Lo más grave que podría pasar: que un cliente marque su orden como pagada.
+  for (const [quien, s] of [
+    ['Un cliente', ana],
+    ['Recepción', recepcion],
+    ['El administrador', admin],
+  ]) {
+    const { error } = await s.sb.rpc('confirmar_pago_online', {
+      p_orden_id: orden.id,
+      p_mp_payment_id: `falso-${Date.now()}`,
+      p_monto: 1,
+    });
+    if (!error) fail(`FUGA GRAVE: ${quien} confirmó un pago`);
+  }
+  ok('Nadie desde el navegador puede confirmar un pago');
+
+  const { data: estado } = await recepcion.sb
+    .from('orden')
+    .select('estado')
+    .eq('id', orden.id)
+    .single();
+  estado?.estado === 'pendiente_pago'
+    ? ok('La orden sigue pendiente')
+    : fail(`La orden quedó en ${estado?.estado}`);
+
+  // Ahora sí, como lo haría el webhook.
+  const pagoId = `MP-${Date.now()}`;
+  const { error } = await comoWebhook.rpc('confirmar_pago_online', {
+    p_orden_id: orden.id,
+    p_mp_payment_id: pagoId,
+    p_monto: 1000,
+  });
+  error ? fail(`El webhook no pudo confirmar: ${error.message}`) : ok('El webhook confirma');
+
+  // MercadoPago reintenta el mismo aviso varias veces.
+  for (let i = 0; i < 3; i++) {
+    await comoWebhook.rpc('confirmar_pago_online', {
+      p_orden_id: orden.id,
+      p_mp_payment_id: pagoId,
+      p_monto: 1000,
+    });
+  }
+
+  const { data: pagos } = await recepcion.sb.from('pago').select('id').eq('orden_id', orden.id);
+  const { data: comps } = await recepcion.sb
+    .from('comprobante')
+    .select('id')
+    .eq('orden_id', orden.id);
+  const { data: movs } = await recepcion.sb
+    .from('movimiento_stock')
+    .select('id')
+    .eq('orden_id', orden.id);
+
+  pagos?.length === 1 && comps?.length === 1 && movs?.length === 1
+    ? ok('Cuatro avisos idénticos no duplican pago, comprobante ni stock')
+    : fail(`Duplicados: pagos=${pagos?.length} comp=${comps?.length} mov=${movs?.length}`);
+
+  const { error: errCancelar } = await ana.sb.rpc('cancelar_orden', { p_orden_id: orden.id });
+  errCancelar ? ok('Una orden pagada no se puede cancelar') : fail('Se canceló una orden pagada');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'
