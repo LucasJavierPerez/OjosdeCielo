@@ -3,9 +3,11 @@ import { RutaProtegida } from '@ojosdecielo/ui/auth';
 import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { Agenda } from './paginas/Agenda.js';
+import { Caja } from './paginas/Caja.js';
 import { Equipo } from './paginas/Equipo.js';
 import { FichaPaciente } from './paginas/FichaPaciente.js';
 import { Ingresar } from './paginas/Ingresar.js';
+import { Inventario } from './paginas/Inventario.js';
 import { NuevoPaciente } from './paginas/NuevoPaciente.js';
 import { Pacientes } from './paginas/Pacientes.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
@@ -55,6 +57,22 @@ export function App() {
         }
       />
 
+      <Route
+        path="/caja"
+        element={
+          <Interna>
+            <Caja />
+          </Interna>
+        }
+      />
+      <Route
+        path="/inventario"
+        element={
+          <Interna>
+            <Inventario />
+          </Interna>
+        }
+      />
       <Route
         path="/equipo"
         element={

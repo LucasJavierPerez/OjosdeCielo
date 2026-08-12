@@ -15,9 +15,11 @@ import { NoEncontrado } from './paginas/NoEncontrado.js';
 import { Notificaciones } from './paginas/Notificaciones.js';
 import { NuevaMascota } from './paginas/NuevaMascota.js';
 import { NuevoTurno } from './paginas/NuevoTurno.js';
+import { OrdenCompra } from './paginas/OrdenCompra.js';
 import { Registrarse } from './paginas/Registrarse.js';
 import { SaludMascota } from './paginas/SaludMascota.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
+import { Tienda } from './paginas/Tienda.js';
 import { TutoresMascota } from './paginas/TutoresMascota.js';
 
 /** Atajo para no repetir el envoltorio en cada ruta de cliente. */
@@ -117,6 +119,22 @@ export function App() {
           element={
             <Privada>
               <NuevoTurno />
+            </Privada>
+          }
+        />
+        <Route
+          path="/tienda"
+          element={
+            <Privada>
+              <Tienda />
+            </Privada>
+          }
+        />
+        <Route
+          path="/tienda/orden/:id"
+          element={
+            <Privada>
+              <OrdenCompra />
             </Privada>
           }
         />
