@@ -2,6 +2,7 @@ import { ROLES_CLINICA } from '@ojosdecielo/core';
 import { RutaProtegida } from '@ojosdecielo/ui/auth';
 import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
+import { Agenda } from './paginas/Agenda.js';
 import { Equipo } from './paginas/Equipo.js';
 import { FichaPaciente } from './paginas/FichaPaciente.js';
 import { Ingresar } from './paginas/Ingresar.js';
@@ -19,9 +20,16 @@ export function App() {
       <Route path="/ingresar" element={<Ingresar />} />
       <Route path="/sin-acceso" element={<SinAcceso />} />
 
-      {/* Pacientes es lo primero que necesita el personal al abrir el panel.
-          La agenda pasa a ser el inicio cuando exista (fase 5). */}
-      <Route path="/" element={<Navigate to="/pacientes" replace />} />
+      {/* La agenda del día es lo primero que mira el personal al llegar. */}
+      <Route path="/" element={<Navigate to="/agenda" replace />} />
+      <Route
+        path="/agenda"
+        element={
+          <Interna>
+            <Agenda />
+          </Interna>
+        }
+      />
       <Route
         path="/pacientes"
         element={
@@ -56,7 +64,7 @@ export function App() {
         }
       />
 
-      <Route path="*" element={<Navigate to="/pacientes" replace />} />
+      <Route path="*" element={<Navigate to="/agenda" replace />} />
     </Routes>
   );
 }

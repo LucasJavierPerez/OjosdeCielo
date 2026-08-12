@@ -116,20 +116,22 @@ Fase corta y de alto impacto percibido: es la función que hace que la app se re
 
 ---
 
-## Fase 5 — Turnos
+## Fase 5 — Turnos ✅
 *Primera fase que exige participación de la clínica.*
 
-- Especialidades, disponibilidad semanal por profesional, bloqueos
-- Cálculo de slots disponibles
-- Constraint de exclusión anti-sobreturno en la base
-- Agenda del panel: vista día/semana, por profesional, arrastrar para reprogramar
-- Solicitud desde la app: especialidad → profesional → fecha → hora
-- Reprogramación y cancelación con plazo mínimo configurable
-- **Cualquier tutor gestiona el turno; todos lo ven** (Realtime), con registro de quién hizo qué
-- Recordatorio de turno 24 h antes, sobre la infraestructura de la fase 3
-- Estados del turno y sala de espera del día
+- [x] Especialidades, disponibilidad semanal por profesional, bloqueos
+- [x] Cálculo de slots disponibles (no materializados)
+- [x] Constraint de exclusión anti-sobreturno en la base
+- [x] Agenda del panel por día, con estados y contacto del tutor a mano
+- [x] Solicitud desde la app: mascota → motivo → día → hora
+- [x] Cancelación con plazo mínimo configurable, que no aplica al personal
+- [x] **Cualquier tutor gestiona el turno; todos lo ven**, con registro de quién hizo qué
+- [x] Recordatorio de turno 24 h antes, y se cancela si el turno se cancela
+- [x] Estados del turno: solicitado → confirmado → en consultorio → atendido
+- [ ] Reprogramar arrastrando en la agenda — hoy se cancela y se saca de nuevo
+- [ ] Vista semanal y por profesional — hoy es día a día
 
-**Terminado cuando:** un cliente saca turno desde el celular, le aparece al otro tutor, y entra en la agenda de la clínica sin intervención manual.
+**Terminado cuando:** un cliente saca turno desde el celular, le aparece al otro tutor, y entra en la agenda de la clínica sin intervención manual. ✅ *Verificado de punta a punta en el navegador.*
 
 ---
 

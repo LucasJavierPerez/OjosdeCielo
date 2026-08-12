@@ -1533,6 +1533,16 @@ export type Database = {
           raza: string
         }[]
       }
+      profesionales_disponibles: {
+        Args: never
+        Returns: {
+          apellido: string
+          color_agenda: string
+          id: string
+          matricula: string
+          nombre: string
+        }[]
+      }
       revocar_invitacion: {
         Args: { p_invitacion_id: string }
         Returns: undefined

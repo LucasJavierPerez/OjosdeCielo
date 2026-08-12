@@ -1350,6 +1350,192 @@ console.log('\n=== 64. Aviso de hallazgo sin cuenta ===');
   errVacio ? ok('Rechaza un mensaje vacío') : fail('Aceptó un mensaje vacío');
 }
 
+// ===========================================================================
+// Turnos (fase 5)
+// ===========================================================================
+
+const proximoHabil = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 3);
+  while (d.getDay() === 0) d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+};
+
+// Mascota propia para esta sección: la compartida quedó a nombre de Bruno tras
+// la transferencia del test 19, y Ana salió de ella en el 45. Depender de ese
+// estado hacía fallar todo por cascada.
+const { data: mascotaTurnos } = await ana.sb.rpc('crear_mascota', {
+  p_nombre: 'Turnera',
+  p_especie: 'perro',
+});
+const mascotaConTurnos = mascotaTurnos.id;
+
+// Se invita a Bruno para poder verificar que cualquier tutor gestiona el turno.
+{
+  const { data: inv } = await ana.sb.rpc('invitar_tutor', { p_mascota_id: mascotaConTurnos });
+  await bruno.sb.rpc('aceptar_invitacion', { p_token: inv.token });
+}
+
+console.log('\n=== 65. Slots y reserva ===');
+let turnoId;
+let slotTomado;
+{
+  const { data: esp } = await ana.sb.from('especialidad').select('id, nombre');
+  const especialidad = esp?.find((e) => e.nombre === 'Consulta general')?.id;
+  const { data: profs } = await ana.sb.rpc('profesionales_disponibles');
+  const prof = profs?.[0]?.id;
+  const fecha = proximoHabil();
+
+  profs && profs.length > 0 && profs[0].nombre
+    ? ok(`Un cliente puede listar profesionales con nombre (${profs[0].nombre})`)
+    : fail('profesionales_disponibles no devuelve nombres');
+
+  const { data: slots } = await ana.sb.rpc('slots_disponibles', {
+    p_profesional_id: prof,
+    p_fecha: fecha,
+    p_especialidad_id: especialidad,
+  });
+  (slots?.length ?? 0) > 0 ? ok(`${slots.length} slots disponibles`) : fail('No hay slots');
+  slotTomado = slots?.[0]?.inicio;
+
+  const { data: turno, error } = await ana.sb.rpc('solicitar_turno', {
+    p_mascota_id: mascotaConTurnos,
+    p_profesional_id: prof,
+    p_especialidad_id: especialidad,
+    p_inicio: slotTomado,
+  });
+  turnoId = turno?.id;
+  turno?.estado === 'solicitado'
+    ? ok('El cliente reserva y queda "solicitado"')
+    : fail(`Estado inesperado: ${turno?.estado ?? error?.message}`);
+
+  const { data: despues } = await ana.sb.rpc('slots_disponibles', {
+    p_profesional_id: prof,
+    p_fecha: fecha,
+    p_especialidad_id: especialidad,
+  });
+  despues?.length === slots.length - 1
+    ? ok('El horario reservado deja de ofrecerse')
+    : fail(`Slots antes ${slots.length}, después ${despues?.length}`);
+
+  const { error: errDoble } = await clara.sb.rpc('solicitar_turno', {
+    p_mascota_id: mascotaConTurnos,
+    p_profesional_id: prof,
+    p_especialidad_id: especialidad,
+    p_inicio: slotTomado,
+  });
+  errDoble ? ok('Otro usuario no puede tomar el mismo horario') : fail('SOBRETURNO');
+}
+
+console.log('\n=== 66. Un turno no se crea por fuera de la agenda ===');
+{
+  const { data: esp } = await ana.sb.from('especialidad').select('id').limit(1);
+  const { data: profs } = await ana.sb.rpc('profesionales_disponibles');
+
+  // Las 4 de la mañana, fuera de todo horario de atención.
+  const madrugada = new Date();
+  madrugada.setDate(madrugada.getDate() + 3);
+  madrugada.setUTCHours(7, 0, 0, 0);
+
+  const { error } = await ana.sb.rpc('solicitar_turno', {
+    p_mascota_id: mascotaConTurnos,
+    p_profesional_id: profs[0].id,
+    p_especialidad_id: esp[0].id,
+    p_inicio: madrugada.toISOString(),
+  });
+  error ? ok('Rechaza un horario fuera de la grilla') : fail('Aceptó un turno a las 4 AM');
+
+  // El INSERT directo tampoco: la tabla no otorga insert a authenticated.
+  const { error: errInsert } = await ana.sb.from('turno').insert({
+    mascota_id: mascotaConTurnos,
+    profesional_id: profs[0].id,
+    especialidad_id: esp[0].id,
+    inicio: madrugada.toISOString(),
+    fin: madrugada.toISOString(),
+  });
+  errInsert ? ok('Tampoco se puede insertar un turno a mano') : fail('FUGA: INSERT directo');
+}
+
+console.log('\n=== 67. Los turnos siguen el acceso a la mascota ===');
+{
+  const { data: deBruno } = await bruno.sb.from('turno').select('id').eq('id', turnoId);
+  deBruno?.length === 1 ? ok('El otro tutor ve el turno') : fail('El otro tutor no lo ve');
+
+  const { data: deClara } = await clara.sb.from('turno').select('id').eq('id', turnoId);
+  deClara?.length === 0 ? ok('Clara no ve turnos ajenos') : fail('FUGA: Clara ve el turno');
+
+  const { error } = await clara.sb.rpc('cancelar_turno', { p_turno_id: turnoId });
+  error ? ok('Clara no puede cancelarlo') : fail('FUGA: Clara canceló un turno ajeno');
+}
+
+console.log('\n=== 68. La agenda es sólo para el personal ===');
+{
+  const fecha = proximoHabil();
+  const { error } = await ana.sb.rpc('agenda_dia', { p_fecha: fecha });
+  error
+    ? ok('Un cliente no puede ver la agenda de la clínica')
+    : fail('FUGA: cliente ve la agenda');
+
+  const { data } = await recepcion.sb.rpc('agenda_dia', { p_fecha: fecha });
+  (data?.length ?? 0) > 0
+    ? ok(`Recepción ve ${data.length} turno(s) del día`)
+    : fail('Recepción no ve la agenda');
+
+  const { error: errEstado } = await ana.sb.rpc('cambiar_estado_turno', {
+    p_turno_id: turnoId,
+    p_estado: 'atendido',
+  });
+  errEstado
+    ? ok('Un cliente no puede marcar un turno como atendido')
+    : fail('FUGA: cliente cambió el estado');
+}
+
+console.log('\n=== 69. Cancelar libera el horario y cancela el recordatorio ===');
+{
+  const { data: esp } = await ana.sb.from('especialidad').select('id, nombre');
+  const especialidad = esp?.find((e) => e.nombre === 'Consulta general')?.id;
+  const { data: profs } = await ana.sb.rpc('profesionales_disponibles');
+  const fecha = proximoHabil();
+
+  const antes = (
+    await ana.sb.rpc('slots_disponibles', {
+      p_profesional_id: profs[0].id,
+      p_fecha: fecha,
+      p_especialidad_id: especialidad,
+    })
+  ).data.length;
+
+  // Cualquier tutor puede cancelar, no sólo quien lo pidió.
+  const { error } = await bruno.sb.rpc('cancelar_turno', { p_turno_id: turnoId });
+  error ? fail(`El otro tutor no pudo cancelar: ${error.message}`) : ok('El otro tutor canceló');
+
+  const despues = (
+    await ana.sb.rpc('slots_disponibles', {
+      p_profesional_id: profs[0].id,
+      p_fecha: fecha,
+      p_especialidad_id: especialidad,
+    })
+  ).data.length;
+  despues === antes + 1 ? ok('El horario vuelve a ofrecerse') : fail('El horario no se liberó');
+
+  const { data: t } = await recepcion.sb
+    .from('turno')
+    .select('estado, cancelado_por')
+    .eq('id', turnoId)
+    .single();
+  t?.estado === 'cancelado' && t?.cancelado_por === bruno.userId
+    ? ok('Queda registrado quién canceló')
+    : fail(`Estado tras cancelar: ${JSON.stringify(t)}`);
+
+  const { data: rec } = await recepcion.sb
+    .from('recordatorio')
+    .select('estado')
+    .eq('origen_id', turnoId);
+  rec?.every((r) => r.estado === 'cancelado')
+    ? ok('El recordatorio de 24 h también se cancela')
+    : fail('Quedó un recordatorio activo de un turno cancelado');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

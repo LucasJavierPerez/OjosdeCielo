@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 
 const SECCIONES = [
+  { a: '/agenda', texto: 'Agenda' },
   { a: '/pacientes', texto: 'Pacientes' },
   { a: '/equipo', texto: 'Equipo' },
 ];

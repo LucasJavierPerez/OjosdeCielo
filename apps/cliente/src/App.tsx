@@ -10,9 +10,11 @@ import { Ingresar } from './paginas/Ingresar.js';
 import { Inicio } from './paginas/Inicio.js';
 import { Instalar } from './paginas/Instalar.js';
 import { MascotaPublica } from './paginas/MascotaPublica.js';
+import { MisTurnos } from './paginas/MisTurnos.js';
 import { NoEncontrado } from './paginas/NoEncontrado.js';
 import { Notificaciones } from './paginas/Notificaciones.js';
 import { NuevaMascota } from './paginas/NuevaMascota.js';
+import { NuevoTurno } from './paginas/NuevoTurno.js';
 import { Registrarse } from './paginas/Registrarse.js';
 import { SaludMascota } from './paginas/SaludMascota.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
@@ -102,6 +104,22 @@ export function App() {
           }
         />
 
+        <Route
+          path="/turnos"
+          element={
+            <Privada>
+              <MisTurnos />
+            </Privada>
+          }
+        />
+        <Route
+          path="/turnos/nuevo"
+          element={
+            <Privada>
+              <NuevoTurno />
+            </Privada>
+          }
+        />
         <Route
           path="/recordatorios"
           element={
