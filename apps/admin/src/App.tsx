@@ -1,23 +1,43 @@
 import { ROLES_CLINICA } from '@ojosdecielo/core';
 import { RutaProtegida } from '@ojosdecielo/ui/auth';
-import { Route, Routes } from 'react-router';
-import { Escritorio } from './paginas/Escritorio.js';
+import type { ReactNode } from 'react';
+import { Navigate, Route, Routes } from 'react-router';
+import { FichaPaciente } from './paginas/FichaPaciente.js';
 import { Ingresar } from './paginas/Ingresar.js';
+import { Pacientes } from './paginas/Pacientes.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
+
+function Interna({ children }: { children: ReactNode }) {
+  return <RutaProtegida rolesPermitidos={ROLES_CLINICA}>{children}</RutaProtegida>;
+}
 
 export function App() {
   return (
     <Routes>
       <Route path="/ingresar" element={<Ingresar />} />
       <Route path="/sin-acceso" element={<SinAcceso />} />
+
+      {/* Pacientes es lo primero que necesita el personal al abrir el panel.
+          La agenda pasa a ser el inicio cuando exista (fase 5). */}
+      <Route path="/" element={<Navigate to="/pacientes" replace />} />
       <Route
-        path="/"
+        path="/pacientes"
         element={
-          <RutaProtegida rolesPermitidos={ROLES_CLINICA}>
-            <Escritorio />
-          </RutaProtegida>
+          <Interna>
+            <Pacientes />
+          </Interna>
         }
       />
+      <Route
+        path="/pacientes/:id"
+        element={
+          <Interna>
+            <FichaPaciente />
+          </Interna>
+        }
+      />
+
+      <Route path="*" element={<Navigate to="/pacientes" replace />} />
     </Routes>
   );
 }

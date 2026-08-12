@@ -625,6 +625,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      buscar_pacientes: {
+        Args: { p_texto?: string }
+        Returns: {
+          cantidad_tutores: number
+          especie: Database["public"]["Enums"]["especie"]
+          fallecido_en: string
+          fecha_nacimiento: string
+          foto_url: string
+          mascota_id: string
+          nombre: string
+          raza: string
+          titular_apellido: string
+          titular_email: string
+          titular_nombre: string
+          titular_telefono: string
+        }[]
+      }
       crear_mascota: {
         Args: {
           p_castrado?: boolean
@@ -695,6 +712,8 @@ export type Database = {
         Returns: undefined
       }
       rol_actual: { Args: never; Returns: Database["public"]["Enums"]["rol"] }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       transferir_titularidad: {
         Args: { p_mascota_id: string; p_nuevo_titular: string }
         Returns: undefined

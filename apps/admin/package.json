@@ -12,12 +12,14 @@
     "clean": "rm -rf .turbo dist node_modules"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.7.1",
     "@ojosdecielo/core": "workspace:*",
     "@ojosdecielo/db": "workspace:*",
     "@ojosdecielo/ui": "workspace:*",
     "@tanstack/react-query": "^5.101.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-hook-form": "^7.85.0",
     "react-router": "^8.3.0"
   },
   "devDependencies": {
