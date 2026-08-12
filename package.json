@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "turbo run dev",
+    "dev:tutores": "pnpm --filter @ojosdecielo/cliente dev",
+    "dev:panel": "pnpm --filter @ojosdecielo/admin dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

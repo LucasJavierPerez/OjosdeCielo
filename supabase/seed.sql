@@ -74,5 +74,81 @@ begin
 
 end $$;
 
--- Ana y Bruno son la pareja que comparte mascota (fase 1); Clara es el tercero
--- sin relación, que sirve para comprobar que NO ve nada de ellos.
+-- ---------------------------------------------------------------------------
+-- Mascotas de ejemplo
+--
+-- Para que el panel de la clínica no arranque vacío y se puedan ver los
+-- estados que importan: dato de la clínica junto a dato del tutor, una
+-- vacuna vencida, otra próxima, y una mascota compartida entre dos tutores.
+--
+-- Se simula la sesión de cada usuario con set_config para que auth.uid()
+-- devuelva algo: sin eso los triggers de origen dejarían cargado_por en null.
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  v_vet       uuid := '00000000-0000-0000-0000-000000000002';
+  v_ana       uuid := '00000000-0000-0000-0000-000000000004';
+  v_bruno     uuid := '00000000-0000-0000-0000-000000000005';
+  v_clara     uuid := '00000000-0000-0000-0000-000000000006';
+  v_pulga     uuid := '11111111-0000-0000-0000-000000000001';
+  v_milo      uuid := '11111111-0000-0000-0000-000000000002';
+  v_rocco     uuid := '11111111-0000-0000-0000-000000000003';
+begin
+  -- Ficha de las mascotas.
+  insert into public.mascota (id, nombre, especie, raza, sexo, fecha_nacimiento, castrado, color, microchip)
+  values
+    (v_pulga, 'Pulga', 'perro', 'Mestiza',           'hembra', '2022-04-18', true,  'Marrón', null),
+    (v_milo,  'Milo',  'gato',  'Siamés',            'macho',  '2024-11-03', false, 'Gris',   '981098106543210'),
+    (v_rocco, 'Rocco', 'perro', 'Golden Retriever',  'macho',  '2020-01-25', true,  'Dorado', null)
+  on conflict (id) do nothing;
+
+  -- Pulga la comparten Ana (titular) y Bruno. Rocco es de Clara.
+  insert into public.mascota_tutor (mascota_id, perfil_id, rol)
+  values
+    (v_pulga, v_ana,   'titular'),
+    (v_pulga, v_bruno, 'tutor'),
+    (v_milo,  v_ana,   'titular'),
+    (v_rocco, v_clara, 'titular')
+  on conflict do nothing;
+
+  -- Datos cargados por Ana (origen 'tutor').
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', v_ana::text, 'rol', 'cliente')::text, true);
+
+  insert into public.peso_registro (mascota_id, fecha, peso_kg) values
+    (v_pulga, current_date - 120, 11.400),
+    (v_pulga, current_date -  75, 12.200),
+    (v_pulga, current_date -  30, 12.900);
+
+  insert into public.aplicacion (mascota_id, tipo, producto, fecha, proxima_fecha) values
+    (v_pulga, 'vacuna', 'Antirrábica', current_date - 400, current_date - 35),
+    (v_pulga, 'desparasitacion_interna', 'Drontal', current_date - 80, current_date + 10),
+    (v_pulga, 'vacuna', 'Quíntuple', current_date - 60, current_date + 305),
+    (v_milo,  'vacuna', 'Triple felina', current_date - 200, current_date + 165);
+
+  insert into public.antecedente (mascota_id, tipo, descripcion) values
+    (v_pulga, 'alergia', 'Reacción al pollo');
+
+  insert into public.medicacion_en_curso (mascota_id, descripcion, dosis, frecuencia_horas, desde, hasta, recordar) values
+    (v_pulga, 'Meloxicam', '0.5 mg', 24, current_date - 6, current_date + 4, true);
+
+  -- Un peso medido en la clínica, para ver los dos orígenes conviviendo.
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', v_vet::text, 'rol', 'veterinario')::text, true);
+
+  insert into public.peso_registro (mascota_id, fecha, peso_kg, nota) values
+    (v_pulga, current_date - 2, 13.100, 'Balanza de consultorio');
+
+  -- Datos de Clara, el control de aislamiento.
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', v_clara::text, 'rol', 'cliente')::text, true);
+
+  insert into public.peso_registro (mascota_id, fecha, peso_kg) values
+    (v_rocco, current_date - 10, 31.200);
+
+  perform set_config('request.jwt.claims', '', true);
+end $$;
+
+-- Ana y Bruno comparten a Pulga (fase 1); Clara es el tercero sin relación,
+-- que sirve para comprobar que NO ve nada de ellos.

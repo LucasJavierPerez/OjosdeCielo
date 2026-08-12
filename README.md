@@ -6,8 +6,10 @@ Se instala en el celular sin pasar por las tiendas de aplicaciones.
 
 ## Estado
 
-**Fase 0 — fundaciones.** Monorepo, autenticación con roles, RLS, PWA instalable
-y CI funcionando. Las pantallas de negocio arrancan en la fase 1.
+**Fases 0 a 3 construidas.** Mascotas compartidas entre tutores, datos de salud
+con doble origen (tutor y clínica), recordatorios push, y panel de la clínica con
+búsqueda de pacientes y verificación de datos. Ver [`docs/roadmap.md`](docs/roadmap.md)
+para el detalle de qué queda pendiente en cada fase.
 
 ## Puesta en marcha
 
@@ -20,7 +22,17 @@ cp .env.example .env   # pegar ahí la anon key
 pnpm dev
 ```
 
-Cliente en `localhost:5173`, panel en `localhost:5174`, Supabase Studio en `localhost:54323`.
+| | Dirección | Para quién |
+|---|---|---|
+| App de tutores | `localhost:5173` | Clientes de la clínica |
+| Panel | `localhost:5174` | Veterinarios, recepción, administración |
+
+`pnpm dev` levanta las dos; `pnpm dev:tutores` o `pnpm dev:panel` para una sola.
+Supabase Studio en `localhost:54323`.
+
+Usuarios de prueba (contraseña `password123` en todos):
+`ana@`, `bruno@`, `clara@` `ejemplo.test` son tutores —
+`vet@`, `recepcion@`, `admin@` `ojosdecielo.test` son de la clínica.
 
 ## Documentación
 

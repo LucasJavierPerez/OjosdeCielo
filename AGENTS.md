@@ -33,13 +33,24 @@ cp .env.example .env          # pegar ahí la anon key que imprimió db:start
 pnpm dev
 ```
 
-Cliente en `localhost:5173`, panel en `localhost:5174`, Supabase Studio en `localhost:54323`.
+**Son dos apps distintas, en dos direcciones distintas:**
+
+| | Dirección | Para quién |
+|---|---|---|
+| App de tutores | `localhost:5173` | Clientes de la clínica |
+| Panel | `localhost:5174` | Veterinarios, recepción, administración |
+
+`pnpm dev` levanta las dos. Para una sola: `pnpm dev:tutores` o `pnpm dev:panel`.
+Supabase Studio queda en `localhost:54323`.
+
+Un usuario del personal que entra a `5173` ve una pantalla que lo manda al panel:
+no es un error, son públicos distintos.
 
 ## Comandos
 
 ```bash
 pnpm dev                              # ambas apps
-pnpm --filter @ojosdecielo/cliente dev  # una sola
+pnpm dev:tutores / pnpm dev:panel   # una sola
 pnpm typecheck                        # obligatorio antes de dar algo por terminado
 pnpm lint                             # Biome (lint + formato)
 pnpm lint:fix                         # aplica lo que se puede arreglar solo
