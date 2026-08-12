@@ -1,0 +1,31 @@
+{
+  "name": "ojosdecielo",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:new": "supabase migration new",
+    "db:types": "supabase gen types typescript --local > packages/db/src/database.types.ts",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.8",
+    "supabase": "^2.113.0",
+    "turbo": "^2.10.9",
+    "typescript": "^5.9.3"
+  }
+}

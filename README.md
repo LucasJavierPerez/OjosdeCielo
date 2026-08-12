@@ -6,7 +6,21 @@ Se instala en el celular sin pasar por las tiendas de aplicaciones.
 
 ## Estado
 
-En planificación. Arquitectura definida, sin código todavía.
+**Fase 0 — fundaciones.** Monorepo, autenticación con roles, RLS, PWA instalable
+y CI funcionando. Las pantallas de negocio arrancan en la fase 1.
+
+## Puesta en marcha
+
+Requiere Node 22+, pnpm y Docker Desktop.
+
+```bash
+pnpm install
+pnpm db:start          # levanta Postgres local e imprime las claves
+cp .env.example .env   # pegar ahí la anon key
+pnpm dev
+```
+
+Cliente en `localhost:5173`, panel en `localhost:5174`, Supabase Studio en `localhost:54323`.
 
 ## Documentación
 

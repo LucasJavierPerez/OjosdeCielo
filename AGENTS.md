@@ -22,22 +22,39 @@ supabase/         Migraciones y Edge Functions
 docs/             Arquitectura
 ```
 
+## Puesta en marcha
+
+Requiere Node 22+, pnpm y Docker Desktop corriendo.
+
+```bash
+pnpm install
+pnpm db:start                 # levanta Postgres local e imprime las claves
+cp .env.example .env          # pegar ahí la anon key que imprimió db:start
+pnpm dev
+```
+
+Cliente en `localhost:5173`, panel en `localhost:5174`, Supabase Studio en `localhost:54323`.
+
 ## Comandos
 
 ```bash
-pnpm dev                      # ambas apps
-pnpm dev --filter cliente     # una sola
-pnpm typecheck                # obligatorio antes de dar algo por terminado
-pnpm lint                     # Biome
-pnpm test                     # Vitest
-pnpm test:e2e                 # Playwright
+pnpm dev                              # ambas apps
+pnpm --filter @ojosdecielo/cliente dev  # una sola
+pnpm typecheck                        # obligatorio antes de dar algo por terminado
+pnpm lint                             # Biome (lint + formato)
+pnpm lint:fix                         # aplica lo que se puede arreglar solo
+pnpm test                             # Vitest
 pnpm build
 
-supabase start                # Postgres local vía Docker
-supabase migration new <nombre>
-supabase db reset             # reaplica migraciones + seeds
-pnpm db:types                 # regenera tipos TS desde el esquema
+pnpm db:start                 # Postgres local vía Docker
+pnpm db:stop
+pnpm db:reset                 # reaplica todas las migraciones desde cero
+pnpm db:new <nombre>          # crea una migración vacía
+pnpm db:types                 # regenera packages/db/src/database.types.ts
 ```
+
+`database.types.ts` es **generado**: no se edita a mano. Después de cualquier
+migración, correr `pnpm db:types`.
 
 ---
 
