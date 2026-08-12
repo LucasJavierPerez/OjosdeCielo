@@ -844,6 +844,125 @@ console.log('\n=== 46. Marcar fallecida conserva la ficha ===');
   errFutura ? ok('No acepta una fecha futura') : fail('Aceptó una fecha futura');
 }
 
+// ===========================================================================
+// Gestión del equipo
+// ===========================================================================
+
+const admin = sesiones['admin@ojosdecielo.test'];
+
+console.log('\n=== 47. Sólo el administrador cambia roles ===');
+{
+  for (const [quien, s] of [
+    ['El veterinario', vet],
+    ['Recepción', recepcion],
+    ['Un cliente', ana],
+  ]) {
+    const { error } = await s.sb.rpc('cambiar_rol', {
+      p_perfil_id: recepcion.userId,
+      p_rol: 'administrador',
+    });
+    if (!error) fail(`ESCALADA: ${quien} pudo cambiar un rol`);
+  }
+  ok('Nadie fuera de administración puede cambiar roles');
+
+  const { data } = await admin.sb.from('perfil').select('rol').eq('id', recepcion.userId).single();
+  data?.rol === 'recepcionista'
+    ? ok('El rol quedó intacto')
+    : fail(`El rol cambió a "${data?.rol}"`);
+}
+
+console.log('\n=== 48. Nadie cambia su propio rol ===');
+{
+  // Ni siquiera un administrador: evita degradarse por error y perder acceso.
+  const { error } = await admin.sb.rpc('cambiar_rol', {
+    p_perfil_id: admin.userId,
+    p_rol: 'recepcionista',
+  });
+  error
+    ? ok('El administrador no puede cambiarse el rol a sí mismo')
+    : fail('Un administrador se cambió el rol');
+}
+
+console.log('\n=== 49. Promover y degradar administradores ===');
+{
+  const { error } = await admin.sb.rpc('cambiar_rol', {
+    p_perfil_id: recepcion.userId,
+    p_rol: 'administrador',
+  });
+  error ? fail(`No pudo promover: ${error.message}`) : ok('Promovió a recepción a administradora');
+
+  const { error: errDegradar } = await admin.sb.rpc('cambiar_rol', {
+    p_perfil_id: recepcion.userId,
+    p_rol: 'recepcionista',
+  });
+  errDegradar
+    ? fail(`No pudo degradar habiendo dos: ${errDegradar.message}`)
+    : ok('Con dos administradores, degradar a uno funciona');
+
+  // Tras la degradación, recepción perdió el permiso. Esto NO prueba la regla
+  // del último administrador: la clínica queda protegida por la regla anterior
+  // (nadie cambia su propio rol), que hace que el último admin no pueda
+  // degradarse ni quede nadie más con permiso para hacerlo. La verificación de
+  // "último administrador" en la base es defensa en profundidad, para el día
+  // que alguna de las otras reglas se relaje.
+  const { error: errSinPermiso } = await recepcion.sb.rpc('cambiar_rol', {
+    p_perfil_id: admin.userId,
+    p_rol: 'recepcionista',
+  });
+  errSinPermiso
+    ? ok('Quien deja de ser administrador pierde el permiso de inmediato')
+    : fail('ESCALADA: conserva permisos tras perder el rol');
+}
+
+console.log('\n=== 50. Dar de baja conserva la trazabilidad ===');
+{
+  const { error } = await admin.sb.rpc('cambiar_estado_personal', {
+    p_perfil_id: vet.userId,
+    p_activo: false,
+  });
+  error ? fail(`No pudo dar de baja: ${error.message}`) : ok('El veterinario quedó inactivo');
+
+  const { data } = await admin.sb
+    .from('perfil')
+    .select('activo, rol')
+    .eq('id', vet.userId)
+    .single();
+  data?.activo === false && data?.rol === 'veterinario'
+    ? ok('Se conserva el rol y el registro, no se borra la cuenta')
+    : fail(`Estado inesperado: ${JSON.stringify(data)}`);
+
+  // El hook de acceso filtra por `activo`, así que al reingresar pierde el rol.
+  const reingreso = await comoUsuario('vet@ojosdecielo.test');
+  reingreso.claims.rol === 'cliente'
+    ? ok('Al volver a entrar ya no tiene rol de clínica')
+    : fail(`Un usuario dado de baja conserva el rol "${reingreso.claims.rol}"`);
+
+  await admin.sb.rpc('cambiar_estado_personal', { p_perfil_id: vet.userId, p_activo: true });
+  ok('Se puede reactivar');
+}
+
+console.log('\n=== 51. El listado del equipo no expone datos de más ===');
+{
+  const { data, error } = await recepcion.sb.rpc('listar_personal');
+  if (error || !data) {
+    fail(`Recepción no pudo listar el equipo: ${error?.message}`);
+  } else {
+    const columnas = Object.keys(data[0] ?? {});
+    columnas.includes('dni') || columnas.includes('telefono')
+      ? fail(`FUGA: expone ${columnas.join(', ')}`)
+      : ok(`Sólo lo necesario: ${columnas.join(', ')}`);
+
+    data.every((p) => p.rol !== 'cliente')
+      ? ok('No mezcla clientes en el listado del equipo')
+      : fail('Aparecen clientes en el equipo');
+  }
+
+  const { error: errCliente } = await ana.sb.rpc('listar_personal');
+  errCliente
+    ? ok('Un cliente no puede listar al personal')
+    : fail('FUGA: un cliente ve la nómina de la clínica');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

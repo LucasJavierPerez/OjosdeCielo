@@ -801,6 +801,14 @@ export type Database = {
           titular_telefono: string
         }[]
       }
+      cambiar_estado_personal: {
+        Args: { p_activo: boolean; p_perfil_id: string }
+        Returns: undefined
+      }
+      cambiar_rol: {
+        Args: { p_perfil_id: string; p_rol: Database["public"]["Enums"]["rol"] }
+        Returns: undefined
+      }
       crear_mascota: {
         Args: {
           p_castrado?: boolean
@@ -880,6 +888,19 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      listar_personal: {
+        Args: never
+        Returns: {
+          activo: boolean
+          apellido: string
+          creado_en: string
+          email: string
+          id: string
+          nombre: string
+          rol: Database["public"]["Enums"]["rol"]
+          soy_yo: boolean
+        }[]
       }
       marcar_fallecida: {
         Args: { p_fecha?: string; p_mascota_id: string }

@@ -87,6 +87,11 @@ pnpm exec supabase secrets set --env-file supabase/functions/.env   # producció
 La clave privada VAPID vive **sólo** como secreto de la función. Al navegador
 viaja únicamente la pública (`VITE_VAPID_PUBLIC_KEY`).
 
+Una función que actúa en nombre del usuario debe verificar el permiso **con el
+token de ese usuario**, no con `service_role`. `invitar-personal` usa
+service_role sólo para crear la cuenta; el cambio de rol lo hace con el token
+del administrador, para que las reglas de `cambiar_rol` sigan aplicando.
+
 `service_role` bypassa RLS pero **igual necesita `GRANT` de tabla**: son dos
 capas distintas. Una función nueva que lea una tabla nueva falla con
 "permission denied" hasta que se le otorgue.

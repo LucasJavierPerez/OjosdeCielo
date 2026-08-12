@@ -2,7 +2,10 @@ import { useAuth } from '@ojosdecielo/ui/auth';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 
-const SECCIONES = [{ a: '/pacientes', texto: 'Pacientes' }];
+const SECCIONES = [
+  { a: '/pacientes', texto: 'Pacientes' },
+  { a: '/equipo', texto: 'Equipo' },
+];
 
 export function Layout({ children }: { children: ReactNode }) {
   const { perfil, cerrarSesion } = useAuth();

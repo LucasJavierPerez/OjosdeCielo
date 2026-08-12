@@ -84,6 +84,20 @@ El aviso se programa **3 días antes** del vencimiento, no el mismo día: entera
 
 ---
 
+## Gestión del equipo ✅
+*Fuera del roadmap original. Hizo falta antes de que la clínica use el panel.*
+
+- [x] Listado del personal con su rol y estado
+- [x] Invitación por email con rol asignado (Edge Function, `service_role`)
+- [x] Cambio de rol y baja/reactivación
+- [x] Si la persona ya tiene cuenta como cliente, se le asigna el rol sin duplicarla
+
+**Reglas garantizadas en la base:** sólo un administrador cambia roles; nadie
+cambia el suyo; dar de baja conserva la cuenta y su trazabilidad, y el hook de
+acceso le quita el rol al reingresar.
+
+---
+
 ## Fase 4 — Identidad y extravío
 
 - QR con token opaco, página pública, revocación y regeneración

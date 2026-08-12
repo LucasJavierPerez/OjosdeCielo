@@ -2,6 +2,7 @@ import { ROLES_CLINICA } from '@ojosdecielo/core';
 import { RutaProtegida } from '@ojosdecielo/ui/auth';
 import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
+import { Equipo } from './paginas/Equipo.js';
 import { FichaPaciente } from './paginas/FichaPaciente.js';
 import { Ingresar } from './paginas/Ingresar.js';
 import { Pacientes } from './paginas/Pacientes.js';
@@ -33,6 +34,15 @@ export function App() {
         element={
           <Interna>
             <FichaPaciente />
+          </Interna>
+        }
+      />
+
+      <Route
+        path="/equipo"
+        element={
+          <Interna>
+            <Equipo />
           </Interna>
         }
       />
