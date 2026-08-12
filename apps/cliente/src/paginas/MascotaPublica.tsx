@@ -191,7 +191,6 @@ function Aviso({ token, nombre }: { token: string; nombre: string }) {
         id="mensaje"
         rows={3}
         maxLength={500}
-        autoFocus
         value={mensaje}
         onChange={(e) => setMensaje(e.target.value)}
         placeholder="La vi en la plaza de Rivadavia y Acoyte, está bien"

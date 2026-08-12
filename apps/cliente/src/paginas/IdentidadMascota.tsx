@@ -133,7 +133,6 @@ export function IdentidadMascota() {
               <textarea
                 id="nota"
                 rows={2}
-                autoFocus
                 value={nota}
                 onChange={(e) => setNota(e.target.value)}
                 placeholder="Se escapó por Rivadavia al 4000"

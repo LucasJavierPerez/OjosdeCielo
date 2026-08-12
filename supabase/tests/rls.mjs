@@ -783,7 +783,7 @@ console.log('\n=== 43. No se elimina una mascota compartida ===');
 {
   // Bruno es titular de la mascota compartida tras la transferencia del test 19.
   const { error } = await bruno.sb.rpc('eliminar_mascota', { p_mascota_id: mascotaId });
-  error && error.message.includes('archivarla')
+  error?.message.includes('archivarla')
     ? ok('Se rechaza con un motivo entendible y ofrece archivar')
     : fail(`Se eliminó una mascota que otra persona también cuida: ${error?.message}`);
 }
@@ -798,7 +798,7 @@ console.log('\n=== 44. No se elimina si la clínica registró atención ===');
   await vet.sb.from('peso_registro').insert({ mascota_id: m.id, peso_kg: 8.5 });
 
   const { error } = await clara.sb.rpc('eliminar_mascota', { p_mascota_id: m.id });
-  error && error.message.includes('archivarla')
+  error?.message.includes('archivarla')
     ? ok('La historia clínica impide el borrado, y se explica por qué')
     : fail(`Se borró una ficha con atención registrada: ${error?.message}`);
 
