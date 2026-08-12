@@ -963,6 +963,235 @@ console.log('\n=== 51. El listado del equipo no expone datos de más ===');
     : fail('FUGA: un cliente ve la nómina de la clínica');
 }
 
+// ===========================================================================
+// Historia clínica (fase 6)
+// ===========================================================================
+
+console.log('\n=== 52. Alta de paciente desde la clínica ===');
+let pacienteId;
+{
+  const { error: errCliente } = await ana.sb.rpc('crear_paciente', {
+    p_nombre: 'Intruso',
+    p_especie: 'perro',
+    p_tutor_nombre: 'Quien',
+  });
+  errCliente
+    ? ok('Un cliente no puede dar de alta pacientes')
+    : fail('FUGA: un cliente creó un paciente desde la RPC de la clínica');
+
+  const { data, error } = await recepcion.sb.rpc('crear_paciente', {
+    p_nombre: 'Toby',
+    p_especie: 'perro',
+    p_raza: 'Caniche',
+    p_tutor_nombre: 'Jorge',
+    p_tutor_apellido: 'Pérez',
+    p_tutor_telefono: '+54 11 3333-3333',
+  });
+  pacienteId = data?.id;
+  pacienteId ? ok('Recepción dio de alta a Toby') : fail(`No pudo: ${error?.message}`);
+
+  // Lo importante: el paciente NO queda a nombre de quien lo cargó.
+  const { data: tutores } = await recepcion.sb
+    .from('mascota_tutor')
+    .select('perfil_id')
+    .eq('mascota_id', pacienteId);
+  tutores?.length === 0
+    ? ok('No deja al personal como titular de la mascota')
+    : fail('El personal quedó como tutor del paciente');
+
+  const { data: contacto } = await recepcion.sb
+    .from('contacto_tutor')
+    .select('nombre, telefono, vinculado_en')
+    .eq('mascota_id', pacienteId)
+    .single();
+  contacto?.nombre === 'Jorge' && contacto?.vinculado_en === null
+    ? ok('Queda la ficha de contacto, sin cuenta')
+    : fail(`Contacto inesperado: ${JSON.stringify(contacto)}`);
+}
+
+console.log('\n=== 53. Un paciente sin tutor registrado no es visible para clientes ===');
+{
+  for (const [quien, s] of [
+    ['Ana', ana],
+    ['Clara', clara],
+  ]) {
+    const { data } = await s.sb.from('mascota').select('id').eq('id', pacienteId);
+    if (data?.length !== 0) fail(`FUGA: ${quien} ve un paciente que no es suyo`);
+  }
+  ok('Sólo lo ve el personal de la clínica');
+}
+
+console.log('\n=== 54. Sólo el veterinario carga consultas ===');
+{
+  for (const [quien, s] of [
+    ['Recepción', recepcion],
+    ['El administrador', admin],
+    ['Un cliente', ana],
+  ]) {
+    const { error } = await s.sb
+      .from('consulta')
+      .insert({ mascota_id: mascotaId, motivo: 'Prueba' });
+    if (!error) fail(`ESCALADA: ${quien} cargó una consulta`);
+  }
+  ok('Recepción, administración y clientes no pueden cargar consultas');
+}
+
+let consultaId;
+console.log('\n=== 55. El veterinario carga y el tutor lee ===');
+{
+  const { data, error } = await vet.sb
+    .from('consulta')
+    .insert({
+      mascota_id: mascotaId,
+      motivo: 'Control anual',
+      anamnesis: 'Come bien, sin síntomas',
+      diagnostico: 'Sana',
+      tratamiento: 'Refuerzo de vacuna',
+      peso_kg: 13.2,
+      temperatura: 38.5,
+    })
+    .select()
+    .single();
+  consultaId = data?.id;
+  consultaId ? ok('El veterinario registró la consulta') : fail(`No pudo: ${error?.message}`);
+
+  const { data: delTutor } = await bruno.sb.rpc('historial_mascota', {
+    p_mascota_id: mascotaId,
+  });
+  delTutor?.length === 1 && delTutor[0].diagnostico === 'Sana'
+    ? ok('El tutor ve la consulta en su historial')
+    : fail(`El tutor ve ${delTutor?.length} consultas`);
+
+  const { error: errClara } = await clara.sb.rpc('historial_mascota', {
+    p_mascota_id: mascotaId,
+  });
+  errClara ? ok('Clara no accede al historial ajeno') : fail('FUGA: Clara leyó el historial');
+}
+
+console.log('\n=== 56. La historia clínica es inmutable ===');
+{
+  const { error: errUpdate } = await vet.sb
+    .from('consulta')
+    .update({ diagnostico: 'Cambiado' })
+    .eq('id', consultaId);
+  const { error: errDelete } = await vet.sb.from('consulta').delete().eq('id', consultaId);
+
+  const { data } = await vet.sb
+    .from('consulta')
+    .select('diagnostico')
+    .eq('id', consultaId)
+    .single();
+
+  data?.diagnostico === 'Sana'
+    ? ok('Ni el veterinario que la cargó puede editarla o borrarla')
+    : fail(`Se modificó: ${JSON.stringify(data)} (${errUpdate?.message ?? errDelete?.message})`);
+
+  // La forma correcta de corregir: una consulta nueva que apunta a la anterior.
+  const { data: correccion } = await vet.sb
+    .from('consulta')
+    .insert({
+      mascota_id: mascotaId,
+      motivo: 'Control anual',
+      diagnostico: 'Sana. Corrige peso mal tipeado',
+      peso_kg: 13.4,
+      corrige_a: consultaId,
+    })
+    .select()
+    .single();
+  correccion?.id ? ok('Se corrige con una consulta nueva') : fail('No se pudo corregir');
+
+  const { data: historial } = await vet.sb.rpc('historial_mascota', {
+    p_mascota_id: mascotaId,
+  });
+  historial?.length === 1 && historial[0].corrige_a === consultaId
+    ? ok('El historial muestra la corrección y oculta la versión corregida')
+    : fail(`El historial tiene ${historial?.length} entradas`);
+}
+
+console.log('\n=== 57. Los estudios siguen el acceso a la mascota ===');
+{
+  const archivo = new Blob(['contenido-de-prueba'], { type: 'image/png' });
+  const ruta = `${mascotaId}/${consultaId}/radiografia.png`;
+
+  const { error: errVet } = await vet.sb.storage.from('estudios').upload(ruta, archivo);
+  errVet
+    ? fail(`El veterinario no pudo subir: ${errVet.message}`)
+    : ok('El veterinario subió un estudio');
+
+  const { error: errCliente } = await ana.sb.storage
+    .from('estudios')
+    .upload(`${mascotaId}/${consultaId}/falso.png`, archivo);
+  errCliente
+    ? ok('Un cliente no puede subir estudios')
+    : fail('FUGA: un cliente subió un archivo a estudios');
+
+  const { data: verBruno } = await bruno.sb.storage
+    .from('estudios')
+    .list(`${mascotaId}/${consultaId}`);
+  (verBruno?.length ?? 0) > 0
+    ? ok('El tutor puede ver los estudios de su mascota')
+    : fail('El tutor no ve los estudios');
+
+  const { data: verClara } = await clara.sb.storage
+    .from('estudios')
+    .list(`${mascotaId}/${consultaId}`);
+  (verClara?.length ?? 0) === 0
+    ? ok('Clara no ve estudios ajenos')
+    : fail(`FUGA: Clara lista ${verClara?.length} estudios`);
+
+  const anon = createClient(URL, ANON);
+  const { data: verAnon } = await anon.storage.from('estudios').list(`${mascotaId}`);
+  (verAnon?.length ?? 0) === 0
+    ? ok('Sin sesión no se accede a los estudios')
+    : fail('FUGA: anónimo lista estudios');
+}
+
+console.log('\n=== 58. Un tutor se vincula solo al registrarse ===');
+{
+  // La clínica carga un paciente con el email de alguien que todavía no tiene
+  // cuenta; al registrarse, debe encontrar la mascota ya cargada.
+  const email = `nuevo.tutor.${Date.now()}@ejemplo.test`;
+  const { data: paciente } = await recepcion.sb.rpc('crear_paciente', {
+    p_nombre: 'Luna',
+    p_especie: 'gato',
+    p_tutor_nombre: 'Marina',
+    p_tutor_email: email,
+  });
+
+  const sb = createClient(URL, ANON);
+  const { error: errAlta } = await sb.auth.signUp({
+    email,
+    password: 'password123',
+    options: { data: { nombre: 'Marina', apellido: 'López' } },
+  });
+  if (errAlta) {
+    fail(`No se pudo registrar: ${errAlta.message}`);
+  } else {
+    // El vínculo se verifica desde el personal y no desde la cuenta nueva:
+    // con la confirmación de email activada, signUp no devuelve sesión, así
+    // que una consulta desde ese cliente correría sin autenticar y daría
+    // vacío por RLS — un falso negativo, no una falla de la vinculación.
+    const { data: vinculo } = await recepcion.sb
+      .from('mascota_tutor')
+      .select('rol, perfil_id')
+      .eq('mascota_id', paciente.id)
+      .is('revocado_en', null);
+
+    vinculo?.length === 1 && vinculo[0].rol === 'titular'
+      ? ok('Al registrarse queda como titular de la mascota que cargó la clínica')
+      : fail(`Vínculo inesperado: ${JSON.stringify(vinculo)}`);
+
+    const { data: contacto } = await recepcion.sb
+      .from('contacto_tutor')
+      .select('vinculado_en, perfil_id')
+      .eq('mascota_id', paciente.id)
+      .single();
+    contacto?.vinculado_en && contacto?.perfil_id === vinculo?.[0]?.perfil_id
+      ? ok('La ficha de contacto queda marcada como vinculada a ese perfil')
+      : fail('El contacto sigue sin vincular');
+  }
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

@@ -34,6 +34,70 @@ export type Database = {
   }
   public: {
     Tables: {
+      adjunto: {
+        Row: {
+          consulta_id: string
+          creado_en: string
+          descripcion: string | null
+          id: string
+          mascota_id: string
+          mime: string
+          nombre_archivo: string
+          storage_path: string
+          subido_por: string
+          tamano_bytes: number
+          tipo: Database["public"]["Enums"]["tipo_adjunto"]
+        }
+        Insert: {
+          consulta_id: string
+          creado_en?: string
+          descripcion?: string | null
+          id?: string
+          mascota_id: string
+          mime: string
+          nombre_archivo: string
+          storage_path: string
+          subido_por?: string
+          tamano_bytes: number
+          tipo?: Database["public"]["Enums"]["tipo_adjunto"]
+        }
+        Update: {
+          consulta_id?: string
+          creado_en?: string
+          descripcion?: string | null
+          id?: string
+          mascota_id?: string
+          mime?: string
+          nombre_archivo?: string
+          storage_path?: string
+          subido_por?: string
+          tamano_bytes?: number
+          tipo?: Database["public"]["Enums"]["tipo_adjunto"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adjunto_consulta_id_fkey"
+            columns: ["consulta_id"]
+            isOneToOne: false
+            referencedRelation: "consulta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adjunto_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adjunto_subido_por_fkey"
+            columns: ["subido_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       antecedente: {
         Row: {
           activo: boolean
@@ -254,6 +318,139 @@ export type Database = {
           telefono?: string | null
         }
         Relationships: []
+      }
+      consulta: {
+        Row: {
+          anamnesis: string | null
+          corrige_a: string | null
+          creado_en: string
+          diagnostico: string | null
+          evolucion: string | null
+          examen_fisico: string | null
+          fecha: string
+          id: string
+          mascota_id: string
+          motivo: string
+          peso_kg: number | null
+          profesional_id: string
+          temperatura: number | null
+          tratamiento: string | null
+        }
+        Insert: {
+          anamnesis?: string | null
+          corrige_a?: string | null
+          creado_en?: string
+          diagnostico?: string | null
+          evolucion?: string | null
+          examen_fisico?: string | null
+          fecha?: string
+          id?: string
+          mascota_id: string
+          motivo: string
+          peso_kg?: number | null
+          profesional_id?: string
+          temperatura?: number | null
+          tratamiento?: string | null
+        }
+        Update: {
+          anamnesis?: string | null
+          corrige_a?: string | null
+          creado_en?: string
+          diagnostico?: string | null
+          evolucion?: string | null
+          examen_fisico?: string | null
+          fecha?: string
+          id?: string
+          mascota_id?: string
+          motivo?: string
+          peso_kg?: number | null
+          profesional_id?: string
+          temperatura?: number | null
+          tratamiento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consulta_corrige_a_fkey"
+            columns: ["corrige_a"]
+            isOneToOne: false
+            referencedRelation: "consulta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consulta_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consulta_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacto_tutor: {
+        Row: {
+          actualizado_en: string | null
+          apellido: string
+          creado_en: string
+          dni: string | null
+          email: string | null
+          id: string
+          mascota_id: string
+          nombre: string
+          notas: string | null
+          perfil_id: string | null
+          telefono: string | null
+          vinculado_en: string | null
+        }
+        Insert: {
+          actualizado_en?: string | null
+          apellido?: string
+          creado_en?: string
+          dni?: string | null
+          email?: string | null
+          id?: string
+          mascota_id: string
+          nombre: string
+          notas?: string | null
+          perfil_id?: string | null
+          telefono?: string | null
+          vinculado_en?: string | null
+        }
+        Update: {
+          actualizado_en?: string | null
+          apellido?: string
+          creado_en?: string
+          dni?: string | null
+          email?: string | null
+          id?: string
+          mascota_id?: string
+          nombre?: string
+          notas?: string | null
+          perfil_id?: string | null
+          telefono?: string | null
+          vinculado_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacto_tutor_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacto_tutor_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invitacion_tutor: {
         Row: {
@@ -843,6 +1040,44 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      crear_paciente: {
+        Args: {
+          p_castrado?: boolean
+          p_especie: Database["public"]["Enums"]["especie"]
+          p_fecha_nacimiento?: string
+          p_microchip?: string
+          p_nombre: string
+          p_raza?: string
+          p_sexo?: Database["public"]["Enums"]["sexo_mascota"]
+          p_tutor_apellido?: string
+          p_tutor_dni?: string
+          p_tutor_email?: string
+          p_tutor_nombre: string
+          p_tutor_telefono?: string
+        }
+        Returns: {
+          actualizado_en: string | null
+          archivado_en: string | null
+          castrado: boolean | null
+          color: string | null
+          creado_en: string
+          especie: Database["public"]["Enums"]["especie"]
+          fallecido_en: string | null
+          fecha_nacimiento: string | null
+          foto_url: string | null
+          id: string
+          microchip: string | null
+          nombre: string
+          raza: string | null
+          sexo: Database["public"]["Enums"]["sexo_mascota"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "mascota"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       dejar_mascota: { Args: { p_mascota_id: string }; Returns: undefined }
       desarchivar_mascota: {
@@ -868,6 +1103,24 @@ export type Database = {
       generar_recordatorios: {
         Args: { p_aviso_previo?: number; p_dias_antes?: number }
         Returns: number
+      }
+      historial_mascota: {
+        Args: { p_mascota_id: string }
+        Returns: {
+          adjuntos: number
+          anamnesis: string
+          corrige_a: string
+          diagnostico: string
+          evolucion: string
+          examen_fisico: string
+          fecha: string
+          id: string
+          motivo: string
+          peso_kg: number
+          profesional: string
+          temperatura: number
+          tratamiento: string
+        }[]
       }
       invitar_tutor: {
         Args: { p_mascota_id: string }
@@ -947,6 +1200,7 @@ export type Database = {
       rol: "cliente" | "recepcionista" | "veterinario" | "administrador"
       rol_tutor: "titular" | "tutor"
       sexo_mascota: "macho" | "hembra" | "desconocido"
+      tipo_adjunto: "radiografia" | "ecografia" | "laboratorio" | "otro"
       tipo_antecedente: "alergia" | "cirugia" | "patologia_cronica" | "otro"
       tipo_aplicacion:
         | "vacuna"
@@ -1089,6 +1343,7 @@ export const Constants = {
       rol: ["cliente", "recepcionista", "veterinario", "administrador"],
       rol_tutor: ["titular", "tutor"],
       sexo_mascota: ["macho", "hembra", "desconocido"],
+      tipo_adjunto: ["radiografia", "ecografia", "laboratorio", "otro"],
       tipo_antecedente: ["alergia", "cirugia", "patologia_cronica", "otro"],
       tipo_aplicacion: [
         "vacuna",
