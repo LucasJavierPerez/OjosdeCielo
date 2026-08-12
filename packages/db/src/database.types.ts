@@ -271,6 +271,38 @@ export type Database = {
         }
         Relationships: []
       }
+      aviso_hallazgo: {
+        Row: {
+          contacto: string | null
+          creado_en: string
+          id: string
+          mascota_id: string
+          mensaje: string
+        }
+        Insert: {
+          contacto?: string | null
+          creado_en?: string
+          id?: string
+          mascota_id: string
+          mensaje: string
+        }
+        Update: {
+          contacto?: string | null
+          creado_en?: string
+          id?: string
+          mascota_id?: string
+          mensaje?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aviso_hallazgo_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       configuracion_clinica: {
         Row: {
           actualizado_en: string | null
@@ -524,6 +556,8 @@ export type Database = {
           id: string
           microchip: string | null
           nombre: string
+          nota_extravio: string | null
+          perdida_desde: string | null
           raza: string | null
           sexo: Database["public"]["Enums"]["sexo_mascota"]
         }
@@ -540,6 +574,8 @@ export type Database = {
           id?: string
           microchip?: string | null
           nombre: string
+          nota_extravio?: string | null
+          perdida_desde?: string | null
           raza?: string | null
           sexo?: Database["public"]["Enums"]["sexo_mascota"]
         }
@@ -556,10 +592,47 @@ export type Database = {
           id?: string
           microchip?: string | null
           nombre?: string
+          nota_extravio?: string | null
+          perdida_desde?: string | null
           raza?: string | null
           sexo?: Database["public"]["Enums"]["sexo_mascota"]
         }
         Relationships: []
+      }
+      mascota_token_qr: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          id: string
+          mascota_id: string
+          revocado_en: string | null
+          token: string
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          id?: string
+          mascota_id: string
+          revocado_en?: string | null
+          token?: string
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          id?: string
+          mascota_id?: string
+          revocado_en?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mascota_token_qr_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mascota_tutor: {
         Row: {
@@ -970,6 +1043,8 @@ export type Database = {
           id: string
           microchip: string | null
           nombre: string
+          nota_extravio: string | null
+          perdida_desde: string | null
           raza: string | null
           sexo: Database["public"]["Enums"]["sexo_mascota"]
         }
@@ -981,6 +1056,10 @@ export type Database = {
         }
       }
       archivar_mascota: { Args: { p_mascota_id: string }; Returns: undefined }
+      avisar_hallazgo: {
+        Args: { p_contacto?: string; p_mensaje: string; p_token: string }
+        Returns: undefined
+      }
       buscar_pacientes: {
         Args: { p_texto?: string }
         Returns: {
@@ -1030,6 +1109,8 @@ export type Database = {
           id: string
           microchip: string | null
           nombre: string
+          nota_extravio: string | null
+          perdida_desde: string | null
           raza: string | null
           sexo: Database["public"]["Enums"]["sexo_mascota"]
         }
@@ -1068,6 +1149,8 @@ export type Database = {
           id: string
           microchip: string | null
           nombre: string
+          nota_extravio: string | null
+          perdida_desde: string | null
           raza: string | null
           sexo: Database["public"]["Enums"]["sexo_mascota"]
         }
@@ -1100,6 +1183,23 @@ export type Database = {
       es_titular_de: { Args: { p_mascota_id: string }; Returns: boolean }
       es_tutor_de: { Args: { p_mascota_id: string }; Returns: boolean }
       es_veterinario: { Args: never; Returns: boolean }
+      generar_qr: {
+        Args: { p_mascota_id: string }
+        Returns: {
+          activo: boolean
+          creado_en: string
+          id: string
+          mascota_id: string
+          revocado_en: string | null
+          token: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "mascota_token_qr"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       generar_recordatorios: {
         Args: { p_aviso_previo?: number; p_dias_antes?: number }
         Returns: number
@@ -1155,11 +1255,32 @@ export type Database = {
           soy_yo: boolean
         }[]
       }
+      marcar_encontrada: { Args: { p_mascota_id: string }; Returns: undefined }
       marcar_fallecida: {
         Args: { p_fecha?: string; p_mascota_id: string }
         Returns: undefined
       }
+      marcar_perdida: {
+        Args: { p_mascota_id: string; p_nota?: string }
+        Returns: undefined
+      }
       mascota_id_del_path: { Args: { p_name: string }; Returns: string }
+      mascota_por_qr: {
+        Args: { p_token: string }
+        Returns: {
+          clinica_nombre: string
+          clinica_telefono: string
+          contacto_nombre: string
+          contacto_telefono: string
+          especie: Database["public"]["Enums"]["especie"]
+          foto_url: string
+          nombre: string
+          nota_extravio: string
+          perdida: boolean
+          perdida_desde: string
+          raza: string
+        }[]
+      }
       revocar_invitacion: {
         Args: { p_invitacion_id: string }
         Returns: undefined
@@ -1206,7 +1327,12 @@ export type Database = {
         | "vacuna"
         | "desparasitacion_interna"
         | "desparasitacion_externa"
-      tipo_notificacion: "vacuna" | "desparasitacion" | "medicacion" | "turno"
+      tipo_notificacion:
+        | "vacuna"
+        | "desparasitacion"
+        | "medicacion"
+        | "turno"
+        | "hallazgo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1350,7 +1476,13 @@ export const Constants = {
         "desparasitacion_interna",
         "desparasitacion_externa",
       ],
-      tipo_notificacion: ["vacuna", "desparasitacion", "medicacion", "turno"],
+      tipo_notificacion: [
+        "vacuna",
+        "desparasitacion",
+        "medicacion",
+        "turno",
+        "hallazgo",
+      ],
     },
   },
 } as const

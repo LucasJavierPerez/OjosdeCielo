@@ -98,12 +98,19 @@ acceso le quita el rol al reingresar.
 
 ---
 
-## Fase 4 — Identidad y extravío
+## Fase 4 — Identidad y extravío ✅
 
-- QR con token opaco, página pública, revocación y regeneración
-- Página de mascota perdida: nombre, foto, contacto. **Nada más**
-- Marcar como perdida / encontrada, con aviso a todos los tutores
-- `noindex` y rate limiting
+- [x] QR con token opaco de 32 caracteres, revocación y regeneración
+- [x] Página pública: nombre, foto, especie y raza. **Nada más**
+- [x] Marcar como perdida / encontrada
+- [x] Aviso de hallazgo sin cuenta, con push a todos los tutores
+- [x] `noindex` en la página pública
+- [ ] Rate limiting — hoy la defensa es la longitud del token, no un límite de intentos
+
+**La decisión de privacidad de esta fase:** el teléfono del tutor aparece **sólo** si
+la mascota está marcada como perdida. Un QR se escanea por curiosidad, y no hay
+motivo para regalar un teléfono cuando el animal está en su casa. El contacto de la
+clínica sí se muestra siempre: es institucional, no personal, y da a dónde llevarlo.
 
 Fase corta y de alto impacto percibido: es la función que hace que la app se recomiende.
 

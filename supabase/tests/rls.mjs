@@ -1206,6 +1206,150 @@ console.log('\n=== 58. Un tutor se vincula solo al registrarse ===');
   }
 }
 
+// ===========================================================================
+// QR de identidad y extravío (fase 4)
+//
+// Es el único punto del sistema abierto a alguien sin cuenta, así que es donde
+// una fuga sería más grave.
+// ===========================================================================
+
+console.log('\n=== 59. La página pública no expone el contacto si no está perdida ===');
+let tokenQr;
+{
+  const anon = createClient(URL, ANON);
+  const { data: qr } = await bruno.sb.rpc('generar_qr', { p_mascota_id: mascotaId });
+  tokenQr = qr?.token;
+  tokenQr ? ok('El tutor generó el código') : fail('No se pudo generar');
+
+  tokenQr && tokenQr.length >= 32 && !/^[0-9]+$/.test(tokenQr)
+    ? ok(`Token opaco de ${tokenQr.length} caracteres`)
+    : fail(`Token débil: ${tokenQr}`);
+
+  const { data } = await anon.rpc('mascota_por_qr', { p_token: tokenQr });
+  const p = data?.[0];
+
+  p?.nombre ? ok('Un desconocido ve el nombre y la especie') : fail('No devuelve nada');
+  p?.contacto_telefono === null && p?.contacto_nombre === null
+    ? ok('NO expone el contacto del tutor mientras no esté perdida')
+    : fail(`FUGA: expone ${p?.contacto_nombre} / ${p?.contacto_telefono}`);
+
+  const columnas = Object.keys(p ?? {});
+  const prohibidas = columnas.filter((c) =>
+    ['id', 'mascota_id', 'microchip', 'email', 'dni', 'direccion', 'fecha_nacimiento'].includes(c),
+  );
+  prohibidas.length === 0
+    ? ok(`Sólo devuelve: ${columnas.join(', ')}`)
+    : fail(`FUGA: expone ${prohibidas.join(', ')}`);
+}
+
+console.log('\n=== 60. Marcada como perdida sí expone el contacto ===');
+{
+  const anon = createClient(URL, ANON);
+  await bruno.sb.rpc('marcar_perdida', {
+    p_mascota_id: mascotaId,
+    p_nota: 'Se escapó del patio',
+  });
+
+  const { data } = await anon.rpc('mascota_por_qr', { p_token: tokenQr });
+  const p = data?.[0];
+  p?.perdida === true && p?.contacto_telefono !== undefined
+    ? ok('Ahora sí muestra a quién llamar')
+    : fail('No expone el contacto estando perdida');
+
+  await bruno.sb.rpc('marcar_encontrada', { p_mascota_id: mascotaId });
+  const { data: despues } = await anon.rpc('mascota_por_qr', { p_token: tokenQr });
+  despues?.[0]?.contacto_telefono === null
+    ? ok('Al marcarla encontrada, el contacto se oculta de nuevo')
+    : fail('FUGA: el teléfono sigue visible tras aparecer');
+}
+
+console.log('\n=== 61. El anónimo no puede leer las tablas por su cuenta ===');
+{
+  const anon = createClient(URL, ANON);
+  for (const tabla of ['mascota', 'mascota_token_qr', 'perfil', 'aviso_hallazgo', 'consulta']) {
+    const { data, error } = await anon.from(tabla).select('*').limit(1);
+    if (!error && (data?.length ?? 0) > 0) {
+      fail(`FUGA: anónimo lee ${tabla}`);
+    }
+  }
+  ok('Ninguna tabla es legible sin sesión');
+
+  const { data: inventado } = await anon.rpc('mascota_por_qr', { p_token: 'f'.repeat(32) });
+  inventado?.length === 0
+    ? ok('Un token inventado no devuelve nada')
+    : fail('FUGA con token falso');
+}
+
+console.log('\n=== 62. Sólo un tutor gestiona el código ===');
+{
+  const { error: errGenerar } = await clara.sb.rpc('generar_qr', { p_mascota_id: mascotaId });
+  errGenerar
+    ? ok('Clara no puede regenerar el código de una mascota ajena')
+    : fail('FUGA: Clara regeneró el QR de otro');
+
+  const { error: errPerdida } = await clara.sb.rpc('marcar_perdida', {
+    p_mascota_id: mascotaId,
+  });
+  errPerdida
+    ? ok('Clara no puede marcarla como perdida')
+    : fail('FUGA: Clara marcó como perdida una mascota ajena');
+
+  const { data: token } = await clara.sb
+    .from('mascota_token_qr')
+    .select('token')
+    .eq('mascota_id', mascotaId);
+  token?.length === 0
+    ? ok('Clara no ve el token')
+    : fail('FUGA: Clara puede leer el token de otro');
+}
+
+console.log('\n=== 63. Regenerar invalida el código anterior ===');
+{
+  const anon = createClient(URL, ANON);
+  const { data: nuevo } = await bruno.sb.rpc('generar_qr', { p_mascota_id: mascotaId });
+
+  const { data: viejo } = await anon.rpc('mascota_por_qr', { p_token: tokenQr });
+  viejo?.length === 0
+    ? ok('La chapita vieja deja de funcionar')
+    : fail('FUGA: el token viejo sigue activo');
+
+  const { data: actual } = await anon.rpc('mascota_por_qr', { p_token: nuevo.token });
+  actual?.length === 1 ? ok('El código nuevo funciona') : fail('El código nuevo no anda');
+  tokenQr = nuevo.token;
+}
+
+console.log('\n=== 64. Aviso de hallazgo sin cuenta ===');
+{
+  const anon = createClient(URL, ANON);
+  const { error } = await anon.rpc('avisar_hallazgo', {
+    p_token: tokenQr,
+    p_mensaje: 'La tengo en casa, está bien',
+    p_contacto: '11-5555-0000',
+  });
+  error ? fail(`No se pudo avisar: ${error.message}`) : ok('Un desconocido dejó el aviso');
+
+  const { data: vistos } = await bruno.sb
+    .from('aviso_hallazgo')
+    .select('mensaje')
+    .eq('mascota_id', mascotaId);
+  (vistos?.length ?? 0) > 0 ? ok('El tutor lo ve') : fail('El aviso no llegó al tutor');
+
+  const { data: deClara } = await clara.sb.from('aviso_hallazgo').select('id');
+  deClara?.length === 0 ? ok('Clara no ve avisos ajenos') : fail('FUGA: Clara ve los avisos');
+
+  const { error: errToken } = await anon.rpc('avisar_hallazgo', {
+    p_token: 'e'.repeat(32),
+    p_mensaje: 'spam',
+  });
+  errToken ? ok('Con un token inválido no se puede avisar') : fail('FUGA: aviso con token falso');
+
+  const { error: errVacio } = await anon.rpc('avisar_hallazgo', {
+    p_token: tokenQr,
+    p_mensaje: '   ',
+  });
+  errVacio ? ok('Rechaza un mensaje vacío') : fail('Aceptó un mensaje vacío');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

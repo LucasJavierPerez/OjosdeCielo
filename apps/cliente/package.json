@@ -17,6 +17,7 @@
     "@ojosdecielo/db": "workspace:*",
     "@ojosdecielo/ui": "workspace:*",
     "@tanstack/react-query": "^5.101.4",
+    "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.85.0",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.5",

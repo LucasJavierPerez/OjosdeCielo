@@ -92,6 +92,15 @@ export function FichaMascota() {
         }
       />
 
+      {mascota.perdida_desde && (
+        <Link
+          to={`/mascotas/${mascota.id}/identidad`}
+          className="mt-4 block rounded-xl bg-red-50 p-3 text-center text-sm font-medium text-red-900"
+        >
+          {mascota.nombre} figura como perdida
+        </Link>
+      )}
+
       <div className="mt-6">
         <SubirFotoMascota
           mascotaId={mascota.id}
@@ -127,6 +136,11 @@ export function FichaMascota() {
           a={`/mascotas/${mascota.id}/tutores`}
           titulo="Quién accede"
           detalle="Compartir el cuidado con otra persona"
+        />
+        <EnlaceFicha
+          a={`/mascotas/${mascota.id}/identidad`}
+          titulo="Identidad y extravío"
+          detalle="Código QR para su collar"
         />
         <EnlaceFicha
           a={`/mascotas/${mascota.id}/ajustes`}

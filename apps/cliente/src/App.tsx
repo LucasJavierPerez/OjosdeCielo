@@ -5,9 +5,11 @@ import { AvisoActualizacion } from './componentes/AvisoActualizacion.js';
 import { AceptarInvitacion } from './paginas/AceptarInvitacion.js';
 import { AjustesMascota } from './paginas/AjustesMascota.js';
 import { FichaMascota } from './paginas/FichaMascota.js';
+import { IdentidadMascota } from './paginas/IdentidadMascota.js';
 import { Ingresar } from './paginas/Ingresar.js';
 import { Inicio } from './paginas/Inicio.js';
 import { Instalar } from './paginas/Instalar.js';
+import { MascotaPublica } from './paginas/MascotaPublica.js';
 import { NoEncontrado } from './paginas/NoEncontrado.js';
 import { Notificaciones } from './paginas/Notificaciones.js';
 import { NuevaMascota } from './paginas/NuevaMascota.js';
@@ -30,6 +32,10 @@ export function App() {
         <Route path="/registrarse" element={<Registrarse />} />
         <Route path="/instalar" element={<Instalar />} />
         <Route path="/sin-acceso" element={<SinAcceso />} />
+
+        {/* Pública a propósito: la abre quien encontró a la mascota, que no
+            tiene cuenta ni motivo para crearla. */}
+        <Route path="/m/:token" element={<MascotaPublica />} />
 
         <Route
           path="/"
@@ -60,6 +66,14 @@ export function App() {
           element={
             <Privada>
               <SaludMascota />
+            </Privada>
+          }
+        />
+        <Route
+          path="/mascotas/:id/identidad"
+          element={
+            <Privada>
+              <IdentidadMascota />
             </Privada>
           }
         />
