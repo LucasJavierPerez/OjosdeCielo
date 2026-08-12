@@ -303,6 +303,41 @@ export type Database = {
           },
         ]
       }
+      bloqueo_agenda: {
+        Row: {
+          creado_en: string
+          desde: string
+          hasta: string
+          id: string
+          motivo: string | null
+          profesional_id: string | null
+        }
+        Insert: {
+          creado_en?: string
+          desde: string
+          hasta: string
+          id?: string
+          motivo?: string | null
+          profesional_id?: string | null
+        }
+        Update: {
+          creado_en?: string
+          desde?: string
+          hasta?: string
+          id?: string
+          motivo?: string | null
+          profesional_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bloqueo_agenda_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       configuracion_clinica: {
         Row: {
           actualizado_en: string | null
@@ -483,6 +518,74 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      disponibilidad: {
+        Row: {
+          dia_semana: number
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          profesional_id: string
+          vigente_desde: string
+          vigente_hasta: string | null
+        }
+        Insert: {
+          dia_semana: number
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          profesional_id: string
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Update: {
+          dia_semana?: number
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          profesional_id?: string
+          vigente_desde?: string
+          vigente_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disponibilidad_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      especialidad: {
+        Row: {
+          activa: boolean
+          creado_en: string
+          duracion_min: number
+          id: string
+          monto_sena: number | null
+          nombre: string
+          requiere_sena: boolean
+        }
+        Insert: {
+          activa?: boolean
+          creado_en?: string
+          duracion_min?: number
+          id?: string
+          monto_sena?: number | null
+          nombre: string
+          requiere_sena?: boolean
+        }
+        Update: {
+          activa?: boolean
+          creado_en?: string
+          duracion_min?: number
+          id?: string
+          monto_sena?: number | null
+          nombre?: string
+          requiere_sena?: boolean
+        }
+        Relationships: []
       }
       invitacion_tutor: {
         Row: {
@@ -929,6 +1032,41 @@ export type Database = {
           },
         ]
       }
+      profesional: {
+        Row: {
+          acepta_turnos: boolean
+          color_agenda: string
+          creado_en: string
+          id: string
+          matricula: string | null
+          perfil_id: string
+        }
+        Insert: {
+          acepta_turnos?: boolean
+          color_agenda?: string
+          creado_en?: string
+          id?: string
+          matricula?: string | null
+          perfil_id: string
+        }
+        Update: {
+          acepta_turnos?: boolean
+          color_agenda?: string
+          creado_en?: string
+          id?: string
+          matricula?: string | null
+          perfil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profesional_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: true
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscription: {
         Row: {
           auth: string
@@ -1023,6 +1161,93 @@ export type Database = {
           },
         ]
       }
+      turno: {
+        Row: {
+          actualizado_en: string | null
+          cancelado_en: string | null
+          cancelado_por: string | null
+          creado_en: string
+          especialidad_id: string
+          estado: Database["public"]["Enums"]["estado_turno"]
+          fin: string
+          id: string
+          inicio: string
+          mascota_id: string
+          motivo: string | null
+          notas_internas: string | null
+          profesional_id: string
+          solicitado_por: string
+        }
+        Insert: {
+          actualizado_en?: string | null
+          cancelado_en?: string | null
+          cancelado_por?: string | null
+          creado_en?: string
+          especialidad_id: string
+          estado?: Database["public"]["Enums"]["estado_turno"]
+          fin: string
+          id?: string
+          inicio: string
+          mascota_id: string
+          motivo?: string | null
+          notas_internas?: string | null
+          profesional_id: string
+          solicitado_por?: string
+        }
+        Update: {
+          actualizado_en?: string | null
+          cancelado_en?: string | null
+          cancelado_por?: string | null
+          creado_en?: string
+          especialidad_id?: string
+          estado?: Database["public"]["Enums"]["estado_turno"]
+          fin?: string
+          id?: string
+          inicio?: string
+          mascota_id?: string
+          motivo?: string | null
+          notas_internas?: string | null
+          profesional_id?: string
+          solicitado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turno_cancelado_por_fkey"
+            columns: ["cancelado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turno_especialidad_id_fkey"
+            columns: ["especialidad_id"]
+            isOneToOne: false
+            referencedRelation: "especialidad"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turno_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turno_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "profesional"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turno_solicitado_por_fkey"
+            columns: ["solicitado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1055,6 +1280,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      agenda_dia: {
+        Args: { p_fecha: string; p_profesional_id?: string }
+        Returns: {
+          color_agenda: string
+          especie: Database["public"]["Enums"]["especie"]
+          estado: Database["public"]["Enums"]["estado_turno"]
+          fin: string
+          id: string
+          inicio: string
+          mascota_id: string
+          mascota_nombre: string
+          motivo: string
+          notas_internas: string
+          profesional: string
+          profesional_id: string
+          tutor_nombre: string
+          tutor_telefono: string
+        }[]
+      }
       archivar_mascota: { Args: { p_mascota_id: string }; Returns: undefined }
       avisar_hallazgo: {
         Args: { p_contacto?: string; p_mensaje: string; p_token: string }
@@ -1081,10 +1325,18 @@ export type Database = {
         Args: { p_activo: boolean; p_perfil_id: string }
         Returns: undefined
       }
+      cambiar_estado_turno: {
+        Args: {
+          p_estado: Database["public"]["Enums"]["estado_turno"]
+          p_turno_id: string
+        }
+        Returns: undefined
+      }
       cambiar_rol: {
         Args: { p_perfil_id: string; p_rol: Database["public"]["Enums"]["rol"] }
         Returns: undefined
       }
+      cancelar_turno: { Args: { p_turno_id: string }; Returns: undefined }
       crear_mascota: {
         Args: {
           p_castrado?: boolean
@@ -1292,6 +1544,49 @@ export type Database = {
       rol_actual: { Args: never; Returns: Database["public"]["Enums"]["rol"] }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      slots_disponibles: {
+        Args: {
+          p_duracion_min?: number
+          p_especialidad_id?: string
+          p_fecha: string
+          p_profesional_id: string
+        }
+        Returns: {
+          fin: string
+          inicio: string
+        }[]
+      }
+      solicitar_turno: {
+        Args: {
+          p_especialidad_id: string
+          p_inicio: string
+          p_mascota_id: string
+          p_motivo?: string
+          p_profesional_id: string
+        }
+        Returns: {
+          actualizado_en: string | null
+          cancelado_en: string | null
+          cancelado_por: string | null
+          creado_en: string
+          especialidad_id: string
+          estado: Database["public"]["Enums"]["estado_turno"]
+          fin: string
+          id: string
+          inicio: string
+          mascota_id: string
+          motivo: string | null
+          notas_internas: string | null
+          profesional_id: string
+          solicitado_por: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "turno"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       transferir_titularidad: {
         Args: { p_mascota_id: string; p_nuevo_titular: string }
         Returns: undefined
@@ -1317,6 +1612,13 @@ export type Database = {
     Enums: {
       especie: "perro" | "gato" | "ave" | "roedor" | "reptil" | "otro"
       estado_recordatorio: "pendiente" | "enviado" | "cancelado" | "fallido"
+      estado_turno:
+        | "solicitado"
+        | "confirmado"
+        | "en_curso"
+        | "atendido"
+        | "cancelado"
+        | "ausente"
       origen_dato: "tutor" | "clinica"
       rol: "cliente" | "recepcionista" | "veterinario" | "administrador"
       rol_tutor: "titular" | "tutor"
@@ -1465,6 +1767,14 @@ export const Constants = {
     Enums: {
       especie: ["perro", "gato", "ave", "roedor", "reptil", "otro"],
       estado_recordatorio: ["pendiente", "enviado", "cancelado", "fallido"],
+      estado_turno: [
+        "solicitado",
+        "confirmado",
+        "en_curso",
+        "atendido",
+        "cancelado",
+        "ausente",
+      ],
       origen_dato: ["tutor", "clinica"],
       rol: ["cliente", "recepcionista", "veterinario", "administrador"],
       rol_tutor: ["titular", "tutor"],

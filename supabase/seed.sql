@@ -152,3 +152,43 @@ end $$;
 
 -- Ana y Bruno comparten a Pulga (fase 1); Clara es el tercero sin relación,
 -- que sirve para comprobar que NO ve nada de ellos.
+
+
+-- ---------------------------------------------------------------------------
+-- Agenda de ejemplo (fase 5)
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  v_vet   uuid := '00000000-0000-0000-0000-000000000002';
+  v_prof  uuid;
+  v_gral  uuid;
+  v_vacu  uuid;
+begin
+  insert into public.especialidad (nombre, duracion_min) values
+    ('Consulta general', 30),
+    ('Vacunación', 15),
+    ('Cirugía', 90)
+  on conflict (nombre) do nothing;
+
+  select id into v_gral from public.especialidad where nombre = 'Consulta general';
+  select id into v_vacu from public.especialidad where nombre = 'Vacunación';
+
+  insert into public.profesional (perfil_id, matricula)
+  values (v_vet, 'MP 12345')
+  on conflict (perfil_id) do nothing;
+
+  select id into v_prof from public.profesional where perfil_id = v_vet;
+
+  -- Lunes a viernes, mañana y tarde.
+  insert into public.disponibilidad (profesional_id, dia_semana, hora_inicio, hora_fin)
+  select v_prof, d, h.inicio, h.fin
+    from generate_series(1, 5) as d,
+         (values ('09:00'::time, '13:00'::time), ('16:00'::time, '20:00'::time)) as h(inicio, fin)
+  on conflict do nothing;
+
+  -- Sábado sólo por la mañana.
+  insert into public.disponibilidad (profesional_id, dia_semana, hora_inicio, hora_fin)
+  values (v_prof, 6, '09:00', '13:00')
+  on conflict do nothing;
+end $$;
