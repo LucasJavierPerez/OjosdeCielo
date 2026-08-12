@@ -1775,6 +1775,306 @@ console.log('\n=== 76. Sólo el webhook confirma un pago online ===');
   errCancelar ? ok('Una orden pagada no se puede cancelar') : fail('Se canceló una orden pagada');
 }
 
+// ===========================================================================
+// Fase 8 — Recetario
+// ===========================================================================
+
+// Mascota propia, por la misma razón que en la sección de turnos: no depender
+// del estado que dejaron los tests anteriores.
+const { data: mascotaReceta } = await ana.sb.rpc('crear_mascota', {
+  p_nombre: 'Recetada',
+  p_especie: 'gato',
+});
+const mascotaConReceta = mascotaReceta.id;
+
+const dentroDeUnMes = () => {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 10);
+};
+
+let recetaId;
+let recetaCodigo;
+let itemCronicoId;
+
+console.log('\n=== 77. Sólo un veterinario emite recetas ===');
+{
+  const items = [
+    {
+      descripcion: 'Enalapril 5 mg',
+      cantidad: '30 comprimidos',
+      dosis: 'medio comprimido cada 12 h',
+      duracion: '30 días',
+      cronico: true,
+    },
+    { descripcion: 'Omega 3', cantidad: '1 frasco', dosis: '1 cápsula por día' },
+  ];
+
+  for (const [quien, sesion] of [
+    ['El tutor', ana],
+    ['Recepción', recepcion],
+    ['El administrador', admin],
+  ]) {
+    const { error } = await sesion.sb.rpc('emitir_receta', {
+      p_mascota_id: mascotaConReceta,
+      p_vence_el: dentroDeUnMes(),
+      p_items: items,
+    });
+    error ? ok(`${quien} no puede emitir una receta`) : fail(`FUGA: ${quien} emitió una receta`);
+  }
+
+  const { data, error } = await vet.sb.rpc('emitir_receta', {
+    p_mascota_id: mascotaConReceta,
+    p_vence_el: dentroDeUnMes(),
+    p_items: items,
+    p_diagnostico: 'Cardiopatía compensada',
+    p_indicaciones: 'Control en 30 días',
+  });
+
+  if (error) {
+    fail(`El veterinario no pudo emitir: ${error.message}`);
+  } else {
+    recetaId = data.id;
+    recetaCodigo = data.codigo;
+    ok(`El veterinario emite la receta (código ${data.codigo})`);
+  }
+
+  /^[0-9A-F]{12}$/.test(recetaCodigo ?? '')
+    ? ok('El código es aleatorio de 12 caracteres, no un correlativo')
+    : fail(`El código no tiene la forma esperada: ${recetaCodigo}`);
+}
+
+console.log('\n=== 78. Una receta sin medicamentos no se emite ===');
+{
+  const { error } = await vet.sb.rpc('emitir_receta', {
+    p_mascota_id: mascotaConReceta,
+    p_vence_el: dentroDeUnMes(),
+    p_items: [],
+  });
+  error ? ok('Una receta vacía se rechaza') : fail('Se emitió una receta sin medicamentos');
+}
+
+console.log('\n=== 79. La receta la ven los tutores y el personal, nadie más ===');
+{
+  const { data: dAna } = await ana.sb.from('receta').select('id').eq('id', recetaId);
+  const { data: dClara } = await clara.sb.from('receta').select('id').eq('id', recetaId);
+  const { data: dRecep } = await recepcion.sb.from('receta').select('id').eq('id', recetaId);
+
+  dAna?.length === 1 ? ok('Ana ve la receta de su gato') : fail('Ana no ve su receta');
+  dRecep?.length === 1 ? ok('Recepción ve la receta') : fail('Recepción no ve la receta');
+  dClara?.length === 0 ? ok('Clara no ve la receta') : fail('FUGA: Clara ve una receta ajena');
+
+  const { data: itemsAna } = await ana.sb
+    .from('receta_item')
+    .select('descripcion')
+    .eq('receta_id', recetaId);
+  const { data: itemsClara } = await clara.sb
+    .from('receta_item')
+    .select('descripcion')
+    .eq('receta_id', recetaId);
+
+  itemsAna?.length === 2 ? ok('Ana ve los dos medicamentos') : fail('Ana no ve los items');
+  itemsClara?.length === 0
+    ? ok('Clara no ve los medicamentos')
+    : fail('FUGA: Clara ve los items de una receta ajena');
+}
+
+console.log('\n=== 80. Una receta emitida no se edita ni se borra ===');
+{
+  const { error: errEdit } = await vet.sb
+    .from('receta')
+    .update({ diagnostico: 'Otra cosa' })
+    .eq('id', recetaId);
+  errEdit ? ok('Ni el veterinario edita una receta emitida') : fail('Se editó una receta');
+
+  const { error: errAdmin } = await admin.sb
+    .from('receta')
+    .update({ vence_el: '2030-01-01' })
+    .eq('id', recetaId);
+  errAdmin ? ok('Ni el administrador la edita') : fail('El administrador editó una receta');
+
+  const { error: errDel } = await vet.sb.from('receta').delete().eq('id', recetaId);
+  const { data: sigue } = await vet.sb.from('receta').select('id').eq('id', recetaId);
+  errDel || sigue?.length === 1
+    ? ok('Una receta emitida no se borra')
+    : fail('Se borró una receta emitida');
+
+  const { error: errItem } = await vet.sb
+    .from('receta_item')
+    .update({ dosis: 'lo que sea' })
+    .eq('receta_id', recetaId);
+  errItem ? ok('Los medicamentos tampoco se editan') : fail('Se editó un item de receta');
+}
+
+console.log('\n=== 81. Verificación pública por código ===');
+{
+  const anonimo = createClient(URL, ANON);
+  const { data, error } = await anonimo.rpc('verificar_receta', { p_codigo: recetaCodigo });
+
+  if (error || !data) {
+    fail(`La verificación pública falló: ${error?.message}`);
+  } else {
+    data.mascota === 'Recetada' && data.estado === 'vigente'
+      ? ok('Sin cuenta, con el código se verifica la receta')
+      : fail(`La verificación devolvió algo raro: ${JSON.stringify(data)}`);
+
+    data.items?.length === 2
+      ? ok('La verificación muestra los medicamentos para contrastar con el papel')
+      : fail('La verificación no muestra los medicamentos');
+
+    data.vencida === false ? ok('Informa que no está vencida') : fail('Marcó vencida una vigente');
+
+    // Lo que NO tiene que aparecer: nada del tutor.
+    const texto = JSON.stringify(data).toLowerCase();
+    !texto.includes('ana') && !texto.includes('ejemplo.test')
+      ? ok('La página pública no expone nada del tutor')
+      : fail('FUGA: la verificación pública filtra datos del tutor');
+  }
+
+  const { data: nada } = await anonimo.rpc('verificar_receta', { p_codigo: 'AAAAAAAAAAAA' });
+  nada === null
+    ? ok('Un código inventado no devuelve nada')
+    : fail('Un código falso devolvió algo');
+
+  // El código es lo único que abre la puerta: la tabla sigue cerrada.
+  const { data: filas } = await anonimo.from('receta').select('id');
+  !filas || filas.length === 0
+    ? ok('Sin sesión no se puede listar el recetario')
+    : fail(`FUGA: anónimo lista ${filas.length} recetas`);
+}
+
+console.log('\n=== 82. Datos para imprimir ===');
+{
+  const { data, error } = await ana.sb.rpc('receta_para_imprimir', { p_receta_id: recetaId });
+  if (error || !data) {
+    fail(`El tutor no pudo obtener la receta para imprimir: ${error?.message}`);
+  } else {
+    data.clinica?.nombre && data.profesional
+      ? ok(
+          'Trae el encabezado de la clínica y el profesional, que el cliente no puede leer directo',
+        )
+      : fail('Faltan datos del encabezado');
+  }
+
+  const { error: errClara } = await clara.sb.rpc('receta_para_imprimir', { p_receta_id: recetaId });
+  errClara
+    ? ok('Clara no puede imprimir una receta ajena')
+    : fail('FUGA: Clara imprimió una receta ajena');
+}
+
+console.log('\n=== 83. Reposición de medicación crónica ===');
+{
+  const { data: items } = await ana.sb
+    .from('receta_item')
+    .select('id, descripcion, cronico')
+    .eq('receta_id', recetaId);
+
+  itemCronicoId = items?.find((i) => i.cronico)?.id;
+  const noCronico = items?.find((i) => !i.cronico)?.id;
+
+  const { error: errNoCronico } = await ana.sb.rpc('solicitar_reposicion', {
+    p_receta_item_id: noCronico,
+  });
+  errNoCronico
+    ? ok('Un medicamento que no es crónico no se repone sin consulta')
+    : fail('Se repuso un medicamento no crónico');
+
+  const { error: errClara } = await clara.sb.rpc('solicitar_reposicion', {
+    p_receta_item_id: itemCronicoId,
+  });
+  errClara ? ok('Clara no puede pedir reposición') : fail('FUGA: Clara pidió una reposición ajena');
+
+  const { data: sol, error } = await ana.sb.rpc('solicitar_reposicion', {
+    p_receta_item_id: itemCronicoId,
+    p_nota: 'Se le termina el viernes',
+  });
+  error ? fail(`Ana no pudo pedir reposición: ${error.message}`) : ok('Ana pide la reposición');
+
+  const { error: errDoble } = await ana.sb.rpc('solicitar_reposicion', {
+    p_receta_item_id: itemCronicoId,
+  });
+  errDoble
+    ? ok('Un segundo pedido del mismo medicamento se rechaza')
+    : fail('Se acumularon dos pedidos pendientes del mismo medicamento');
+
+  const { data: pendientes } = await vet.sb.rpc('reposiciones_pendientes');
+  pendientes?.some((r) => r.id === sol?.id)
+    ? ok('El veterinario ve el pedido pendiente')
+    : fail('El pedido no aparece en la bandeja del veterinario');
+
+  const { data: pendientesCliente } = await ana.sb.rpc('reposiciones_pendientes');
+  !pendientesCliente || pendientesCliente.length === 0
+    ? ok('Un cliente no ve la bandeja de pedidos de la clínica')
+    : fail('FUGA: un cliente ve los pedidos de otros');
+
+  const { error: errRecep } = await recepcion.sb.rpc('resolver_reposicion', {
+    p_solicitud_id: sol?.id,
+    p_aprobar: true,
+  });
+  errRecep
+    ? ok('Recepción no resuelve una reposición: es un acto profesional')
+    : fail('FUGA: recepción aprobó una reposición');
+
+  const { error: errResolver } = await vet.sb.rpc('resolver_reposicion', {
+    p_solicitud_id: sol?.id,
+    p_aprobar: true,
+    p_nota: 'Renovada por 30 días más',
+  });
+  errResolver
+    ? fail(`El veterinario no pudo resolver: ${errResolver.message}`)
+    : ok('El veterinario aprueba la reposición');
+
+  const { error: errOtraVez } = await vet.sb.rpc('resolver_reposicion', {
+    p_solicitud_id: sol?.id,
+    p_aprobar: false,
+  });
+  errOtraVez
+    ? ok('Una reposición resuelta no se vuelve a resolver')
+    : fail('Se resolvió dos veces la misma solicitud');
+
+  const { data: verAna } = await ana.sb
+    .from('solicitud_reposicion')
+    .select('estado, nota_respuesta')
+    .eq('id', sol?.id);
+  verAna?.[0]?.estado === 'aprobada'
+    ? ok('Ana ve la respuesta en su app')
+    : fail('Ana no ve el resultado de su pedido');
+}
+
+console.log('\n=== 84. Anular una receta ===');
+{
+  const { error: errSinMotivo } = await vet.sb.rpc('anular_receta', {
+    p_receta_id: recetaId,
+    p_motivo: '   ',
+  });
+  errSinMotivo ? ok('Anular sin motivo se rechaza') : fail('Se anuló sin motivo');
+
+  const { error: errAna } = await ana.sb.rpc('anular_receta', {
+    p_receta_id: recetaId,
+    p_motivo: 'me arrepentí',
+  });
+  errAna ? ok('El tutor no anula una receta') : fail('FUGA: el tutor anuló una receta');
+
+  const { error } = await vet.sb.rpc('anular_receta', {
+    p_receta_id: recetaId,
+    p_motivo: 'Dosis mal calculada',
+  });
+  error ? fail(`El veterinario no pudo anular: ${error.message}`) : ok('El veterinario anula');
+
+  const anonimo = createClient(URL, ANON);
+  const { data } = await anonimo.rpc('verificar_receta', { p_codigo: recetaCodigo });
+  data?.estado === 'anulada' && data?.motivo_anulacion
+    ? ok('La verificación pública avisa que está anulada, y por qué')
+    : fail('La página pública sigue mostrando la receta como válida');
+
+  const { error: errRepo } = await ana.sb.rpc('solicitar_reposicion', {
+    p_receta_item_id: itemCronicoId,
+  });
+  errRepo
+    ? ok('No se pide reposición sobre una receta anulada')
+    : fail('Se pidió reposición de una receta anulada');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

@@ -1565,6 +1565,137 @@ export type Database = {
           },
         ]
       }
+      receta: {
+        Row: {
+          anulada_en: string | null
+          codigo: string
+          consulta_id: string | null
+          creado_en: string
+          diagnostico: string | null
+          dispensada_en: string | null
+          emitida_en: string
+          estado: Database["public"]["Enums"]["estado_receta"]
+          id: string
+          indicaciones: string | null
+          mascota_id: string
+          motivo_anulacion: string | null
+          profesional_id: string
+          vence_el: string
+        }
+        Insert: {
+          anulada_en?: string | null
+          codigo?: string
+          consulta_id?: string | null
+          creado_en?: string
+          diagnostico?: string | null
+          dispensada_en?: string | null
+          emitida_en?: string
+          estado?: Database["public"]["Enums"]["estado_receta"]
+          id?: string
+          indicaciones?: string | null
+          mascota_id: string
+          motivo_anulacion?: string | null
+          profesional_id?: string
+          vence_el: string
+        }
+        Update: {
+          anulada_en?: string | null
+          codigo?: string
+          consulta_id?: string | null
+          creado_en?: string
+          diagnostico?: string | null
+          dispensada_en?: string | null
+          emitida_en?: string
+          estado?: Database["public"]["Enums"]["estado_receta"]
+          id?: string
+          indicaciones?: string | null
+          mascota_id?: string
+          motivo_anulacion?: string | null
+          profesional_id?: string
+          vence_el?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receta_consulta_id_fkey"
+            columns: ["consulta_id"]
+            isOneToOne: false
+            referencedRelation: "consulta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receta_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receta_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receta_item: {
+        Row: {
+          cantidad: string
+          cronico: boolean
+          descripcion: string
+          dosis: string
+          duracion: string | null
+          id: string
+          orden: number
+          producto_id: string | null
+          receta_id: string
+        }
+        Insert: {
+          cantidad: string
+          cronico?: boolean
+          descripcion: string
+          dosis: string
+          duracion?: string | null
+          id?: string
+          orden?: number
+          producto_id?: string | null
+          receta_id: string
+        }
+        Update: {
+          cantidad?: string
+          cronico?: boolean
+          descripcion?: string
+          dosis?: string
+          duracion?: string | null
+          id?: string
+          orden?: number
+          producto_id?: string | null
+          receta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receta_item_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "producto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receta_item_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "stock_actual"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "receta_item_receta_id_fkey"
+            columns: ["receta_id"]
+            isOneToOne: false
+            referencedRelation: "receta"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recordatorio: {
         Row: {
           creado_en: string
@@ -1664,6 +1795,84 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_actual"
             referencedColumns: ["producto_id"]
+          },
+        ]
+      }
+      solicitud_reposicion: {
+        Row: {
+          estado: Database["public"]["Enums"]["estado_solicitud_receta"]
+          id: string
+          mascota_id: string
+          nota_respuesta: string | null
+          nota_tutor: string | null
+          receta_item_id: string
+          receta_nueva_id: string | null
+          resuelto_en: string | null
+          resuelto_por: string | null
+          solicitado_en: string
+          solicitado_por: string
+        }
+        Insert: {
+          estado?: Database["public"]["Enums"]["estado_solicitud_receta"]
+          id?: string
+          mascota_id: string
+          nota_respuesta?: string | null
+          nota_tutor?: string | null
+          receta_item_id: string
+          receta_nueva_id?: string | null
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          solicitado_en?: string
+          solicitado_por?: string
+        }
+        Update: {
+          estado?: Database["public"]["Enums"]["estado_solicitud_receta"]
+          id?: string
+          mascota_id?: string
+          nota_respuesta?: string | null
+          nota_tutor?: string | null
+          receta_item_id?: string
+          receta_nueva_id?: string | null
+          resuelto_en?: string | null
+          resuelto_por?: string | null
+          solicitado_en?: string
+          solicitado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitud_reposicion_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitud_reposicion_receta_item_id_fkey"
+            columns: ["receta_item_id"]
+            isOneToOne: false
+            referencedRelation: "receta_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitud_reposicion_receta_nueva_id_fkey"
+            columns: ["receta_nueva_id"]
+            isOneToOne: false
+            referencedRelation: "receta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitud_reposicion_resuelto_por_fkey"
+            columns: ["resuelto_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitud_reposicion_solicitado_por_fkey"
+            columns: ["solicitado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1932,6 +2141,31 @@ export type Database = {
           tipo: string
         }[]
       }
+      anular_receta: {
+        Args: { p_motivo: string; p_receta_id: string }
+        Returns: {
+          anulada_en: string | null
+          codigo: string
+          consulta_id: string | null
+          creado_en: string
+          diagnostico: string | null
+          dispensada_en: string | null
+          emitida_en: string
+          estado: Database["public"]["Enums"]["estado_receta"]
+          id: string
+          indicaciones: string | null
+          mascota_id: string
+          motivo_anulacion: string | null
+          profesional_id: string
+          vence_el: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "receta"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       archivar_mascota: { Args: { p_mascota_id: string }; Returns: undefined }
       avisar_hallazgo: {
         Args: { p_contacto?: string; p_mensaje: string; p_token: string }
@@ -2127,6 +2361,38 @@ export type Database = {
         }[]
       }
       eliminar_mascota: { Args: { p_mascota_id: string }; Returns: undefined }
+      emitir_receta: {
+        Args: {
+          p_consulta_id?: string
+          p_diagnostico?: string
+          p_indicaciones?: string
+          p_items: Json
+          p_mascota_id: string
+          p_vence_el: string
+        }
+        Returns: {
+          anulada_en: string | null
+          codigo: string
+          consulta_id: string | null
+          creado_en: string
+          diagnostico: string | null
+          dispensada_en: string | null
+          emitida_en: string
+          estado: Database["public"]["Enums"]["estado_receta"]
+          id: string
+          indicaciones: string | null
+          mascota_id: string
+          motivo_anulacion: string | null
+          profesional_id: string
+          vence_el: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "receta"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       es_administrador: { Args: never; Returns: boolean }
       es_personal_clinica: { Args: never; Returns: boolean }
       es_titular_de: { Args: { p_mascota_id: string }; Returns: boolean }
@@ -2213,6 +2479,31 @@ export type Database = {
         Args: { p_mascota_id: string; p_nota?: string }
         Returns: undefined
       }
+      marcar_receta_dispensada: {
+        Args: { p_receta_id: string }
+        Returns: {
+          anulada_en: string | null
+          codigo: string
+          consulta_id: string | null
+          creado_en: string
+          diagnostico: string | null
+          dispensada_en: string | null
+          emitida_en: string
+          estado: Database["public"]["Enums"]["estado_receta"]
+          id: string
+          indicaciones: string | null
+          mascota_id: string
+          motivo_anulacion: string | null
+          profesional_id: string
+          vence_el: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "receta"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       mascota_id_del_path: { Args: { p_name: string }; Returns: string }
       mascota_por_qr: {
         Args: { p_token: string }
@@ -2240,6 +2531,7 @@ export type Database = {
           nombre: string
         }[]
       }
+      receta_para_imprimir: { Args: { p_receta_id: string }; Returns: Json }
       registrar_movimiento: {
         Args: {
           p_cantidad: number
@@ -2294,6 +2586,50 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reposiciones_pendientes: {
+        Args: never
+        Returns: {
+          dosis: string
+          especie: Database["public"]["Enums"]["especie"]
+          id: string
+          mascota: string
+          mascota_id: string
+          medicamento: string
+          nota_tutor: string
+          receta_codigo: string
+          receta_id: string
+          receta_vence_el: string
+          solicitado_en: string
+          solicitante: string
+        }[]
+      }
+      resolver_reposicion: {
+        Args: {
+          p_aprobar: boolean
+          p_nota?: string
+          p_receta_nueva_id?: string
+          p_solicitud_id: string
+        }
+        Returns: {
+          estado: Database["public"]["Enums"]["estado_solicitud_receta"]
+          id: string
+          mascota_id: string
+          nota_respuesta: string | null
+          nota_tutor: string | null
+          receta_item_id: string
+          receta_nueva_id: string | null
+          resuelto_en: string | null
+          resuelto_por: string | null
+          solicitado_en: string
+          solicitado_por: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "solicitud_reposicion"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       resumen_caja: {
         Args: never
         Returns: {
@@ -2329,6 +2665,28 @@ export type Database = {
           fin: string
           inicio: string
         }[]
+      }
+      solicitar_reposicion: {
+        Args: { p_nota?: string; p_receta_item_id: string }
+        Returns: {
+          estado: Database["public"]["Enums"]["estado_solicitud_receta"]
+          id: string
+          mascota_id: string
+          nota_respuesta: string | null
+          nota_tutor: string | null
+          receta_item_id: string
+          receta_nueva_id: string | null
+          resuelto_en: string | null
+          resuelto_por: string | null
+          solicitado_en: string
+          solicitado_por: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "solicitud_reposicion"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       solicitar_turno: {
         Args: {
@@ -2405,6 +2763,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      verificar_receta: { Args: { p_codigo: string }; Returns: Json }
       verificar_registro: {
         Args: { p_id: string; p_tabla: string }
         Returns: undefined
@@ -2419,7 +2778,9 @@ export type Database = {
         | "entregada"
         | "cancelada"
       estado_pago: "pendiente" | "aprobado" | "rechazado" | "devuelto"
+      estado_receta: "vigente" | "dispensada" | "anulada"
       estado_recordatorio: "pendiente" | "enviado" | "cancelado" | "fallido"
+      estado_solicitud_receta: "pendiente" | "aprobada" | "rechazada"
       estado_turno:
         | "solicitado"
         | "confirmado"
@@ -2596,7 +2957,9 @@ export const Constants = {
         "cancelada",
       ],
       estado_pago: ["pendiente", "aprobado", "rechazado", "devuelto"],
+      estado_receta: ["vigente", "dispensada", "anulada"],
       estado_recordatorio: ["pendiente", "enviado", "cancelado", "fallido"],
+      estado_solicitud_receta: ["pendiente", "aprobada", "rechazada"],
       estado_turno: [
         "solicitado",
         "confirmado",
