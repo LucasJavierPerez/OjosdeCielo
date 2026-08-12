@@ -15,6 +15,8 @@ import { useAuth } from '@ojosdecielo/ui/auth';
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { Layout } from '../componentes/Layout.js';
+import { useContactoTutor } from '../features/clinica/api.js';
+import { Historial } from '../features/clinica/Historial.js';
 import {
   usePaciente,
   useSaludPaciente,
@@ -36,6 +38,7 @@ export function FichaPaciente() {
   const { data: mascota, isLoading, isError, refetch } = usePaciente(supabase, id);
   const { data: salud } = useSaludPaciente(supabase, id);
   const { data: tutores } = useTutoresPaciente(supabase, id);
+  const { data: contacto } = useContactoTutor(supabase, id);
 
   const puedoVerificar = perfil ? puedeCargarHistoriaClinica(perfil.rol) : false;
 
@@ -82,6 +85,19 @@ export function FichaPaciente() {
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <section className="lg:col-span-1">
           <h2 className="text-sm font-medium text-slate-500">Tutores</h2>
+          {contacto && !contacto.vinculado_en && (
+            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+              <p className="font-medium text-amber-900">
+                {contacto.nombre} {contacto.apellido}
+              </p>
+              {contacto.telefono && <p className="text-amber-800">{contacto.telefono}</p>}
+              {contacto.email && <p className="text-amber-800">{contacto.email}</p>}
+              <p className="mt-1 text-xs text-amber-700">
+                Todavía no usa la app. Si se registra con este email, va a ver toda la historia.
+              </p>
+            </div>
+          )}
+
           <ul className="mt-2 space-y-2">
             {tutores?.map((t) => (
               <li key={t.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
@@ -105,6 +121,8 @@ export function FichaPaciente() {
         </section>
 
         <div className="space-y-6 lg:col-span-2">
+          <Historial mascotaId={id} />
+
           <Bloque titulo="Peso" vacio={!salud?.pesos.length}>
             {salud?.pesos.map((p) => (
               <FilaSalud

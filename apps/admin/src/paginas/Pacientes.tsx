@@ -19,14 +19,22 @@ export function Pacientes() {
 
   return (
     <Layout>
-      <div className="flex items-baseline justify-between gap-4">
-        <h1 className="text-xl font-semibold">Pacientes</h1>
-        {pacientes && (
-          <span className="text-sm text-slate-500">
-            {pacientes.length}
-            {pacientes.length === 50 && '+'} resultado{pacientes.length === 1 ? '' : 's'}
-          </span>
-        )}
+      <div className="flex flex-wrap items-baseline justify-between gap-4">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-xl font-semibold">Pacientes</h1>
+          {pacientes && (
+            <span className="text-sm text-slate-500">
+              {pacientes.length}
+              {pacientes.length === 50 && '+'} resultado{pacientes.length === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+        <Link
+          to="/pacientes/nuevo"
+          className="inline-flex min-h-11 items-center rounded-lg bg-marca-600 px-4 font-medium text-white hover:bg-marca-700"
+        >
+          Nuevo paciente
+        </Link>
       </div>
 
       <div className="mt-4">

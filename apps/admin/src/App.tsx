@@ -5,6 +5,7 @@ import { Navigate, Route, Routes } from 'react-router';
 import { Equipo } from './paginas/Equipo.js';
 import { FichaPaciente } from './paginas/FichaPaciente.js';
 import { Ingresar } from './paginas/Ingresar.js';
+import { NuevoPaciente } from './paginas/NuevoPaciente.js';
 import { Pacientes } from './paginas/Pacientes.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
 
@@ -26,6 +27,14 @@ export function App() {
         element={
           <Interna>
             <Pacientes />
+          </Interna>
+        }
+      />
+      <Route
+        path="/pacientes/nuevo"
+        element={
+          <Interna>
+            <NuevoPaciente />
           </Interna>
         }
       />

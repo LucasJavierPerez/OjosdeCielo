@@ -129,14 +129,17 @@ Fase corta y de alto impacto percibido: es la función que hace que la app se re
 ## Fase 6 — Historia clínica electrónica
 *La fase que decide si la clínica adopta el sistema.*
 
-- Cargar consulta: anamnesis, examen físico, diagnóstico, tratamiento, evolución
-- Historial cronológico con correcciones versionadas (`corrige_a`)
-- Adjuntos en bucket privado con URLs firmadas: radiografías, ecografías, laboratorio
-- Antecedentes diagnosticados por el profesional
-- Auditoría completa, incluida la lectura
-- App cliente: historial profesional integrado en la línea de tiempo que ya existía, y descarga de resultados
+- [x] Cargar consulta: anamnesis, examen físico, diagnóstico, tratamiento, evolución
+- [x] Historial cronológico con correcciones versionadas (`corrige_a`)
+- [x] Adjuntos en bucket privado con URLs firmadas: radiografías, ecografías, laboratorio
+- [x] Alta de pacientes desde la clínica, con tutor sin cuenta y vinculación automática
+- [x] El peso medido en consulta se suma a la curva del paciente
+- [x] App cliente: historial profesional y descarga de estudios
+- [ ] Antecedentes diagnosticados por el profesional desde el panel
+- [ ] Auditoría de **lectura** de historia clínica (hoy se audita la escritura)
+- [ ] Migración de datos desde el sistema actual de la clínica
 
-**Terminado cuando:** los veterinarios cargan consultas reales durante una semana sin volver al sistema anterior.
+**Terminado cuando:** los veterinarios cargan consultas reales durante una semana sin volver al sistema anterior. ⏳ *Funciona de punta a punta; falta el uso real.*
 
 **Recomendación fuerte:** sentarse a mirar trabajar a recepción y a un veterinario **antes** de diseñar estas pantallas. La fricción en la carga de la HCE es la causa número uno de abandono de estos sistemas.
 

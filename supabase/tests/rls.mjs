@@ -63,9 +63,23 @@ console.log('\n=== 3. El personal de la clínica ve todos los perfiles ===');
 {
   const { sb } = sesiones['recepcion@ojosdecielo.test'];
   const { data } = await sb.from('perfil').select('email');
-  data && data.length === 6
-    ? ok(`Recepción ve los 6 perfiles`)
-    : fail(`Recepción ve ${data?.length ?? 0} perfiles, esperaba 6`);
+
+  // Se verifica que estén los del seed, no un total exacto: corridas previas
+  // dejan usuarios de prueba y un conteo fijo daría un falso negativo.
+  const delSeed = [
+    'admin@ojosdecielo.test',
+    'vet@ojosdecielo.test',
+    'recepcion@ojosdecielo.test',
+    'ana@ejemplo.test',
+    'bruno@ejemplo.test',
+    'clara@ejemplo.test',
+  ];
+  const emails = new Set(data?.map((p) => p.email));
+  const faltan = delSeed.filter((e) => !emails.has(e));
+
+  faltan.length === 0
+    ? ok(`Recepción ve los ${data?.length} perfiles del sistema`)
+    : fail(`Recepción no ve: ${faltan.join(', ')}`);
 }
 
 console.log('\n=== 4. Un cliente NO puede auto-promoverse a veterinario ===');

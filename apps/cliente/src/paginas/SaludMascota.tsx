@@ -4,6 +4,7 @@ import { useParams } from 'react-router';
 import { Encabezado } from '../componentes/Encabezado.js';
 import { useMascota } from '../features/mascotas/api.js';
 import { useRealtimeMascota } from '../features/mascotas/tutores.js';
+import { HistorialClinico } from '../features/salud/HistorialClinico.js';
 import { SeccionAntecedentes } from '../features/salud/SeccionAntecedentes.js';
 import { SeccionAplicaciones } from '../features/salud/SeccionAplicaciones.js';
 import { SeccionMedicacion } from '../features/salud/SeccionMedicacion.js';
@@ -47,6 +48,7 @@ export function SaludMascota() {
       </p>
 
       <div className="mt-4">
+        <HistorialClinico mascotaId={mascota.id} />
         <SeccionPeso mascotaId={mascota.id} />
         <SeccionAplicaciones mascotaId={mascota.id} />
         <SeccionAntecedentes mascotaId={mascota.id} />
