@@ -128,6 +128,11 @@ export function FichaMascota() {
           titulo="Quién accede"
           detalle="Compartir el cuidado con otra persona"
         />
+        <EnlaceFicha
+          a={`/mascotas/${mascota.id}/ajustes`}
+          titulo="Ajustes"
+          detalle="Archivar, registrar fallecimiento o eliminar"
+        />
       </nav>
     </main>
   );

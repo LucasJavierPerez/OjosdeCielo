@@ -783,6 +783,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      archivar_mascota: { Args: { p_mascota_id: string }; Returns: undefined }
       buscar_pacientes: {
         Args: { p_texto?: string }
         Returns: {
@@ -835,6 +836,11 @@ export type Database = {
         }
       }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      dejar_mascota: { Args: { p_mascota_id: string }; Returns: undefined }
+      desarchivar_mascota: {
+        Args: { p_mascota_id: string }
+        Returns: undefined
+      }
       destinatarios_recordatorio: {
         Args: { p_recordatorio_id: string }
         Returns: {
@@ -845,13 +851,14 @@ export type Database = {
           sub_id: string
         }[]
       }
+      eliminar_mascota: { Args: { p_mascota_id: string }; Returns: undefined }
       es_administrador: { Args: never; Returns: boolean }
       es_personal_clinica: { Args: never; Returns: boolean }
       es_titular_de: { Args: { p_mascota_id: string }; Returns: boolean }
       es_tutor_de: { Args: { p_mascota_id: string }; Returns: boolean }
       es_veterinario: { Args: never; Returns: boolean }
       generar_recordatorios: {
-        Args: { p_dias_antes?: number }
+        Args: { p_aviso_previo?: number; p_dias_antes?: number }
         Returns: number
       }
       invitar_tutor: {
@@ -873,6 +880,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      marcar_fallecida: {
+        Args: { p_fecha?: string; p_mascota_id: string }
+        Returns: undefined
       }
       mascota_id_del_path: { Args: { p_name: string }; Returns: string }
       revocar_invitacion: {

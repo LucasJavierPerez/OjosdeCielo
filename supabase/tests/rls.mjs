@@ -714,6 +714,136 @@ console.log('\n=== 40. El log de notificaciones es privado ===');
     : fail(`FUGA: Clara ve ${data?.length} registros de envío`);
 }
 
+// ===========================================================================
+// Archivar, dejar y eliminar
+// ===========================================================================
+
+console.log('\n=== 41. Archivar y recuperar ===');
+{
+  const { data: m } = await clara.sb.rpc('crear_mascota', {
+    p_nombre: 'Temporal',
+    p_especie: 'gato',
+  });
+
+  const { error } = await clara.sb.rpc('archivar_mascota', { p_mascota_id: m.id });
+  error ? fail(`No pudo archivar: ${error.message}`) : ok('Clara archivó a Temporal');
+
+  const { data: activas } = await clara.sb
+    .from('mascota')
+    .select('id')
+    .eq('id', m.id)
+    .is('archivado_en', null);
+  activas?.length === 0 ? ok('Sale del listado activo') : fail('Sigue apareciendo como activa');
+
+  const { data: todas } = await clara.sb.from('mascota').select('id').eq('id', m.id);
+  todas?.length === 1 ? ok('Pero la ficha sigue accesible') : fail('Se perdió la ficha');
+
+  await clara.sb.rpc('desarchivar_mascota', { p_mascota_id: m.id });
+  const { data: recuperada } = await clara.sb
+    .from('mascota')
+    .select('id')
+    .eq('id', m.id)
+    .is('archivado_en', null);
+  recuperada?.length === 1 ? ok('Se recupera de archivados') : fail('No se pudo recuperar');
+
+  // Limpieza para no ensuciar los conteos de otras verificaciones.
+  await clara.sb.rpc('eliminar_mascota', { p_mascota_id: m.id });
+}
+
+console.log('\n=== 42. Un extraño no puede archivar ni eliminar ===');
+{
+  const { error: errArchivar } = await clara.sb.rpc('archivar_mascota', {
+    p_mascota_id: mascotaId,
+  });
+  errArchivar
+    ? ok('Clara no puede archivar una mascota ajena')
+    : fail('FUGA: Clara archivó la mascota de otro');
+
+  const { error: errBorrar } = await clara.sb.rpc('eliminar_mascota', {
+    p_mascota_id: mascotaId,
+  });
+  errBorrar ? ok('Clara no puede eliminarla') : fail('FUGA: Clara eliminó la mascota de otro');
+}
+
+console.log('\n=== 43. No se elimina una mascota compartida ===');
+{
+  // Bruno es titular de la mascota compartida tras la transferencia del test 19.
+  const { error } = await bruno.sb.rpc('eliminar_mascota', { p_mascota_id: mascotaId });
+  error && error.message.includes('archivarla')
+    ? ok('Se rechaza con un motivo entendible y ofrece archivar')
+    : fail(`Se eliminó una mascota que otra persona también cuida: ${error?.message}`);
+}
+
+console.log('\n=== 44. No se elimina si la clínica registró atención ===');
+{
+  const { data: m } = await clara.sb.rpc('crear_mascota', {
+    p_nombre: 'ConHistoria',
+    p_especie: 'perro',
+  });
+  // El veterinario ve todas las mascotas, así que puede registrar el peso.
+  await vet.sb.from('peso_registro').insert({ mascota_id: m.id, peso_kg: 8.5 });
+
+  const { error } = await clara.sb.rpc('eliminar_mascota', { p_mascota_id: m.id });
+  error && error.message.includes('archivarla')
+    ? ok('La historia clínica impide el borrado, y se explica por qué')
+    : fail(`Se borró una ficha con atención registrada: ${error?.message}`);
+
+  const { data: sigue } = await clara.sb.from('mascota').select('id').eq('id', m.id);
+  sigue?.length === 1 ? ok('La ficha sigue existiendo') : fail('La ficha desapareció');
+}
+
+console.log('\n=== 45. El titular no puede abandonar la mascota ===');
+{
+  const { error } = await bruno.sb.rpc('dejar_mascota', { p_mascota_id: mascotaId });
+  error
+    ? ok('El titular tiene que transferir antes de salir')
+    : fail('La mascota quedó sin titular');
+
+  // Ana es tutora no titular: ella sí puede salir.
+  const { error: errAna } = await ana.sb.rpc('dejar_mascota', { p_mascota_id: mascotaId });
+  errAna ? fail(`Ana no pudo salir: ${errAna.message}`) : ok('Una tutora sí puede salir');
+
+  const { data } = await ana.sb.from('mascota').select('id').eq('id', mascotaId);
+  data?.length === 0 ? ok('Ana dejó de ver la mascota') : fail('FUGA: sigue viéndola tras salir');
+
+  const { data: deBruno } = await bruno.sb.from('mascota').select('id').eq('id', mascotaId);
+  deBruno?.length === 1 ? ok('Bruno la conserva') : fail('La mascota desapareció para el titular');
+}
+
+console.log('\n=== 46. Marcar fallecida conserva la ficha ===');
+{
+  const { data: m } = await clara.sb.rpc('crear_mascota', {
+    p_nombre: 'Despedida',
+    p_especie: 'perro',
+  });
+  await clara.sb.from('aplicacion').insert({
+    mascota_id: m.id,
+    tipo: 'vacuna',
+    proxima_fecha: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+  });
+
+  const { error } = await clara.sb.rpc('marcar_fallecida', { p_mascota_id: m.id });
+  error ? fail(`No se pudo registrar: ${error.message}`) : ok('Se registró el fallecimiento');
+
+  const { data: ficha } = await clara.sb
+    .from('mascota')
+    .select('fallecido_en, archivado_en')
+    .eq('id', m.id)
+    .single();
+  ficha?.fallecido_en && !ficha?.archivado_en
+    ? ok('La ficha se conserva visible, no se esconde')
+    : fail('La ficha se archivó o no se marcó');
+
+  const { data: salud } = await clara.sb.from('aplicacion').select('id').eq('mascota_id', m.id);
+  salud?.length === 1 ? ok('El historial sigue accesible') : fail('Se perdió el historial');
+
+  const { error: errFutura } = await clara.sb.rpc('marcar_fallecida', {
+    p_mascota_id: m.id,
+    p_fecha: '2099-01-01',
+  });
+  errFutura ? ok('No acepta una fecha futura') : fail('Aceptó una fecha futura');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

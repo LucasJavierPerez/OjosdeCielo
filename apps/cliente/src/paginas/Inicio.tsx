@@ -1,13 +1,16 @@
 import { calcularEdad, describirMascota } from '@ojosdecielo/core';
 import { Boton, Cargando, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
+import { useState } from 'react';
 import { Link } from 'react-router';
-import { useMascotas } from '../features/mascotas/api.js';
+import { useCantidadArchivadas, useMascotas } from '../features/mascotas/api.js';
 import { FotoMascota } from '../features/mascotas/FotoMascota.js';
 
 export function Inicio() {
   const { perfil, cerrarSesion, supabase } = useAuth();
-  const { data: mascotas, isLoading, isError, refetch } = useMascotas(supabase);
+  const [verArchivadas, setVerArchivadas] = useState(false);
+  const { data: mascotas, isLoading, isError, refetch } = useMascotas(supabase, verArchivadas);
+  const { data: cantidadArchivadas = 0 } = useCantidadArchivadas(supabase);
 
   return (
     <main className="safe-top safe-bottom mx-auto min-h-dvh max-w-md px-6 py-8">
@@ -68,6 +71,8 @@ export function Inicio() {
                       <p className="truncate text-sm text-slate-500">
                         {describirMascota(m)}
                         {m.fecha_nacimiento && ` · ${calcularEdad(m.fecha_nacimiento)}`}
+                        {m.archivado_en && ' · archivada'}
+                        {m.fallecido_en && ' · falleció'}
                       </p>
                     </div>
                     <span aria-hidden="true" className="text-slate-400">
@@ -84,6 +89,18 @@ export function Inicio() {
             >
               Agregar otra mascota
             </Link>
+
+            {cantidadArchivadas > 0 && (
+              <Boton
+                variante="texto"
+                className="mt-3 w-full justify-center text-sm text-slate-500"
+                onClick={() => setVerArchivadas(!verArchivadas)}
+              >
+                {verArchivadas
+                  ? 'Ocultar archivadas'
+                  : `Ver ${cantidadArchivadas} archivada${cantidadArchivadas > 1 ? 's' : ''}`}
+              </Boton>
+            )}
           </>
         )}
       </section>

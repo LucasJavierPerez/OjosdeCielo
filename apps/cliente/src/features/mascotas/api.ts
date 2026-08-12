@@ -12,21 +12,34 @@ export const clavesMascotas = {
   tutores: (mascotaId: string) => ['mascotas', mascotaId, 'tutores'] as const,
 };
 
-export function useMascotas(supabase: ClienteSupabase) {
+export function useMascotas(supabase: ClienteSupabase, incluirArchivadas = false) {
   return useQuery({
-    queryKey: clavesMascotas.todas,
+    queryKey: [...clavesMascotas.todas, { incluirArchivadas }],
     queryFn: async (): Promise<Mascota[]> => {
       // Sin filtro por tutor: RLS ya devuelve sólo las mascotas accesibles.
       // Filtrar acá además sería redundante y daría la falsa impresión de que
       // la seguridad depende de esta consulta.
-      const { data, error } = await supabase
-        .from('mascota')
-        .select('*')
-        .is('archivado_en', null)
-        .order('creado_en', { ascending: true });
+      let consulta = supabase.from('mascota').select('*');
+      if (!incluirArchivadas) consulta = consulta.is('archivado_en', null);
 
+      const { data, error } = await consulta.order('creado_en', { ascending: true });
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+/** Cuántas mascotas archivadas hay, para ofrecer verlas sin ocupar la pantalla. */
+export function useCantidadArchivadas(supabase: ClienteSupabase) {
+  return useQuery({
+    queryKey: [...clavesMascotas.todas, 'archivadas'],
+    queryFn: async (): Promise<number> => {
+      const { count, error } = await supabase
+        .from('mascota')
+        .select('id', { count: 'exact', head: true })
+        .not('archivado_en', 'is', null);
+      if (error) throw error;
+      return count ?? 0;
     },
   });
 }
