@@ -143,6 +143,188 @@ console.log('\n=== 9. El anónimo no ve perfiles ===');
     : fail(`Anónimo ve ${data?.length} perfiles`);
 }
 
+// ===========================================================================
+// Mascotas compartidas (fase 1)
+//
+// Ana es titular de Pulga e invita a Bruno. Clara no tiene relación con ellos
+// y es el control: si Clara ve algo de Pulga, el aislamiento está roto.
+// ===========================================================================
+
+const ana = sesiones['ana@ejemplo.test'];
+const bruno = await comoUsuario('bruno@ejemplo.test');
+const clara = await comoUsuario('clara@ejemplo.test');
+
+console.log('\n=== 10. Alta de mascota: quien la crea queda como titular ===');
+let mascotaId;
+{
+  const { data, error } = await ana.sb.rpc('crear_mascota', {
+    p_nombre: 'Pulga',
+    p_especie: 'perro',
+    p_raza: 'Mestiza',
+    p_sexo: 'hembra',
+  });
+  mascotaId = data?.id;
+  if (error || !mascotaId) {
+    fail(`Ana no pudo crear la mascota: ${error?.message}`);
+  } else {
+    ok('Ana creó a Pulga');
+    const { data: vinculo } = await ana.sb
+      .from('mascota_tutor')
+      .select('rol')
+      .eq('mascota_id', mascotaId)
+      .single();
+    vinculo?.rol === 'titular'
+      ? ok('Quedó como titular, en la misma transacción')
+      : fail(`Rol inesperado: ${vinculo?.rol}`);
+  }
+}
+
+console.log('\n=== 11. Sin invitación, nadie más ve la mascota ===');
+{
+  for (const [nombre, s] of [
+    ['Bruno', bruno],
+    ['Clara', clara],
+  ]) {
+    const { data } = await s.sb.from('mascota').select('nombre').eq('id', mascotaId);
+    data?.length === 0
+      ? ok(`${nombre} no ve a Pulga`)
+      : fail(`FUGA: ${nombre} ve a Pulga sin ser tutor`);
+  }
+}
+
+console.log('\n=== 12. Un no-titular no puede invitar ===');
+{
+  const { error } = await bruno.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+  error
+    ? ok(`Bruno no puede invitar (${error.message})`)
+    : fail('Bruno pudo invitar sin ser tutor');
+}
+
+console.log('\n=== 13. El titular invita y el invitado acepta ===');
+let token;
+{
+  const { data, error } = await ana.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+  token = data?.token;
+  token ? ok('Ana generó el enlace de invitación') : fail(`No pudo invitar: ${error?.message}`);
+
+  const { error: errAceptar } = await bruno.sb.rpc('aceptar_invitacion', { p_token: token });
+  errAceptar ? fail(`Bruno no pudo aceptar: ${errAceptar.message}`) : ok('Bruno aceptó');
+
+  const { data: vista } = await bruno.sb.from('mascota').select('nombre').eq('id', mascotaId);
+  vista?.[0]?.nombre === 'Pulga' ? ok('Bruno ahora ve a Pulga') : fail('Bruno no ve a Pulga');
+
+  const { data: clarita } = await clara.sb.from('mascota').select('nombre').eq('id', mascotaId);
+  clarita?.length === 0 ? ok('Clara sigue sin ver nada') : fail('FUGA: Clara ve a Pulga');
+}
+
+console.log('\n=== 14. El enlace es de un solo uso ===');
+{
+  const { error } = await clara.sb.rpc('aceptar_invitacion', { p_token: token });
+  error ? ok('Un token ya usado no sirve') : fail('FUGA: Clara entró con un token ya consumido');
+}
+
+console.log('\n=== 15. Un token inventado no sirve ===');
+{
+  const { error } = await clara.sb.rpc('aceptar_invitacion', { p_token: 'a'.repeat(48) });
+  error ? ok('Token inválido rechazado') : fail('FUGA: aceptó un token inventado');
+}
+
+console.log('\n=== 16. Un tutor invitado edita la mascota pero no gestiona accesos ===');
+{
+  const { error: errEditar } = await bruno.sb
+    .from('mascota')
+    .update({ color: 'Marrón' })
+    .eq('id', mascotaId);
+  errEditar ? fail(`Bruno no pudo editar: ${errEditar.message}`) : ok('Bruno editó la ficha');
+
+  const { error: errInvitar } = await bruno.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+  errInvitar ? ok('Bruno no puede invitar a otros') : fail('ESCALADA: un tutor invitó a otro');
+
+  const { error: errRevocar } = await bruno.sb.rpc('revocar_tutor', {
+    p_mascota_id: mascotaId,
+    p_perfil_id: ana.userId,
+  });
+  errRevocar
+    ? ok('Bruno no puede expulsar a la titular')
+    : fail('ESCALADA: un tutor invitado expulsó a la titular');
+}
+
+console.log('\n=== 17. El titular no puede dejar la mascota sin titular ===');
+{
+  const { error } = await ana.sb.rpc('revocar_tutor', {
+    p_mascota_id: mascotaId,
+    p_perfil_id: ana.userId,
+  });
+  error
+    ? ok('Ana no puede revocarse a sí misma')
+    : fail('Pulga quedó sin titular: nadie puede gestionarla');
+}
+
+console.log('\n=== 18. Revocar un acceso lo corta de verdad ===');
+{
+  const { error } = await ana.sb.rpc('revocar_tutor', {
+    p_mascota_id: mascotaId,
+    p_perfil_id: bruno.userId,
+  });
+  error ? fail(`Ana no pudo revocar: ${error.message}`) : ok('Ana revocó el acceso de Bruno');
+
+  const { data } = await bruno.sb.from('mascota').select('nombre').eq('id', mascotaId);
+  data?.length === 0 ? ok('Bruno dejó de ver a Pulga') : fail('FUGA: acceso revocado sigue activo');
+
+  const { error: errEditar } = await bruno.sb
+    .from('mascota')
+    .update({ color: 'Negro' })
+    .eq('id', mascotaId);
+  const { data: check } = await ana.sb.from('mascota').select('color').eq('id', mascotaId).single();
+  check?.color === 'Marrón'
+    ? ok('Bruno tampoco puede editarla')
+    : fail(`FUGA: Bruno editó tras la revocación (${errEditar?.message ?? 'sin error'})`);
+}
+
+console.log('\n=== 19. Transferir la titularidad ===');
+{
+  // Bruno vuelve a entrar con una invitación nueva.
+  const { data: inv } = await ana.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+  await bruno.sb.rpc('aceptar_invitacion', { p_token: inv.token });
+
+  const { error } = await ana.sb.rpc('transferir_titularidad', {
+    p_mascota_id: mascotaId,
+    p_nuevo_titular: bruno.userId,
+  });
+  error ? fail(`No pudo transferir: ${error.message}`) : ok('Ana transfirió la titularidad');
+
+  const { data: tutores } = await bruno.sb
+    .from('mascota_tutor')
+    .select('perfil_id, rol')
+    .eq('mascota_id', mascotaId)
+    .is('revocado_en', null);
+  const titulares = tutores?.filter((t) => t.rol === 'titular') ?? [];
+  titulares.length === 1 && titulares[0].perfil_id === bruno.userId
+    ? ok('Bruno es ahora el único titular')
+    : fail(`Titulares tras la transferencia: ${titulares.length}`);
+
+  const { error: errAna } = await ana.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+  errAna ? ok('Ana ya no gestiona accesos') : fail('Ana conservó permisos de titular');
+}
+
+console.log('\n=== 20. El personal de la clínica ve las mascotas ===');
+{
+  const { data } = await sesiones['vet@ojosdecielo.test'].sb
+    .from('mascota')
+    .select('nombre')
+    .eq('id', mascotaId);
+  data?.length === 1 ? ok('El veterinario ve a Pulga') : fail('El veterinario no ve la mascota');
+}
+
+console.log('\n=== 21. El anónimo no ve mascotas ===');
+{
+  const anon = createClient(URL, ANON);
+  const { data, error } = await anon.from('mascota').select('nombre');
+  error || data?.length === 0
+    ? ok('Sin sesión no se accede a mascota')
+    : fail(`FUGA: anónimo ve ${data?.length} mascotas`);
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

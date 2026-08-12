@@ -42,23 +42,34 @@ Existe por la Decisión 11 (mono-tenant): **nada específico de la veterinaria s
 
 `notas_internas` es visible sólo para el personal de la clínica. La política RLS lo garantiza; además se expone una vista sin esa columna para la app cliente.
 
-**`mascota`**
-`nombre`, `especie`, `raza`, `sexo`, `fecha_nacimiento`, `castrado`, `color`, `foto_url`, `microchip`, `fallecido_en`
+**`mascota`** · **implementada**
+`nombre`, `especie`, `raza`, `sexo`, `fecha_nacimiento`, `castrado`, `color`, `foto_url`, `microchip`, `fallecido_en`, `archivado_en`
 
 **No tiene `cliente_id`.** La propiedad se resuelve por `mascota_tutor` (Decisión 12).
 
-**`mascota_tutor`** — tabla de unión, el corazón del modelo de acceso
-`mascota_id`, `cliente_id`, `rol` (`titular` \| `tutor`), `invitado_por`, `desde`, `revocado_en`
+El alta va por la RPC `crear_mascota()`, que inserta la mascota y el vínculo de titular **en la misma transacción**. Hacerlo en dos pasos desde el cliente dejaría, ante un fallo del segundo, una mascota sin dueño: invisible para todos y sin forma de recuperarla.
 
-- Único titular por mascota: índice único parcial sobre `(mascota_id)` donde `rol = 'titular' AND revocado_en IS NULL`.
+**`mascota_tutor`** — tabla de unión, el corazón del modelo de acceso · **implementada**
+`mascota_id`, `perfil_id`, `rol` (`titular` \| `tutor`), `invitado_por`, `desde`, `revocado_en`
+
+Referencia `perfil` directamente, no una tabla `cliente` intermedia. Esa tabla (dirección, notas internas, saldo) recién hace falta con el panel clínico; anticiparla agregaría un JOIN a **cada** política RLS del sistema a cambio de nada.
+
+- Único titular por mascota: índice único parcial sobre `(mascota_id)` donde `rol = 'titular' AND revocado_en IS NULL`. Otro índice parcial impide que la misma persona figure dos veces.
 - El titular invita, revoca y transfiere la titularidad. Los tutores ven todo, cargan datos de salud y gestionan turnos, pero no manejan accesos.
-- **Toda política RLS sobre datos de una mascota pasa por esta tabla.** Es el punto único de falla del aislamiento entre clientes: necesita índices sobre `mascota_id` y `cliente_id`, y auditoría cada vez que se toca.
+- **Toda política RLS sobre datos de una mascota pasa por esta tabla.** Es el punto único de falla del aislamiento entre clientes: índices sobre `mascota_id` y `perfil_id`, y auditoría cada vez que se toca.
 - Los accesos se revocan de forma lógica, nunca se borran — hace falta el rastro de quién tuvo acceso y hasta cuándo.
+- **Sin políticas de escritura directa.** Invitar, aceptar, revocar y transferir van por RPC `SECURITY DEFINER` (`supabase/migrations/*_rpc_tutores.sql`), para que las reglas vivan en un solo lugar auditable.
 
-**`invitacion_tutor`**
-`mascota_id`, `email`, `token` (opaco), `invitado_por`, `vence_en`, `aceptada_en`, `aceptada_por`, `revocada_en`
+**`invitacion_tutor`** · **implementada**
+`mascota_id`, `token` (opaco), `creada_por`, `vence_en`, `aceptada_en`, `aceptada_por`, `revocada_en`
 
-Permite invitar a alguien que todavía no tiene cuenta: la invitación queda pendiente y se activa al registrarse con ese email. Token opaco, vencimiento obligatorio, un solo uso.
+Invitación por **enlace para compartir** — el titular lo manda por donde quiera, típicamente WhatsApp. Token aleatorio de 48 caracteres, vencimiento a 7 días, un solo uso.
+
+Quien recibe el enlace **no puede leer esta tabla**: aceptar va por RPC. Si pudiera consultarla por token, podría enumerar invitaciones ajenas.
+
+El envío por email queda para más adelante: requiere proveedor, dominio verificado y manejo de rebotes, y se apoya sobre esta misma tabla.
+
+**Helpers de acceso** — `es_tutor_de(mascota_id)` y `es_titular_de(mascota_id)`, ambos `SECURITY DEFINER` con `search_path` fijo. Son `SECURITY DEFINER` por dos motivos: evitan la recursión infinita (la política de `mascota_tutor` necesita consultar `mascota_tutor`) y, al ser `STABLE`, se evalúan una vez por consulta en lugar de por fila.
 
 **`mascota_token_qr`**
 `mascota_id`, `token` (aleatorio, único, indexado), `activo`, `revocado_en`

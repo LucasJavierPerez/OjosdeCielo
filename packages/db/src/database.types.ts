@@ -115,6 +115,167 @@ export type Database = {
         }
         Relationships: []
       }
+      invitacion_tutor: {
+        Row: {
+          aceptada_en: string | null
+          aceptada_por: string | null
+          creada_por: string
+          creado_en: string
+          id: string
+          mascota_id: string
+          revocada_en: string | null
+          token: string
+          vence_en: string
+        }
+        Insert: {
+          aceptada_en?: string | null
+          aceptada_por?: string | null
+          creada_por: string
+          creado_en?: string
+          id?: string
+          mascota_id: string
+          revocada_en?: string | null
+          token?: string
+          vence_en?: string
+        }
+        Update: {
+          aceptada_en?: string | null
+          aceptada_por?: string | null
+          creada_por?: string
+          creado_en?: string
+          id?: string
+          mascota_id?: string
+          revocada_en?: string | null
+          token?: string
+          vence_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitacion_tutor_aceptada_por_fkey"
+            columns: ["aceptada_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitacion_tutor_creada_por_fkey"
+            columns: ["creada_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitacion_tutor_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mascota: {
+        Row: {
+          actualizado_en: string | null
+          archivado_en: string | null
+          castrado: boolean | null
+          color: string | null
+          creado_en: string
+          especie: Database["public"]["Enums"]["especie"]
+          fallecido_en: string | null
+          fecha_nacimiento: string | null
+          foto_url: string | null
+          id: string
+          microchip: string | null
+          nombre: string
+          raza: string | null
+          sexo: Database["public"]["Enums"]["sexo_mascota"]
+        }
+        Insert: {
+          actualizado_en?: string | null
+          archivado_en?: string | null
+          castrado?: boolean | null
+          color?: string | null
+          creado_en?: string
+          especie: Database["public"]["Enums"]["especie"]
+          fallecido_en?: string | null
+          fecha_nacimiento?: string | null
+          foto_url?: string | null
+          id?: string
+          microchip?: string | null
+          nombre: string
+          raza?: string | null
+          sexo?: Database["public"]["Enums"]["sexo_mascota"]
+        }
+        Update: {
+          actualizado_en?: string | null
+          archivado_en?: string | null
+          castrado?: boolean | null
+          color?: string | null
+          creado_en?: string
+          especie?: Database["public"]["Enums"]["especie"]
+          fallecido_en?: string | null
+          fecha_nacimiento?: string | null
+          foto_url?: string | null
+          id?: string
+          microchip?: string | null
+          nombre?: string
+          raza?: string | null
+          sexo?: Database["public"]["Enums"]["sexo_mascota"]
+        }
+        Relationships: []
+      }
+      mascota_tutor: {
+        Row: {
+          desde: string
+          id: string
+          invitado_por: string | null
+          mascota_id: string
+          perfil_id: string
+          revocado_en: string | null
+          rol: Database["public"]["Enums"]["rol_tutor"]
+        }
+        Insert: {
+          desde?: string
+          id?: string
+          invitado_por?: string | null
+          mascota_id: string
+          perfil_id: string
+          revocado_en?: string | null
+          rol?: Database["public"]["Enums"]["rol_tutor"]
+        }
+        Update: {
+          desde?: string
+          id?: string
+          invitado_por?: string | null
+          mascota_id?: string
+          perfil_id?: string
+          revocado_en?: string | null
+          rol?: Database["public"]["Enums"]["rol_tutor"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mascota_tutor_invitado_por_fkey"
+            columns: ["invitado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mascota_tutor_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mascota_tutor_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfil: {
         Row: {
           activo: boolean
@@ -162,14 +323,106 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      aceptar_invitacion: {
+        Args: { p_token: string }
+        Returns: {
+          actualizado_en: string | null
+          archivado_en: string | null
+          castrado: boolean | null
+          color: string | null
+          creado_en: string
+          especie: Database["public"]["Enums"]["especie"]
+          fallecido_en: string | null
+          fecha_nacimiento: string | null
+          foto_url: string | null
+          id: string
+          microchip: string | null
+          nombre: string
+          raza: string | null
+          sexo: Database["public"]["Enums"]["sexo_mascota"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "mascota"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      crear_mascota: {
+        Args: {
+          p_castrado?: boolean
+          p_color?: string
+          p_especie: Database["public"]["Enums"]["especie"]
+          p_fecha_nacimiento?: string
+          p_microchip?: string
+          p_nombre: string
+          p_raza?: string
+          p_sexo?: Database["public"]["Enums"]["sexo_mascota"]
+        }
+        Returns: {
+          actualizado_en: string | null
+          archivado_en: string | null
+          castrado: boolean | null
+          color: string | null
+          creado_en: string
+          especie: Database["public"]["Enums"]["especie"]
+          fallecido_en: string | null
+          fecha_nacimiento: string | null
+          foto_url: string | null
+          id: string
+          microchip: string | null
+          nombre: string
+          raza: string | null
+          sexo: Database["public"]["Enums"]["sexo_mascota"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "mascota"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       es_administrador: { Args: never; Returns: boolean }
       es_personal_clinica: { Args: never; Returns: boolean }
+      es_titular_de: { Args: { p_mascota_id: string }; Returns: boolean }
+      es_tutor_de: { Args: { p_mascota_id: string }; Returns: boolean }
       es_veterinario: { Args: never; Returns: boolean }
+      invitar_tutor: {
+        Args: { p_mascota_id: string }
+        Returns: {
+          aceptada_en: string | null
+          aceptada_por: string | null
+          creada_por: string
+          creado_en: string
+          id: string
+          mascota_id: string
+          revocada_en: string | null
+          token: string
+          vence_en: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invitacion_tutor"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      revocar_tutor: {
+        Args: { p_mascota_id: string; p_perfil_id: string }
+        Returns: undefined
+      }
       rol_actual: { Args: never; Returns: Database["public"]["Enums"]["rol"] }
+      transferir_titularidad: {
+        Args: { p_mascota_id: string; p_nuevo_titular: string }
+        Returns: undefined
+      }
     }
     Enums: {
+      especie: "perro" | "gato" | "ave" | "roedor" | "reptil" | "otro"
       rol: "cliente" | "recepcionista" | "veterinario" | "administrador"
+      rol_tutor: "titular" | "tutor"
+      sexo_mascota: "macho" | "hembra" | "desconocido"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -300,7 +553,10 @@ export const Constants = {
   },
   public: {
     Enums: {
+      especie: ["perro", "gato", "ave", "roedor", "reptil", "otro"],
       rol: ["cliente", "recepcionista", "veterinario", "administrador"],
+      rol_tutor: ["titular", "tutor"],
+      sexo_mascota: ["macho", "hembra", "desconocido"],
     },
   },
 } as const
