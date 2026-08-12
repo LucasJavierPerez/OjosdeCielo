@@ -43,14 +43,11 @@ create index audit_log_tabla_registro_idx on public.audit_log (tabla, registro_i
 create index audit_log_usuario_idx on public.audit_log (usuario_id, creado_en desc);
 create index audit_log_creado_en_idx on public.audit_log (creado_en desc);
 
+-- RLS habilitada sin políticas: nadie accede. La política de lectura se agrega
+-- en 20260812120100, que es donde se define es_personal_clinica() — depende del
+-- tipo public.rol y no puede existir todavía. Este estado intermedio es el
+-- seguro: sin política, la tabla queda cerrada.
 alter table public.audit_log enable row level security;
-
--- Sólo el personal de la clínica lee la auditoría. Nadie la escribe desde la
--- API: las filas las inserta el trigger, que corre como SECURITY DEFINER.
-create policy "personal lee auditoria"
-  on public.audit_log for select
-  to authenticated
-  using (public.es_personal_clinica());
 
 create or replace function public.registrar_auditoria()
 returns trigger
@@ -61,10 +58,12 @@ as $$
 declare
   v_registro_id text;
 begin
-  v_registro_id := coalesce(
-    (case when tg_op = 'DELETE' then old else new end)::jsonb ->> 'id',
-    null
-  );
+  -- to_jsonb() y no un cast directo: en plpgsql un record no se puede castear
+  -- a jsonb (SQLSTATE 42846).
+  v_registro_id := case
+    when tg_op = 'DELETE' then to_jsonb(old) ->> 'id'
+    else to_jsonb(new) ->> 'id'
+  end;
 
   insert into public.audit_log (usuario_id, tabla, registro_id, accion, datos_antes, datos_despues)
   values (

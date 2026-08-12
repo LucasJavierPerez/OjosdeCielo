@@ -79,10 +79,35 @@ as $$
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Política pendiente de audit_log
+--
+-- La tabla se creó en la migración anterior con RLS habilitada y sin políticas
+-- (cerrada). Recién acá existe es_personal_clinica() para poder abrir lectura.
+--
+-- Sólo SELECT: las filas las inserta el trigger, que corre como SECURITY
+-- DEFINER. Nadie escribe ni borra auditoría desde la API, ni el administrador.
+-- ---------------------------------------------------------------------------
+
+create policy "personal lee auditoria"
+  on public.audit_log for select
+  to authenticated
+  using (public.es_personal_clinica());
+
+-- ---------------------------------------------------------------------------
 -- RLS de perfil
 -- ---------------------------------------------------------------------------
 
 alter table public.perfil enable row level security;
+
+-- Los GRANT son la primera capa: sin ellos PostgREST devuelve "permission
+-- denied" antes de llegar a evaluar RLS. RLS filtra *qué filas*; el GRANT
+-- decide si la tabla es accesible. Hacen falta los dos.
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on public.perfil to authenticated;
+
+-- Sólo lectura: la auditoría la escribe el trigger, que corre como SECURITY
+-- DEFINER. Ni el administrador puede insertarla o borrarla desde la API.
+grant select on public.audit_log to authenticated;
 
 create policy "cada uno ve su perfil"
   on public.perfil for select
@@ -143,10 +168,15 @@ create trigger crear_perfil_al_registrarse
 -- devuelve siempre 'cliente' y el personal de la clínica no ve nada.
 -- ---------------------------------------------------------------------------
 
+-- SECURITY DEFINER es imprescindible: GoTrue ejecuta este hook como
+-- supabase_auth_admin, que NO bypassa RLS. Sin esto, el SELECT sobre perfil no
+-- matchea ninguna política, devuelve cero filas y el coalesce cae a 'cliente'
+-- silenciosamente — todo el personal de la clínica queda sin acceso.
 create or replace function public.custom_access_token_hook(event jsonb)
 returns jsonb
 language plpgsql
 stable
+security definer
 set search_path = public, pg_temp
 as $$
 declare

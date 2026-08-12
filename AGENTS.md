@@ -51,7 +51,17 @@ pnpm db:stop
 pnpm db:reset                 # reaplica todas las migraciones desde cero
 pnpm db:new <nombre>          # crea una migración vacía
 pnpm db:types                 # regenera packages/db/src/database.types.ts
+pnpm test:rls                 # verifica el aislamiento entre roles y clientes
 ```
+
+**`pnpm test:rls` se corre después de cualquier cambio en políticas RLS**, y se
+amplía con un caso nuevo por cada política nueva. Vive en `supabase/tests/rls.mjs`
+y usa la anon key, igual que el navegador: prueba el sistema como lo ve un
+atacante. Consultar la base como `postgres` no sirve para esto — postgres
+bypassa RLS y todo parece correcto.
+
+Usuarios del seed local (contraseña `password123` en todos):
+`admin@`, `vet@`, `recepcion@` `ojosdecielo.test` · `ana@`, `bruno@`, `clara@` `ejemplo.test`
 
 `database.types.ts` es **generado**: no se edita a mano. Después de cualquier
 migración, correr `pnpm db:types`.

@@ -39,11 +39,20 @@ jobs:
           VITE_SUPABASE_URL: http://127.0.0.1:54321
           VITE_SUPABASE_ANON_KEY: ci-placeholder
 
-  migraciones:
-    name: Migraciones aplican limpio
+  base-de-datos:
+    name: Migraciones y aislamiento RLS
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
 
       - uses: supabase/setup-cli@v1
         with:
@@ -51,5 +60,8 @@ jobs:
 
       # Detecta migraciones que no corren desde cero: el error más caro de
       # descubrir en producción.
-      - run: supabase db start
-      - run: supabase db reset
+      - run: supabase start
+
+      # Verifica que un cliente no pueda ver datos de otro ni escalar
+      # privilegios. Es la regla más importante del proyecto (AGENTS.md, 1).
+      - run: pnpm test:rls

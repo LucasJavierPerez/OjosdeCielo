@@ -29,6 +29,10 @@ create trigger configuracion_clinica_actualizado_en
 
 alter table public.configuracion_clinica enable row level security;
 
+-- anon incluido: la app muestra nombre y logo antes del login.
+grant select on public.configuracion_clinica to anon, authenticated;
+grant update on public.configuracion_clinica to authenticated;
+
 -- Lectura pública: la app necesita el nombre y el logo antes del login.
 -- No hay nada sensible acá; si algún día lo hubiera, va en otra tabla.
 create policy "cualquiera lee la configuracion"
