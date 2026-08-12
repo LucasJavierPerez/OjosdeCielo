@@ -158,17 +158,17 @@ Fase corta y de alto impacto percibido: es la función que hace que la app se re
 
 ## Fase 7 — Inventario, tienda y caja
 
-- Productos, categorías, lotes con vencimiento
-- Stock como suma de movimientos; alertas de mínimo y de vencimiento próximo
-- Venta de mostrador en el panel
-- Catálogo y carrito en la app cliente
-- MercadoPago Checkout Pro + webhook idempotente
-- Reserva de stock con expiración durante el pago
-- Turno de caja: apertura, cierre, arqueo y diferencias
-- Comprobantes internos numerados correlativamente
-- Uso clínico de productos (ver punto abierto en `modelo-datos.md`)
+- [x] Productos, categorías, lotes con vencimiento
+- [x] Stock como suma de movimientos; alertas de mínimo y de vencimiento próximo
+- [x] Venta de mostrador en el panel
+- [x] Catálogo y carrito en la app cliente
+- [x] MercadoPago Checkout Pro + webhook idempotente
+- [x] Reserva de stock con expiración durante el pago
+- [x] Turno de caja: apertura, cierre, arqueo y diferencias
+- [x] Comprobantes internos numerados correlativamente
+- [x] Uso clínico de productos (movimiento `uso_clinico`, descuenta sin pasar por caja)
 
-**Terminado cuando:** una venta desde la app descuenta stock, queda en caja y genera comprobante, sin tocar nada a mano.
+**Terminado cuando:** una venta desde la app descuenta stock, queda en caja y genera comprobante, sin tocar nada a mano. ⚠️ *Todo verificado salvo el cobro real: el checkout de MercadoPago necesita credenciales de la clínica. El webhook está probado con avisos simulados —cuatro idénticos no duplican nada— pero nunca habló con MercadoPago de verdad.*
 
 Fase de mayor riesgo técnico: dinero, stock y concurrencia. Conviene atacarla con el equipo ya familiarizado con el sistema.
 
