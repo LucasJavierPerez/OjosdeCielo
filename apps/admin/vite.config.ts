@@ -6,6 +6,7 @@ import { defineConfig } from 'vite';
 // service worker (docs/stack.md, Decisión 4).
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  envDir: '../..',
   server: { port: 5174 },
   build: { sourcemap: true },
 });

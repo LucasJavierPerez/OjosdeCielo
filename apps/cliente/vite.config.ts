@@ -66,6 +66,8 @@ export default defineConfig({
       },
     }),
   ],
+  // Un solo .env en la raíz del monorepo, compartido por las dos apps.
+  envDir: '../..',
   server: {
     port: 5173,
   },

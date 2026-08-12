@@ -1,7 +1,12 @@
 import { useAuth } from '@ojosdecielo/ui/auth';
+import { Navigate } from 'react-router';
 
 export function SinAcceso() {
-  const { cerrarSesion } = useAuth();
+  const { cerrarSesion, session } = useAuth();
+
+  // Sin sesión no hay nada que explicar acá: al cerrar sesión, esta pantalla
+  // deja de tener sentido y hay que volver al login.
+  if (!session) return <Navigate to="/ingresar" replace />;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 text-center">
