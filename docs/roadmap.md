@@ -26,15 +26,15 @@ Las estimaciones asumen un desarrollador principal trabajando de forma sostenida
 
 ---
 
-## Fase 1 — Mascota compartida
-*Primera fase con valor real para el usuario final.*
+## Fase 1 — Mascota compartida ✅
+*Primera fase con valor real para el usuario final. **Completada.***
 
 - [x] Ficha de mascota: alta, foto, especie, raza, fecha de nacimiento, castrado, microchip
 - [x] **`mascota_tutor` y todas las políticas RLS que dependen de ella** — el punto más delicado del esquema de seguridad
 - [x] Invitación de tutores por **enlace para compartir**, con vencimiento a 7 días y un solo uso
 - [x] Gestión de accesos: el titular invita, revoca, anula invitaciones y transfiere la titularidad
 - [x] Supabase Realtime en la ficha compartida
-- [ ] **Panel admin mínimo: buscar y ver clientes y mascotas (solo lectura)** — pendiente
+- [x] Panel admin: buscar y ver clientes y mascotas
 
 **Terminado cuando:** dos personas comparten la misma mascota, una edita la ficha y la otra lo ve aparecer sin recargar. ✅ *Verificado en el navegador con Ana y Bruno.*
 
@@ -44,8 +44,8 @@ Las estimaciones asumen un desarrollador principal trabajando de forma sostenida
 
 ---
 
-## Fase 2 — Salud autogestionada
-*El tutor construye el historial de su mascota sin depender de nadie.*
+## Fase 2 — Salud autogestionada ✅
+*El tutor construye el historial de su mascota sin depender de nadie. **Completada**, salvo la línea de tiempo unificada.*
 
 - [x] Bloque de origen (`origen` / `cargado_por` / `verificado_por`) en las cuatro tablas de salud
 - [x] Registro de peso + gráfico de evolución, con los dos orígenes distinguidos
@@ -54,7 +54,7 @@ Las estimaciones asumen un desarrollador principal trabajando de forma sostenida
 - [x] Medicación en curso
 - [x] `verificar_registro()`: un veterinario confirma un dato del tutor sin cambiarle el origen
 - [ ] Línea de tiempo unificada de la salud — hoy son secciones separadas, no un orden cronológico único
-- [ ] Panel admin: ver lo que cargó el tutor, **marcado como reportado**, con botón de verificar
+- [x] Panel admin: ve lo que cargó el tutor **marcado como reportado**, con botón de verificar
 
 **Terminado cuando:** un tutor carga el carnet de vacunación completo de su mascota y ve la próxima fecha calculada. ✅ *Verificado en el navegador.*
 
@@ -136,7 +136,7 @@ Fase corta y de alto impacto percibido: es la función que hace que la app se re
 - [x] El peso medido en consulta se suma a la curva del paciente
 - [x] App cliente: historial profesional y descarga de estudios
 - [ ] Antecedentes diagnosticados por el profesional desde el panel
-- [ ] Auditoría de **lectura** de historia clínica (hoy se audita la escritura)
+- [ ] Auditoría de **lectura** — buena práctica, no obligación legal (ver `stack.md`, Protección de datos personales). Tiene sentido cuando la clínica tenga varios empleados
 - [ ] Migración de datos desde el sistema actual de la clínica
 
 **Terminado cuando:** los veterinarios cargan consultas reales durante una semana sin volver al sistema anterior. ⏳ *Funciona de punta a punta; falta el uso real.*
@@ -176,6 +176,23 @@ Fase de mayor riesgo técnico: dinero, stock y concurrencia. Conviene atacarla c
 **Terminado cuando:** la clínica lanza una campaña de vacunación desde el panel y mide la respuesta.
 
 Va última porque las métricas necesitan volumen de datos cargado para significar algo.
+
+---
+
+## Antes de operar con clientes reales
+
+Independiente de las fases: nada de esto es necesario para seguir desarrollando,
+pero sí antes de que la clínica atienda gente de verdad.
+
+- [ ] **Política de privacidad con consentimiento en el registro** — obligación
+      concreta de la Ley 25.326 (art. 6). Es lo más barato de la lista
+- [ ] Registro de la base ante la AAIP (lo hace la clínica como responsable)
+- [ ] Contrato de tratamiento con Supabase y verificar dónde quedan alojados los datos
+- [ ] Política de retención: hoy nada se borra nunca
+- [ ] Deploy real: proyecto Supabase de producción, dominios, secretos, `functions deploy`
+- [ ] Verificar el CI en GitHub (nunca se comprobó: falta `gh auth login`)
+- [ ] Íconos definitivos de la PWA — los actuales son un placeholder generado
+- [ ] Probar la instalación y el push en un iPhone y un Android reales
 
 ---
 

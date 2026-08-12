@@ -265,13 +265,52 @@ La consulta y la receta son actos profesionales. Esa frontera no se mueve.
 
 ---
 
+## Protección de datos personales
+
+**Qué alcanza la ley y qué no.** La historia clínica de un animal no es un dato
+de salud de una persona, así que **no aplica** el régimen agravado que la Ley
+25.326 reserva a los datos sensibles. Pero el nombre, apellido, DNI, teléfono,
+email y dirección de los tutores —y el vínculo entre esa persona, sus mascotas
+y sus visitas— **sí son datos personales** y están plenamente alcanzados.
+
+La diferencia práctica es de estándar, no de obligaciones: hay que cumplir casi
+lo mismo, con un umbral algo menos estricto.
+
+**Ya implementado:**
+- Aislamiento entre clientes por RLS, verificado en `supabase/tests/rls.mjs`
+- Cifrado en tránsito y en reposo; buckets privados con URLs firmadas
+- Minimización: las RPC devuelven sólo las columnas necesarias en vez de abrir la tabla
+- Rectificación y supresión: el tutor edita lo suyo, archiva o elimina su mascota
+- Auditoría de escritura sobre las tablas sensibles
+
+**Pendiente antes de operar con clientes reales:**
+1. **Política de privacidad con consentimiento en el registro** (art. 6: informar
+   finalidad y destinatarios). Es la más concreta y la más barata.
+2. **Registro de la base ante la AAIP** — lo hace la clínica como responsable.
+3. **Contrato de tratamiento con Supabase** como encargado, y verificar dónde
+   quedan alojados los datos: la transferencia internacional tiene reglas propias.
+4. **Política de retención**: hoy nada se borra nunca.
+
+**Auditoría de lectura** (registrar quién miró qué) queda como buena práctica, no
+como obligación: viene del estándar de historia clínica humana (Ley 26.529), que
+acá no aplica. Tiene sentido cuando la clínica tenga varios empleados y quiera
+controlar accesos internos.
+
+> Esto es orientación general, no asesoramiento legal. Antes de operar con
+> clientes reales conviene una consulta con alguien especializado en protección
+> de datos, sobre todo por el punto 3. Verificar además el estado actual de la
+> normativa en el sitio de la AAIP: hubo proyectos de reforma de la 25.326 en
+> danza durante años.
+
+---
+
 ## Riesgos abiertos
 
 | Riesgo | Mitigación |
 |---|---|
 | Instalación en iOS depende de un gesto manual del usuario | Onboarding explícito con instrucciones ilustradas; medir tasa de instalación |
 | El alcance total es grande para un MVP | Roadmap por fases con producto usable al final de cada una (ver `roadmap.md`) |
-| Datos de salud → responsabilidad legal (Ley 25.326 de Protección de Datos Personales) | Cifrado en tránsito y reposo, auditoría de accesos, borrado lógico, consentimiento explícito |
+| Datos personales de los tutores alcanzados por la Ley 25.326 (ver más abajo) | Cifrado en tránsito y reposo, RLS verificada, minimización en las RPC, borrado lógico. **Falta: política de privacidad con consentimiento en el registro** |
 | Migración desde el software actual de la clínica: formato desconocido | La Decisión 13 hace que el producto funcione sin migrar nada. Relevar cuando la clínica adopte el panel |
 | Las políticas RLS ahora dependen de `mascota_tutor` — punto único de falla del aislamiento | Auditoría obligatoria con el agente `rls-auditor` ante cada cambio que toque acceso a mascotas |
 | Adopción interna del panel por parte del equipo de la clínica | Involucrar a recepción y veterinarios antes de diseñar la HCE, no al entregarla |

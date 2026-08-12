@@ -175,7 +175,7 @@ iOS puede desalojar el almacenamiento de la PWA. El offline es lectura cacheada,
 - **iOS condiciona todo lo relativo a instalación y push.** Requiere agregar a pantalla de inicio manualmente desde Safari. Cualquier feature que dependa de push necesita un plan alternativo.
 - **El usuario cliente es no técnico** y muchas veces está preocupado por la salud de su mascota. La app tiene que ser obvia, no ingeniosa.
 - **El personal de la clínica trabaja apurado y con el paciente adelante.** Toda pantalla del panel se juzga por cuántos clics y cuánta espera impone. La fricción en la carga de la historia clínica es la principal causa de abandono de estos sistemas.
-- **Son datos de salud.** Aplica la Ley 25.326 de Protección de Datos Personales: auditoría de accesos, minimización de datos expuestos, consentimiento.
+- **Hay datos personales, aunque no sean datos de salud humana.** La historia clínica de un animal no es un dato sensible de una persona, así que **no** aplica el régimen agravado de la Ley 25.326. Pero el nombre, DNI, teléfono, email y dirección de los tutores **sí** son datos personales alcanzados por la ley: informar la finalidad al registrarse, permitir acceso y rectificación, minimizar lo que se expone, y aplicar medidas de seguridad razonables. Ante la duda, tratar la información del tutor con el mismo cuidado que la de la mascota — no al revés.
 
 ---
 
