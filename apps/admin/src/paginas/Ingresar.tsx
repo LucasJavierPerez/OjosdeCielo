@@ -16,7 +16,10 @@ export function Ingresar() {
     setError(null);
     setEnviando(true);
 
-    const { error: errorAuth } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: errorAuth } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (errorAuth) {
       setError('Email o contraseña incorrectos.');

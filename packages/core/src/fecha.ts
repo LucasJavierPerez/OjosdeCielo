@@ -24,9 +24,37 @@ export function ahora(): TZDate {
   return TZDate.tz(ZONA_CLINICA);
 }
 
-/** `dd/MM/yyyy` — el formato que espera un usuario argentino. */
+/**
+ * `dd/MM/yyyy` para un **instante** (`timestamptz`), convertido a la zona de la
+ * clínica. Para columnas `date` usar `formatearFechaCivil`.
+ */
 export function formatearFecha(fecha: Date | string): string {
   return format(enZonaClinica(fecha), 'dd/MM/yyyy', { locale: es });
+}
+
+/**
+ * `dd/MM/yyyy` para una **fecha civil** — columnas `date` como
+ * `fecha_nacimiento` o `aplicacion.proxima_fecha`.
+ *
+ * No convierte de zona horaria, y ese es todo el punto: "2023-03-15" es el 15
+ * de marzo en cualquier lugar del mundo. Pasarla por `new Date()` la
+ * interpretaría como medianoche UTC y en Argentina (UTC-3) mostraría el 14.
+ */
+export function formatearFechaCivil(fecha: string): string {
+  const [anio, mes, dia] = fecha.slice(0, 10).split('-');
+  if (!anio || !mes || !dia) return fecha;
+  return `${dia}/${mes}/${anio}`;
+}
+
+/** Días de calendario entre hoy y una fecha civil. Negativo si ya pasó. */
+export function diasHastaFechaCivil(fecha: string): number {
+  const hoy = format(ahora(), 'yyyy-MM-dd');
+  const [a1, m1, d1] = hoy.split('-').map(Number);
+  const [a2, m2, d2] = fecha.slice(0, 10).split('-').map(Number);
+  if (!a1 || !m1 || !d1 || !a2 || !m2 || !d2) return 0;
+  // Date.UTC evita que el horario de verano de cualquier zona altere la resta.
+  const msPorDia = 86_400_000;
+  return Math.round((Date.UTC(a2, m2 - 1, d2) - Date.UTC(a1, m1 - 1, d1)) / msPorDia);
 }
 
 /** `dd/MM/yyyy HH:mm` */
@@ -76,9 +104,14 @@ export function proximaAplicacion(desde: Date | string, intervaloDias: number): 
   return addDays(enZonaClinica(desde), intervaloDias);
 }
 
-/** Edad legible a partir de la fecha de nacimiento. */
-export function calcularEdad(fechaNacimiento: Date | string): string {
-  const dias = Math.abs(diasHasta(fechaNacimiento));
+/**
+ * Edad legible a partir de la fecha de nacimiento.
+ *
+ * Acepta la fecha civil que guarda la base (`yyyy-MM-dd`) sin convertirla de
+ * zona: ver `formatearFechaCivil`.
+ */
+export function calcularEdad(fechaNacimiento: string): string {
+  const dias = Math.abs(diasHastaFechaCivil(fechaNacimiento));
   const anios = Math.floor(dias / 365);
   const meses = Math.floor((dias % 365) / 30);
 

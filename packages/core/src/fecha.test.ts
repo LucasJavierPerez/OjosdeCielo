@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   calcularEdad,
+  diasHastaFechaCivil,
   enZonaClinica,
   formatearFecha,
+  formatearFechaCivil,
   formatearHora,
   ZONA_CLINICA,
 } from './fecha.js';
@@ -26,24 +28,52 @@ describe('zona horaria de la clínica', () => {
   });
 });
 
+describe('fechas civiles (columnas date)', () => {
+  it('NO desplaza la fecha por zona horaria', () => {
+    // Regresión: fecha_nacimiento es una columna `date`. Pasarla por new Date()
+    // la lee como medianoche UTC y en Argentina (UTC-3) muestra el día anterior.
+    // Se detectó cargando una mascota nacida el 15/03 y viendo "14/03/2023".
+    expect(formatearFechaCivil('2023-03-15')).toBe('15/03/2023');
+    expect(formatearFechaCivil('2026-01-01')).toBe('01/01/2026');
+    expect(formatearFechaCivil('2026-12-31')).toBe('31/12/2026');
+  });
+
+  it('tolera un timestamp completo quedándose con la parte de fecha', () => {
+    expect(formatearFechaCivil('2023-03-15T00:00:00Z')).toBe('15/03/2023');
+  });
+
+  it('cuenta días sin que la zona horaria corra el resultado', () => {
+    const hoy = new Date();
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    expect(diasHastaFechaCivil(iso(hoy))).toBe(0);
+
+    const enDiez = new Date(hoy);
+    enDiez.setDate(enDiez.getDate() + 10);
+    expect(diasHastaFechaCivil(iso(enDiez))).toBe(10);
+  });
+});
+
 describe('calcularEdad', () => {
+  /** Fecha civil de hace N días, en el formato `yyyy-MM-dd` que guarda la base. */
+  const haceDias = (dias: number): string => {
+    const d = new Date();
+    d.setDate(d.getDate() - dias);
+    return d.toISOString().slice(0, 10);
+  };
+
   it('expresa en días a los cachorros de pocos días', () => {
-    const hace5Dias = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
-    expect(calcularEdad(hace5Dias)).toBe('5 días');
+    expect(calcularEdad(haceDias(5))).toBe('5 días');
   });
 
   it('expresa en meses al primer año', () => {
-    const hace3Meses = new Date(Date.now() - 92 * 24 * 60 * 60 * 1000);
-    expect(calcularEdad(hace3Meses)).toBe('3 meses');
+    expect(calcularEdad(haceDias(92))).toBe('3 meses');
   });
 
   it('combina años y meses', () => {
-    const hace2AniosY3Meses = new Date(Date.now() - (730 + 92) * 24 * 60 * 60 * 1000);
-    expect(calcularEdad(hace2AniosY3Meses)).toBe('2 años y 3 meses');
+    expect(calcularEdad(haceDias(730 + 92))).toBe('2 años y 3 meses');
   });
 
   it('usa singular cuando corresponde', () => {
-    const hace1Anio = new Date(Date.now() - 366 * 24 * 60 * 60 * 1000);
-    expect(calcularEdad(hace1Anio)).toBe('1 año');
+    expect(calcularEdad(haceDias(366))).toBe('1 año');
   });
 });

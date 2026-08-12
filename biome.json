@@ -57,9 +57,16 @@
       "includes": ["supabase/tests/**"],
       "linter": {
         "rules": {
-          "suspicious": {
-            "noConsole": "off"
-          }
+          "suspicious": { "noConsole": "off" },
+          "complexity": { "noUselessLoneBlockStatements": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["**/estilos.css"],
+      "linter": {
+        "rules": {
+          "complexity": { "noImportantStyles": "off" }
         }
       }
     }

@@ -20,7 +20,10 @@ export function Ingresar() {
     setError(null);
     setEnviando(true);
 
-    const { error: errorAuth } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: errorAuth } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (errorAuth) {
       // Mensaje genérico a propósito: distinguir "no existe" de "contraseña

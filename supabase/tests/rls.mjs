@@ -25,7 +25,10 @@ const fail = (m) => {
 
 async function comoUsuario(email) {
   const sb = createClient(URL, ANON);
-  const { data, error } = await sb.auth.signInWithPassword({ email, password: 'password123' });
+  const { data, error } = await sb.auth.signInWithPassword({
+    email,
+    password: 'password123',
+  });
   if (error) throw new Error(`login ${email}: ${error.message}`);
   const claims = JSON.parse(atob(data.session.access_token.split('.')[1]));
   return { sb, claims, userId: data.user.id };
@@ -194,7 +197,9 @@ console.log('\n=== 11. Sin invitación, nadie más ve la mascota ===');
 
 console.log('\n=== 12. Un no-titular no puede invitar ===');
 {
-  const { error } = await bruno.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+  const { error } = await bruno.sb.rpc('invitar_tutor', {
+    p_mascota_id: mascotaId,
+  });
   error
     ? ok(`Bruno no puede invitar (${error.message})`)
     : fail('Bruno pudo invitar sin ser tutor');
@@ -203,11 +208,15 @@ console.log('\n=== 12. Un no-titular no puede invitar ===');
 console.log('\n=== 13. El titular invita y el invitado acepta ===');
 let token;
 {
-  const { data, error } = await ana.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+  const { data, error } = await ana.sb.rpc('invitar_tutor', {
+    p_mascota_id: mascotaId,
+  });
   token = data?.token;
   token ? ok('Ana generó el enlace de invitación') : fail(`No pudo invitar: ${error?.message}`);
 
-  const { error: errAceptar } = await bruno.sb.rpc('aceptar_invitacion', { p_token: token });
+  const { error: errAceptar } = await bruno.sb.rpc('aceptar_invitacion', {
+    p_token: token,
+  });
   errAceptar ? fail(`Bruno no pudo aceptar: ${errAceptar.message}`) : ok('Bruno aceptó');
 
   const { data: vista } = await bruno.sb.from('mascota').select('nombre').eq('id', mascotaId);
@@ -219,13 +228,17 @@ let token;
 
 console.log('\n=== 14. El enlace es de un solo uso ===');
 {
-  const { error } = await clara.sb.rpc('aceptar_invitacion', { p_token: token });
+  const { error } = await clara.sb.rpc('aceptar_invitacion', {
+    p_token: token,
+  });
   error ? ok('Un token ya usado no sirve') : fail('FUGA: Clara entró con un token ya consumido');
 }
 
 console.log('\n=== 15. Un token inventado no sirve ===');
 {
-  const { error } = await clara.sb.rpc('aceptar_invitacion', { p_token: 'a'.repeat(48) });
+  const { error } = await clara.sb.rpc('aceptar_invitacion', {
+    p_token: 'a'.repeat(48),
+  });
   error ? ok('Token inválido rechazado') : fail('FUGA: aceptó un token inventado');
 }
 
@@ -237,7 +250,9 @@ console.log('\n=== 16. Un tutor invitado edita la mascota pero no gestiona acces
     .eq('id', mascotaId);
   errEditar ? fail(`Bruno no pudo editar: ${errEditar.message}`) : ok('Bruno editó la ficha');
 
-  const { error: errInvitar } = await bruno.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+  const { error: errInvitar } = await bruno.sb.rpc('invitar_tutor', {
+    p_mascota_id: mascotaId,
+  });
   errInvitar ? ok('Bruno no puede invitar a otros') : fail('ESCALADA: un tutor invitó a otro');
 
   const { error: errRevocar } = await bruno.sb.rpc('revocar_tutor', {
@@ -284,7 +299,9 @@ console.log('\n=== 18. Revocar un acceso lo corta de verdad ===');
 console.log('\n=== 19. Transferir la titularidad ===');
 {
   // Bruno vuelve a entrar con una invitación nueva.
-  const { data: inv } = await ana.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+  const { data: inv } = await ana.sb.rpc('invitar_tutor', {
+    p_mascota_id: mascotaId,
+  });
   await bruno.sb.rpc('aceptar_invitacion', { p_token: inv.token });
 
   const { error } = await ana.sb.rpc('transferir_titularidad', {
@@ -303,7 +320,9 @@ console.log('\n=== 19. Transferir la titularidad ===');
     ? ok('Bruno es ahora el único titular')
     : fail(`Titulares tras la transferencia: ${titulares.length}`);
 
-  const { error: errAna } = await ana.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+  const { error: errAna } = await ana.sb.rpc('invitar_tutor', {
+    p_mascota_id: mascotaId,
+  });
   errAna ? ok('Ana ya no gestiona accesos') : fail('Ana conservó permisos de titular');
 }
 

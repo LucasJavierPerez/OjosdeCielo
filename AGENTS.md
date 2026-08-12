@@ -66,6 +66,11 @@ Usuarios del seed local (contraseña `password123` en todos):
 `database.types.ts` es **generado**: no se edita a mano. Después de cualquier
 migración, correr `pnpm db:types`.
 
+**`biome.json` es JSON estricto: no admite comentarios `//`.** Si se los agrega,
+Biome no falla de forma visible — ignora la configuración entera y reformatea todo
+el repo con sus defaults (tabs, comillas dobles). Ante un reformateo masivo
+inesperado, verificar con `pnpm exec biome check biome.json`.
+
 ---
 
 ## Reglas no negociables
@@ -99,8 +104,8 @@ Buckets privados, URLs firmadas de vida corta. Nunca una URL pública a una radi
 **9. Sin `any` y sin `@ts-ignore`.**
 TypeScript en `strict`. Si el tipo no cierra, el problema es el modelo, no el compilador.
 
-**10. Fechas siempre en `timestamptz`, presentación siempre en `America/Argentina/Buenos_Aires`.**
-Nunca `new Date()` sin zona para lógica de turnos o recordatorios. Usar los helpers de `packages/core/fecha`.
+**10. Instantes y fechas civiles se tratan distinto.**
+Un `timestamptz` (un turno) se convierte a `America/Argentina/Buenos_Aires` para mostrarlo: `formatearFecha`, `formatearFechaHora`. Una columna `date` (fecha de nacimiento, próxima vacunación) **no se convierte de zona**: `formatearFechaCivil`, `diasHastaFechaCivil`. Pasar una fecha civil por `new Date()` la lee como medianoche UTC y en Argentina muestra el día anterior — ya pasó una vez. Nunca `new Date()` a secas para lógica de turnos o recordatorios: usar los helpers de `packages/core/fecha`.
 
 **11. Dinero en `numeric(12,2)` en la base y en enteros de centavos o `Decimal` en el código.**
 Nunca `float` para plata.

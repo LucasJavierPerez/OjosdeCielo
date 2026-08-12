@@ -17,7 +17,11 @@
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "exactOptionalPropertyTypes": true,
+
+    // exactOptionalPropertyTypes queda apagado a propósito. En React choca con
+    // cada prop opcional: pasar `error={posibleUndefined}` a `error?: string`
+    // deja de compilar, y la única salida es declarar `error?: string | undefined`
+    // en todas las props del proyecto. El ruido supera lo que atrapa.
 
     "declaration": true,
     "declarationMap": true,
