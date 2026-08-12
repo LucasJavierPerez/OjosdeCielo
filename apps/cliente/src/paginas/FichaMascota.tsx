@@ -97,7 +97,6 @@ export function FichaMascota() {
           mascotaId={mascota.id}
           fotoUrl={mascota.foto_url}
           nombre={mascota.nombre}
-          especie={mascota.especie}
         />
       </div>
 
@@ -118,7 +117,7 @@ export function FichaMascota() {
         {mascota.microchip && <Dato etiqueta="Microchip" valor={mascota.microchip} />}
       </dl>
 
-      {/* Tramo 3: compartir con otro tutor. Fase 2: peso, vacunas, historial. */}
+      {/* Fase 2: peso, vacunas y desparasitaciones, historial. */}
       <Link
         to={`/mascotas/${mascota.id}/tutores`}
         className="mt-8 flex min-h-11 items-center justify-between rounded-xl border border-slate-200 px-4 hover:bg-slate-50"

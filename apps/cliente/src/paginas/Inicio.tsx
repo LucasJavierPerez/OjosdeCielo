@@ -62,7 +62,7 @@ export function Inicio() {
                     to={`/mascotas/${m.id}`}
                     className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50"
                   >
-                    <FotoMascota fotoUrl={m.foto_url} nombre={m.nombre} especie={m.especie} />
+                    <FotoMascota fotoUrl={m.foto_url} nombre={m.nombre} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{m.nombre}</p>
                       <p className="truncate text-sm text-slate-500">

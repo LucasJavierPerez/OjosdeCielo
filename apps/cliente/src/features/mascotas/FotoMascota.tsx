@@ -1,5 +1,4 @@
-import type { Especie } from '@ojosdecielo/core';
-import { ETIQUETA_ESPECIE, validarFoto } from '@ojosdecielo/core';
+import { validarFoto } from '@ojosdecielo/core';
 import { cn } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useRef, useState } from 'react';
@@ -14,12 +13,10 @@ const TAMANOS = {
 export function FotoMascota({
   fotoUrl,
   nombre,
-  especie,
   tamano = 'sm',
 }: {
   fotoUrl: string | null;
   nombre: string;
-  especie: Especie;
   tamano?: keyof typeof TAMANOS;
 }) {
   const { supabase } = useAuth();
@@ -32,19 +29,13 @@ export function FotoMascota({
         TAMANOS[tamano],
       )}
     >
+      {/* Decorativa: el nombre y la especie siempre están escritos al lado. Un
+          alt descriptivo acá haría que el lector de pantalla los repita dos veces. */}
       {url ? (
-        <img
-          src={url}
-          alt={`Foto de ${nombre}`}
-          className="size-full object-cover"
-          loading="lazy"
-        />
+        <img src={url} alt="" className="size-full object-cover" loading="lazy" />
       ) : (
         <span aria-hidden="true">{nombre.charAt(0).toUpperCase()}</span>
       )}
-      <span className="sr-only">
-        {ETIQUETA_ESPECIE[especie]} llamado {nombre}
-      </span>
     </div>
   );
 }
@@ -54,12 +45,10 @@ export function SubirFotoMascota({
   mascotaId,
   fotoUrl,
   nombre,
-  especie,
 }: {
   mascotaId: string;
   fotoUrl: string | null;
   nombre: string;
-  especie: Especie;
 }) {
   const { supabase } = useAuth();
   const subir = useSubirFoto(supabase, mascotaId);
@@ -90,7 +79,7 @@ export function SubirFotoMascota({
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <FotoMascota fotoUrl={fotoUrl} nombre={nombre} especie={especie} tamano="lg" />
+      <FotoMascota fotoUrl={fotoUrl} nombre={nombre} tamano="lg" />
 
       <input
         ref={inputRef}

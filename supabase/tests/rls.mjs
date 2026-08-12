@@ -344,6 +344,88 @@ console.log('\n=== 21. El anónimo no ve mascotas ===');
     : fail(`FUGA: anónimo ve ${data?.length} mascotas`);
 }
 
+console.log('\n=== 22. Listar tutores no expone datos de más ===');
+{
+  // Bruno es titular tras la transferencia del test 19; Ana sigue siendo tutora.
+  const { data, error } = await ana.sb.rpc('tutores_de_mascota', { p_mascota_id: mascotaId });
+  if (error || !data) {
+    fail(`Ana no pudo listar tutores: ${error?.message}`);
+  } else {
+    data.length === 2 ? ok('Ana ve los 2 tutores') : fail(`Ve ${data.length} tutores`);
+
+    const columnas = Object.keys(data[0] ?? {});
+    const sensibles = columnas.filter((c) => ['dni', 'telefono', 'rol_sistema'].includes(c));
+    sensibles.length === 0
+      ? ok(`Sólo devuelve lo necesario: ${columnas.join(', ')}`)
+      : fail(`FUGA: expone ${sensibles.join(', ')}`);
+
+    data.find((t) => t.soy_yo)?.perfil_id === ana.userId
+      ? ok('Marca cuál de los tutores es uno mismo')
+      : fail('El flag soy_yo no identifica al usuario actual');
+  }
+}
+
+console.log('\n=== 23. Un extraño no puede listar los tutores ===');
+{
+  const { error } = await clara.sb.rpc('tutores_de_mascota', { p_mascota_id: mascotaId });
+  error
+    ? ok('Clara no puede listar los tutores')
+    : fail('FUGA: Clara listó los tutores de una mascota ajena');
+}
+
+console.log('\n=== 24. Revocar una invitación sin usar ===');
+{
+  // Bruno es el titular ahora.
+  const { data: inv } = await bruno.sb.rpc('invitar_tutor', { p_mascota_id: mascotaId });
+
+  const { error: errAjeno } = await ana.sb.rpc('revocar_invitacion', {
+    p_invitacion_id: inv.id,
+  });
+  errAjeno
+    ? ok('Un tutor no titular no puede anular invitaciones')
+    : fail('ESCALADA: un tutor anuló una invitación');
+
+  const { error } = await bruno.sb.rpc('revocar_invitacion', { p_invitacion_id: inv.id });
+  error ? fail(`El titular no pudo anular: ${error.message}`) : ok('El titular la anuló');
+
+  const { error: errUsar } = await clara.sb.rpc('aceptar_invitacion', { p_token: inv.token });
+  errUsar
+    ? ok('La invitación anulada ya no sirve')
+    : fail('FUGA: se aceptó una invitación anulada');
+}
+
+console.log('\n=== 25. Las invitaciones sólo las ven los tutores ===');
+{
+  const { data: deClara } = await clara.sb.from('invitacion_tutor').select('token');
+  deClara?.length === 0
+    ? ok('Clara no ve ninguna invitación')
+    : fail(`FUGA: Clara ve ${deClara?.length} invitaciones con su token`);
+
+  const { data: deAna } = await ana.sb
+    .from('invitacion_tutor')
+    .select('id')
+    .eq('mascota_id', mascotaId);
+  (deAna?.length ?? 0) > 0
+    ? ok('Una tutora sí ve las invitaciones de su mascota')
+    : fail('Ana no ve las invitaciones de una mascota que comparte');
+}
+
+console.log('\n=== 26. Storage: las fotos son privadas ===');
+{
+  const anon = createClient(URL, ANON);
+  const { data: publica } = await anon.storage.from('mascotas').list(mascotaId);
+  !publica || publica.length === 0
+    ? ok('Sin sesión no se listan archivos')
+    : fail(`FUGA: anónimo lista ${publica.length} archivos`);
+
+  const { error } = await clara.sb.storage
+    .from('mascotas')
+    .upload(`${mascotaId}/intruso.jpg`, new Blob(['x'], { type: 'image/jpeg' }));
+  error
+    ? ok('Clara no puede subir fotos a una mascota ajena')
+    : fail('FUGA: Clara subió una foto a la mascota de otro');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

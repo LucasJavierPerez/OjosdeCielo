@@ -9,8 +9,8 @@ Las estimaciones asumen un desarrollador principal trabajando de forma sostenida
 
 ---
 
-## Fase 0 — Fundaciones
-*Sin valor visible, pero todo lo demás depende de esto.*
+## Fase 0 — Fundaciones ✅
+*Sin valor visible, pero todo lo demás depende de esto. **Completada.***
 
 - Monorepo: pnpm workspaces + Turborepo, TypeScript strict, Biome
 - Proyecto Supabase: entornos local (CLI + Docker), staging y producción
@@ -29,16 +29,18 @@ Las estimaciones asumen un desarrollador principal trabajando de forma sostenida
 ## Fase 1 — Mascota compartida
 *Primera fase con valor real para el usuario final.*
 
-- Ficha de mascota: alta, foto, especie, raza, fecha de nacimiento, castrado, microchip
-- **`mascota_tutor` y todas las políticas RLS que dependen de ella** — el punto más delicado del esquema de seguridad
-- Invitación de tutores por email o enlace, con vencimiento; aceptación con o sin cuenta previa
-- Gestión de accesos: el titular invita, revoca y transfiere la titularidad
-- Supabase Realtime en la ficha compartida
-- Panel admin mínimo: buscar y ver clientes y mascotas (solo lectura)
+- [x] Ficha de mascota: alta, foto, especie, raza, fecha de nacimiento, castrado, microchip
+- [x] **`mascota_tutor` y todas las políticas RLS que dependen de ella** — el punto más delicado del esquema de seguridad
+- [x] Invitación de tutores por **enlace para compartir**, con vencimiento a 7 días y un solo uso
+- [x] Gestión de accesos: el titular invita, revoca, anula invitaciones y transfiere la titularidad
+- [x] Supabase Realtime en la ficha compartida
+- [ ] **Panel admin mínimo: buscar y ver clientes y mascotas (solo lectura)** — pendiente
 
-**Terminado cuando:** dos personas comparten la misma mascota, una edita la ficha y la otra lo ve aparecer sin recargar.
+**Terminado cuando:** dos personas comparten la misma mascota, una edita la ficha y la otra lo ve aparecer sin recargar. ✅ *Verificado en el navegador con Ana y Bruno.*
 
-**Auditar sí o sí antes de cerrar la fase:** correr `rls-auditor`. Acá se define si un tutor puede llegar a ver la mascota de otro; todo lo demás se apoya sobre esto.
+**Invitación por email:** descartada para v1 (ver `stack.md`, Decisión 12). Requiere proveedor de envío, dominio verificado y manejo de rebotes. Se apoyaría sobre la misma tabla `invitacion_tutor`, así que no hay trabajo perdido.
+
+**Auditar antes de cerrar la fase:** `pnpm test:rls` cubre 26 escenarios de aislamiento, incluidos los de mascota compartida. Correr también el agente `rls-auditor` para una revisión independiente de las políticas.
 
 ---
 
