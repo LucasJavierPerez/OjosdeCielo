@@ -65,15 +65,18 @@ Las estimaciones asumen un desarrollador principal trabajando de forma sostenida
 ## Fase 3 — Recordatorios y notificaciones
 *La fase que convierte la app en algo que se abre todos los meses en vez de una sola vez.*
 
-- Claves VAPID, suscripción push, gestión multi-dispositivo
-- Pedido de permiso contextual con onboarding — **crítico en iOS**
-- Preferencias por tipo de notificación, por tutor
-- Motor de recordatorios: `pg_cron` + Edge Function
-- Tipos: desparasitación, vacunación, dosis de medicación
-- Envío a **todos** los tutores de la mascota, respetando las preferencias de cada uno
-- Log de envíos y baja automática de suscripciones muertas
+- [x] Claves VAPID, suscripción push, gestión multi-dispositivo
+- [x] Pedido de permiso contextual, con estado propio para "hay que instalar primero" en iOS
+- [x] Preferencias por tipo de notificación, por tutor
+- [x] Motor de recordatorios: `pg_cron` + Edge Function
+- [x] Tipos: vacunación, desparasitación, fin de medicación
+- [x] Envío a **todos** los tutores de la mascota, respetando las preferencias de cada uno
+- [x] Log de envíos, reintentos acotados y baja de suscripciones muertas
+- [ ] **Envío real a un dispositivo, verificado de punta a punta** — falta probarlo con un celular
 
-**Terminado cuando:** un recordatorio de desparasitación programado a 90 días llega al celular de ambos tutores.
+**Terminado cuando:** un recordatorio de desparasitación programado a 90 días llega al celular de ambos tutores. ⏳ *La cadena completa está verificada salvo el último salto: hace falta un dispositivo real con el permiso concedido.*
+
+El aviso se programa **3 días antes** del vencimiento, no el mismo día: enterarse el día que vence no le da margen al tutor para sacar turno.
 
 **Riesgo a medir acá:** qué porcentaje de usuarios de iOS instaló la app y aceptó notificaciones. Si es bajo, reforzar el onboarding o agregar respaldo por email/WhatsApp.
 

@@ -89,8 +89,18 @@ export function Inicio() {
       </section>
 
       <Link
+        to="/recordatorios"
+        className="mt-8 flex min-h-11 items-center justify-between rounded-xl border border-slate-200 px-4 hover:bg-slate-50"
+      >
+        <span className="font-medium">Recordatorios</span>
+        <span aria-hidden="true" className="text-slate-400">
+          ›
+        </span>
+      </Link>
+
+      <Link
         to="/instalar"
-        className="mt-8 block rounded-xl bg-marca-50 p-4 text-sm text-marca-700 hover:bg-marca-100"
+        className="mt-3 block rounded-xl bg-marca-50 p-4 text-sm text-marca-700 hover:bg-marca-100"
       >
         <strong className="block">Instalá la app en tu celular</strong>
         Para recibir recordatorios de vacunas y desparasitaciones.

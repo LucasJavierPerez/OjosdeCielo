@@ -35,6 +35,9 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallbackDenylist: [/^\/api/],
+        // Manejo de push y de clic en la notificación. Va como script aparte
+        // porque corre en el contexto del worker, no en el bundle de la app.
+        importScripts: ['/sw-push.js'],
         runtimeCaching: [
           {
             // Datos de la API: red primero, caché como respaldo. La UI avisa

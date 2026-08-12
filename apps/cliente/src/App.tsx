@@ -8,9 +8,11 @@ import { Ingresar } from './paginas/Ingresar.js';
 import { Inicio } from './paginas/Inicio.js';
 import { Instalar } from './paginas/Instalar.js';
 import { NoEncontrado } from './paginas/NoEncontrado.js';
+import { Notificaciones } from './paginas/Notificaciones.js';
 import { NuevaMascota } from './paginas/NuevaMascota.js';
 import { Registrarse } from './paginas/Registrarse.js';
 import { SaludMascota } from './paginas/SaludMascota.js';
+import { SinAcceso } from './paginas/SinAcceso.js';
 import { TutoresMascota } from './paginas/TutoresMascota.js';
 
 /** Atajo para no repetir el envoltorio en cada ruta de cliente. */
@@ -26,6 +28,7 @@ export function App() {
         <Route path="/ingresar" element={<Ingresar />} />
         <Route path="/registrarse" element={<Registrarse />} />
         <Route path="/instalar" element={<Instalar />} />
+        <Route path="/sin-acceso" element={<SinAcceso />} />
 
         <Route
           path="/"
@@ -72,6 +75,15 @@ export function App() {
           element={
             <Privada>
               <AceptarInvitacion />
+            </Privada>
+          }
+        />
+
+        <Route
+          path="/recordatorios"
+          element={
+            <Privada>
+              <Notificaciones />
             </Privada>
           }
         />

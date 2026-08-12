@@ -489,6 +489,44 @@ export type Database = {
           },
         ]
       }
+      notificacion_log: {
+        Row: {
+          enviado_en: string
+          error: string | null
+          id: number
+          perfil_id: string | null
+          resultado: string
+          tipo: Database["public"]["Enums"]["tipo_notificacion"]
+          titulo: string
+        }
+        Insert: {
+          enviado_en?: string
+          error?: string | null
+          id?: number
+          perfil_id?: string | null
+          resultado: string
+          tipo: Database["public"]["Enums"]["tipo_notificacion"]
+          titulo: string
+        }
+        Update: {
+          enviado_en?: string
+          error?: string | null
+          id?: number
+          perfil_id?: string | null
+          resultado?: string
+          tipo?: Database["public"]["Enums"]["tipo_notificacion"]
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacion_log_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfil: {
         Row: {
           activo: boolean
@@ -595,6 +633,126 @@ export type Database = {
           },
         ]
       }
+      preferencia_notificacion: {
+        Row: {
+          habilitado: boolean
+          perfil_id: string
+          tipo: Database["public"]["Enums"]["tipo_notificacion"]
+        }
+        Insert: {
+          habilitado?: boolean
+          perfil_id?: string
+          tipo: Database["public"]["Enums"]["tipo_notificacion"]
+        }
+        Update: {
+          habilitado?: boolean
+          perfil_id?: string
+          tipo?: Database["public"]["Enums"]["tipo_notificacion"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preferencia_notificacion_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscription: {
+        Row: {
+          auth: string
+          creado_en: string
+          endpoint: string
+          fallos_consecutivos: number
+          id: string
+          p256dh: string
+          perfil_id: string
+          ultima_vez_ok: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          auth: string
+          creado_en?: string
+          endpoint: string
+          fallos_consecutivos?: number
+          id?: string
+          p256dh: string
+          perfil_id?: string
+          ultima_vez_ok?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          auth?: string
+          creado_en?: string
+          endpoint?: string
+          fallos_consecutivos?: number
+          id?: string
+          p256dh?: string
+          perfil_id?: string
+          ultima_vez_ok?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscription_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recordatorio: {
+        Row: {
+          creado_en: string
+          cuerpo: string
+          enviado_en: string | null
+          estado: Database["public"]["Enums"]["estado_recordatorio"]
+          id: string
+          mascota_id: string
+          origen_id: string
+          origen_tabla: string
+          programado_para: string
+          tipo: Database["public"]["Enums"]["tipo_notificacion"]
+          titulo: string
+        }
+        Insert: {
+          creado_en?: string
+          cuerpo: string
+          enviado_en?: string | null
+          estado?: Database["public"]["Enums"]["estado_recordatorio"]
+          id?: string
+          mascota_id: string
+          origen_id: string
+          origen_tabla: string
+          programado_para: string
+          tipo: Database["public"]["Enums"]["tipo_notificacion"]
+          titulo: string
+        }
+        Update: {
+          creado_en?: string
+          cuerpo?: string
+          enviado_en?: string | null
+          estado?: Database["public"]["Enums"]["estado_recordatorio"]
+          id?: string
+          mascota_id?: string
+          origen_id?: string
+          origen_tabla?: string
+          programado_para?: string
+          tipo?: Database["public"]["Enums"]["tipo_notificacion"]
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recordatorio_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -677,11 +835,25 @@ export type Database = {
         }
       }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      destinatarios_recordatorio: {
+        Args: { p_recordatorio_id: string }
+        Returns: {
+          auth: string
+          endpoint: string
+          p256dh: string
+          perfil_id: string
+          sub_id: string
+        }[]
+      }
       es_administrador: { Args: never; Returns: boolean }
       es_personal_clinica: { Args: never; Returns: boolean }
       es_titular_de: { Args: { p_mascota_id: string }; Returns: boolean }
       es_tutor_de: { Args: { p_mascota_id: string }; Returns: boolean }
       es_veterinario: { Args: never; Returns: boolean }
+      generar_recordatorios: {
+        Args: { p_dias_antes?: number }
+        Returns: number
+      }
       invitar_tutor: {
         Args: { p_mascota_id: string }
         Returns: {
@@ -738,6 +910,7 @@ export type Database = {
     }
     Enums: {
       especie: "perro" | "gato" | "ave" | "roedor" | "reptil" | "otro"
+      estado_recordatorio: "pendiente" | "enviado" | "cancelado" | "fallido"
       origen_dato: "tutor" | "clinica"
       rol: "cliente" | "recepcionista" | "veterinario" | "administrador"
       rol_tutor: "titular" | "tutor"
@@ -747,6 +920,7 @@ export type Database = {
         | "vacuna"
         | "desparasitacion_interna"
         | "desparasitacion_externa"
+      tipo_notificacion: "vacuna" | "desparasitacion" | "medicacion" | "turno"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -878,6 +1052,7 @@ export const Constants = {
   public: {
     Enums: {
       especie: ["perro", "gato", "ave", "roedor", "reptil", "otro"],
+      estado_recordatorio: ["pendiente", "enviado", "cancelado", "fallido"],
       origen_dato: ["tutor", "clinica"],
       rol: ["cliente", "recepcionista", "veterinario", "administrador"],
       rol_tutor: ["titular", "tutor"],
@@ -888,6 +1063,7 @@ export const Constants = {
         "desparasitacion_interna",
         "desparasitacion_externa",
       ],
+      tipo_notificacion: ["vacuna", "desparasitacion", "medicacion", "turno"],
     },
   },
 } as const

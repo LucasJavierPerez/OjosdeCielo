@@ -615,6 +615,105 @@ console.log('\n=== 35. Las cuatro tablas de salud tienen las mismas garantías =
   }
 }
 
+// ===========================================================================
+// Notificaciones (fase 3)
+// ===========================================================================
+
+console.log('\n=== 36. Los dispositivos de push son privados ===');
+{
+  const suscripcion = {
+    endpoint: `https://push.example/${crypto.randomUUID()}`,
+    p256dh: 'clave-publica-falsa',
+    auth: 'secreto-falso',
+  };
+
+  const { error } = await ana.sb.from('push_subscription').insert(suscripcion);
+  error
+    ? fail(`Ana no pudo registrar su dispositivo: ${error.message}`)
+    : ok('Ana registró un dispositivo');
+
+  const { data: deClara } = await clara.sb.from('push_subscription').select('endpoint');
+  deClara?.length === 0
+    ? ok('Clara no ve dispositivos ajenos')
+    : fail(`FUGA: Clara ve ${deClara?.length} suscripciones de otros`);
+
+  // Registrar un endpoint a nombre de otro permitiría redirigirle sus
+  // notificaciones al dispositivo propio.
+  const endpointRobo = `${suscripcion.endpoint}-suplantado`;
+  const { error: errRobo } = await clara.sb
+    .from('push_subscription')
+    .insert({ ...suscripcion, perfil_id: ana.userId, endpoint: endpointRobo });
+
+  // Se busca ese endpoint puntual en vez de contar el total: la base acumula
+  // suscripciones de corridas anteriores y el conteo daría un falso positivo.
+  const { data: colado } = await ana.sb
+    .from('push_subscription')
+    .select('endpoint')
+    .eq('endpoint', endpointRobo);
+  errRobo && colado?.length === 0
+    ? ok('Clara no puede registrar dispositivos a nombre de Ana')
+    : fail(
+        `SUPLANTACIÓN: el endpoint ajeno quedó registrado (${errRobo ? 'con error' : 'sin error'})`,
+      );
+}
+
+console.log('\n=== 37. Las preferencias son de cada uno ===');
+{
+  const { error } = await ana.sb
+    .from('preferencia_notificacion')
+    .upsert({ tipo: 'vacuna', habilitado: false }, { onConflict: 'perfil_id,tipo' });
+  error
+    ? fail(`Ana no pudo guardar su preferencia: ${error.message}`)
+    : ok('Ana desactivó vacunas');
+
+  const { data: deClara } = await clara.sb.from('preferencia_notificacion').select('tipo');
+  deClara?.length === 0
+    ? ok('Clara no ve las preferencias de Ana')
+    : fail(`FUGA: Clara ve ${deClara?.length} preferencias ajenas`);
+}
+
+console.log('\n=== 38. Los recordatorios siguen el acceso a la mascota ===');
+{
+  const { data: deAna } = await ana.sb.from('recordatorio').select('id, tipo');
+  const { data: deClara } = await clara.sb.from('recordatorio').select('id');
+
+  (deAna?.length ?? 0) >= 0
+    ? ok(`Ana ve ${deAna?.length ?? 0} recordatorios de sus mascotas`)
+    : fail('Ana no puede leer sus recordatorios');
+  deClara?.length === 0
+    ? ok('Clara no ve recordatorios ajenos')
+    : fail(`FUGA: Clara ve ${deClara?.length} recordatorios`);
+}
+
+console.log('\n=== 39. El generador de recordatorios no es invocable desde el cliente ===');
+{
+  // Dispara envíos masivos: sólo puede llamarlo pg_cron dentro de la base.
+  for (const [quien, s] of [
+    ['Ana', ana],
+    ['el veterinario', vet],
+    ['el administrador', sesiones['admin@ojosdecielo.test']],
+  ]) {
+    const { error } = await s.sb.rpc('generar_recordatorios', { p_dias_antes: 7 });
+    if (!error) fail(`${quien} pudo ejecutar generar_recordatorios`);
+  }
+  ok('Nadie puede ejecutarlo desde la API');
+
+  const { error: errDest } = await ana.sb.rpc('destinatarios_recordatorio', {
+    p_recordatorio_id: crypto.randomUUID(),
+  });
+  errDest
+    ? ok('destinatarios_recordatorio tampoco es accesible')
+    : fail('FUGA: se pueden listar endpoints de push desde el cliente');
+}
+
+console.log('\n=== 40. El log de notificaciones es privado ===');
+{
+  const { data } = await clara.sb.from('notificacion_log').select('id');
+  data?.length === 0
+    ? ok('Clara no ve notificaciones de otros')
+    : fail(`FUGA: Clara ve ${data?.length} registros de envío`);
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

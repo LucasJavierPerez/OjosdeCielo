@@ -69,6 +69,14 @@
           "complexity": { "noImportantStyles": "off" }
         }
       }
+    },
+    {
+      "includes": ["supabase/functions/**"],
+      "linter": {
+        "rules": {
+          "suspicious": { "noUndeclaredEnvVars": "off" }
+        }
+      }
     }
   ]
 }

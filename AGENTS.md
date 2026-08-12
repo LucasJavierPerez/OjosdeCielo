@@ -66,6 +66,20 @@ Usuarios del seed local (contraseña `password123` en todos):
 `database.types.ts` es **generado**: no se edita a mano. Después de cualquier
 migración, correr `pnpm db:types`.
 
+**Edge Functions**
+
+```bash
+pnpm exec supabase functions serve --env-file supabase/functions/.env
+pnpm exec supabase secrets set --env-file supabase/functions/.env   # producción
+```
+
+La clave privada VAPID vive **sólo** como secreto de la función. Al navegador
+viaja únicamente la pública (`VITE_VAPID_PUBLIC_KEY`).
+
+`service_role` bypassa RLS pero **igual necesita `GRANT` de tabla**: son dos
+capas distintas. Una función nueva que lea una tabla nueva falla con
+"permission denied" hasta que se le otorgue.
+
 **`biome.json` es JSON estricto: no admite comentarios `//`.** Si se los agrega,
 Biome no falla de forma visible — ignora la configuración entera y reformatea todo
 el repo con sus defaults (tabs, comillas dobles). Ante un reformateo masivo
