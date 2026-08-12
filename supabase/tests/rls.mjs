@@ -426,6 +426,195 @@ console.log('\n=== 26. Storage: las fotos son privadas ===');
     : fail('FUGA: Clara subió una foto a la mascota de otro');
 }
 
+// ===========================================================================
+// Datos de salud con doble origen (fase 2)
+// ===========================================================================
+
+const vet = sesiones['vet@ojosdecielo.test'];
+const recepcion = sesiones['recepcion@ojosdecielo.test'];
+
+console.log('\n=== 27. El origen lo fija el servidor, no el cliente ===');
+let pesoTutorId;
+{
+  // Ana intenta hacer pasar su registro por uno de la clínica.
+  const { data, error } = await ana.sb
+    .from('peso_registro')
+    .insert({ mascota_id: mascotaId, peso_kg: 12.5, origen: 'clinica' })
+    .select()
+    .single();
+
+  if (error) {
+    fail(`Ana no pudo cargar un peso: ${error.message}`);
+  } else {
+    pesoTutorId = data.id;
+    data.origen === 'tutor'
+      ? ok('El origen quedó en "tutor" aunque mandó "clinica"')
+      : fail(`FALSIFICACIÓN: el registro quedó con origen "${data.origen}"`);
+    data.cargado_por === ana.userId
+      ? ok('cargado_por apunta a quien realmente lo cargó')
+      : fail('cargado_por no coincide con el usuario');
+    data.verificado_por === null ? ok('Nace sin verificar') : fail('El registro nació verificado');
+  }
+}
+
+console.log('\n=== 28. El veterinario carga con origen "clinica" ===');
+let pesoClinicaId;
+{
+  const { data, error } = await vet.sb
+    .from('peso_registro')
+    .insert({ mascota_id: mascotaId, peso_kg: 12.8 })
+    .select()
+    .single();
+  pesoClinicaId = data?.id;
+  data?.origen === 'clinica'
+    ? ok('El veterinario cargó con origen "clinica"')
+    : fail(`Origen inesperado: ${data?.origen ?? error?.message}`);
+}
+
+console.log('\n=== 29. El tutor no toca lo que cargó la clínica ===');
+{
+  await ana.sb.from('peso_registro').update({ peso_kg: 99 }).eq('id', pesoClinicaId);
+  const { data } = await ana.sb
+    .from('peso_registro')
+    .select('peso_kg')
+    .eq('id', pesoClinicaId)
+    .single();
+  Number(data?.peso_kg) === 12.8
+    ? ok('Ana no pudo modificar el peso registrado por la clínica')
+    : fail(`FUGA: Ana cambió un dato de la clínica a ${data?.peso_kg}`);
+
+  await ana.sb.from('peso_registro').delete().eq('id', pesoClinicaId);
+  const { data: sigue } = await ana.sb.from('peso_registro').select('id').eq('id', pesoClinicaId);
+  sigue?.length === 1
+    ? ok('Tampoco pudo borrarlo')
+    : fail('FUGA: Ana borró un registro de la clínica');
+}
+
+console.log('\n=== 30. El tutor sí edita lo suyo ===');
+{
+  const { error } = await ana.sb
+    .from('peso_registro')
+    .update({ peso_kg: 13.1 })
+    .eq('id', pesoTutorId);
+  const { data } = await ana.sb
+    .from('peso_registro')
+    .select('peso_kg')
+    .eq('id', pesoTutorId)
+    .single();
+  !error && Number(data?.peso_kg) === 13.1
+    ? ok('Ana corrigió su propio registro')
+    : fail(`No pudo editar lo suyo: ${error?.message}`);
+}
+
+console.log('\n=== 31. El origen es inmutable ===');
+{
+  const { error } = await ana.sb
+    .from('peso_registro')
+    .update({ origen: 'clinica' })
+    .eq('id', pesoTutorId);
+  const { data } = await ana.sb
+    .from('peso_registro')
+    .select('origen')
+    .eq('id', pesoTutorId)
+    .single();
+  data?.origen === 'tutor'
+    ? ok(`No se puede cambiar el origen (${error ? 'con error' : 'sin efecto'})`)
+    : fail('FALSIFICACIÓN: un registro del tutor pasó a ser de la clínica');
+}
+
+console.log('\n=== 32. Verificar es exclusivo del veterinario ===');
+{
+  const { error: errDirecto } = await ana.sb
+    .from('peso_registro')
+    .update({ verificado_por: ana.userId })
+    .eq('id', pesoTutorId);
+  errDirecto
+    ? ok('Nadie se auto-verifica con un UPDATE directo')
+    : fail('FUGA: se pudo escribir verificado_por a mano');
+
+  const { error: errRecepcion } = await recepcion.sb.rpc('verificar_registro', {
+    p_tabla: 'peso_registro',
+    p_id: pesoTutorId,
+  });
+  errRecepcion
+    ? ok('Recepción no puede verificar')
+    : fail('ESCALADA: recepción verificó un dato clínico');
+
+  const { error: errVet } = await vet.sb.rpc('verificar_registro', {
+    p_tabla: 'peso_registro',
+    p_id: pesoTutorId,
+  });
+  errVet
+    ? fail(`El veterinario no pudo verificar: ${errVet.message}`)
+    : ok('El veterinario verificó');
+
+  const { data } = await ana.sb
+    .from('peso_registro')
+    .select('origen, verificado_por')
+    .eq('id', pesoTutorId)
+    .single();
+  data?.verificado_por === vet.userId && data?.origen === 'tutor'
+    ? ok('Queda verificado y el origen sigue siendo "tutor"')
+    : fail(`Estado inesperado tras verificar: ${JSON.stringify(data)}`);
+}
+
+console.log('\n=== 33. verificar_registro no acepta tablas arbitrarias ===');
+{
+  for (const tabla of ['perfil', 'audit_log', 'mascota_tutor']) {
+    const { error } = await vet.sb.rpc('verificar_registro', { p_tabla: tabla, p_id: pesoTutorId });
+    if (!error) {
+      fail(`INYECCIÓN: aceptó la tabla ${tabla}`);
+    }
+  }
+  ok('Rechaza tablas fuera de la lista blanca');
+}
+
+console.log('\n=== 34. Los datos de salud siguen el acceso a la mascota ===');
+{
+  const { data: deClara } = await clara.sb
+    .from('peso_registro')
+    .select('id')
+    .eq('mascota_id', mascotaId);
+  deClara?.length === 0
+    ? ok('Clara no ve los pesos de una mascota ajena')
+    : fail(`FUGA: Clara ve ${deClara?.length} registros de peso`);
+
+  const { error } = await clara.sb
+    .from('peso_registro')
+    .insert({ mascota_id: mascotaId, peso_kg: 1 });
+  error
+    ? ok('Clara tampoco puede cargar datos en una mascota ajena')
+    : fail('FUGA: Clara cargó un peso en la mascota de otro');
+}
+
+console.log('\n=== 35. Las cuatro tablas de salud tienen las mismas garantías ===');
+{
+  const casos = [
+    ['aplicacion', { tipo: 'vacuna', producto: 'Antirrábica', proxima_fecha: '2027-08-12' }],
+    ['antecedente', { tipo: 'alergia', descripcion: 'Polen' }],
+    ['medicacion_en_curso', { descripcion: 'Meloxicam', dosis: '0.5 mg' }],
+  ];
+
+  for (const [tabla, campos] of casos) {
+    const { data, error } = await ana.sb
+      .from(tabla)
+      .insert({ mascota_id: mascotaId, origen: 'clinica', ...campos })
+      .select()
+      .single();
+
+    if (error) {
+      fail(`${tabla}: Ana no pudo cargar (${error.message})`);
+      continue;
+    }
+    data.origen === 'tutor'
+      ? ok(`${tabla}: origen forzado a "tutor"`)
+      : fail(`${tabla}: origen "${data.origen}"`);
+
+    const { data: deClara } = await clara.sb.from(tabla).select('id').eq('mascota_id', mascotaId);
+    deClara?.length === 0 ? ok(`${tabla}: Clara no ve nada`) : fail(`FUGA en ${tabla}`);
+  }
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

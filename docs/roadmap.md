@@ -47,15 +47,18 @@ Las estimaciones asumen un desarrollador principal trabajando de forma sostenida
 ## Fase 2 — Salud autogestionada
 *El tutor construye el historial de su mascota sin depender de nadie.*
 
-- Bloque de origen (`origen` / `cargado_por` / `verificado_por`) en las tablas de salud
-- Registro de peso + gráfico de evolución
-- Carnet de vacunación y desparasitaciones, con próximas fechas
-- Alergias y antecedentes reportados por el tutor
-- Medicación en curso
-- Línea de tiempo unificada de la salud de la mascota
-- Panel admin: ver lo que cargó el tutor, **marcado como reportado**, con opción de verificar
+- [x] Bloque de origen (`origen` / `cargado_por` / `verificado_por`) en las cuatro tablas de salud
+- [x] Registro de peso + gráfico de evolución, con los dos orígenes distinguidos
+- [x] Carnet de vacunación y desparasitaciones, con próxima fecha sugerida y estado de vencimiento
+- [x] Alergias y antecedentes reportados por el tutor
+- [x] Medicación en curso
+- [x] `verificar_registro()`: un veterinario confirma un dato del tutor sin cambiarle el origen
+- [ ] Línea de tiempo unificada de la salud — hoy son secciones separadas, no un orden cronológico único
+- [ ] Panel admin: ver lo que cargó el tutor, **marcado como reportado**, con botón de verificar
 
-**Terminado cuando:** un tutor carga el carnet de vacunación completo de su mascota y ve la próxima fecha calculada.
+**Terminado cuando:** un tutor carga el carnet de vacunación completo de su mascota y ve la próxima fecha calculada. ✅ *Verificado en el navegador.*
+
+**Garantía central, verificada en `test:rls`:** el origen lo fija un trigger del servidor. Un cliente que manda `origen: 'clinica'` obtiene igual un registro con origen `tutor`.
 
 ---
 

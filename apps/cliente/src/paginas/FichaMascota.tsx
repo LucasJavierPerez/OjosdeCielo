@@ -117,17 +117,36 @@ export function FichaMascota() {
         {mascota.microchip && <Dato etiqueta="Microchip" valor={mascota.microchip} />}
       </dl>
 
-      {/* Fase 2: peso, vacunas y desparasitaciones, historial. */}
-      <Link
-        to={`/mascotas/${mascota.id}/tutores`}
-        className="mt-8 flex min-h-11 items-center justify-between rounded-xl border border-slate-200 px-4 hover:bg-slate-50"
-      >
-        <span className="font-medium">Quién más accede</span>
-        <span aria-hidden="true" className="text-slate-400">
-          ›
-        </span>
-      </Link>
+      <nav className="mt-8 space-y-2">
+        <EnlaceFicha
+          a={`/mascotas/${mascota.id}/salud`}
+          titulo="Salud"
+          detalle="Peso, vacunas, alergias y medicación"
+        />
+        <EnlaceFicha
+          a={`/mascotas/${mascota.id}/tutores`}
+          titulo="Quién accede"
+          detalle="Compartir el cuidado con otra persona"
+        />
+      </nav>
     </main>
+  );
+}
+
+function EnlaceFicha({ a, titulo, detalle }: { a: string; titulo: string; detalle: string }) {
+  return (
+    <Link
+      to={a}
+      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 hover:bg-slate-50"
+    >
+      <span className="min-w-0">
+        <span className="block font-medium">{titulo}</span>
+        <span className="block text-sm text-slate-500">{detalle}</span>
+      </span>
+      <span aria-hidden="true" className="shrink-0 text-slate-400">
+        ›
+      </span>
+    </Link>
   );
 }
 

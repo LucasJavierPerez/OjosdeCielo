@@ -34,6 +34,146 @@ export type Database = {
   }
   public: {
     Tables: {
+      antecedente: {
+        Row: {
+          activo: boolean
+          actualizado_en: string | null
+          cargado_por: string
+          creado_en: string
+          descripcion: string
+          fecha: string | null
+          id: string
+          mascota_id: string
+          origen: Database["public"]["Enums"]["origen_dato"]
+          tipo: Database["public"]["Enums"]["tipo_antecedente"]
+          verificado_en: string | null
+          verificado_por: string | null
+        }
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string | null
+          cargado_por?: string
+          creado_en?: string
+          descripcion: string
+          fecha?: string | null
+          id?: string
+          mascota_id: string
+          origen?: Database["public"]["Enums"]["origen_dato"]
+          tipo: Database["public"]["Enums"]["tipo_antecedente"]
+          verificado_en?: string | null
+          verificado_por?: string | null
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string | null
+          cargado_por?: string
+          creado_en?: string
+          descripcion?: string
+          fecha?: string | null
+          id?: string
+          mascota_id?: string
+          origen?: Database["public"]["Enums"]["origen_dato"]
+          tipo?: Database["public"]["Enums"]["tipo_antecedente"]
+          verificado_en?: string | null
+          verificado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "antecedente_cargado_por_fkey"
+            columns: ["cargado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antecedente_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antecedente_verificado_por_fkey"
+            columns: ["verificado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aplicacion: {
+        Row: {
+          actualizado_en: string | null
+          cargado_por: string
+          creado_en: string
+          fecha: string
+          id: string
+          lote: string | null
+          mascota_id: string
+          nota: string | null
+          origen: Database["public"]["Enums"]["origen_dato"]
+          producto: string | null
+          proxima_fecha: string | null
+          tipo: Database["public"]["Enums"]["tipo_aplicacion"]
+          verificado_en: string | null
+          verificado_por: string | null
+        }
+        Insert: {
+          actualizado_en?: string | null
+          cargado_por?: string
+          creado_en?: string
+          fecha?: string
+          id?: string
+          lote?: string | null
+          mascota_id: string
+          nota?: string | null
+          origen?: Database["public"]["Enums"]["origen_dato"]
+          producto?: string | null
+          proxima_fecha?: string | null
+          tipo: Database["public"]["Enums"]["tipo_aplicacion"]
+          verificado_en?: string | null
+          verificado_por?: string | null
+        }
+        Update: {
+          actualizado_en?: string | null
+          cargado_por?: string
+          creado_en?: string
+          fecha?: string
+          id?: string
+          lote?: string | null
+          mascota_id?: string
+          nota?: string | null
+          origen?: Database["public"]["Enums"]["origen_dato"]
+          producto?: string | null
+          proxima_fecha?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_aplicacion"]
+          verificado_en?: string | null
+          verificado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aplicacion_cargado_por_fkey"
+            columns: ["cargado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aplicacion_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aplicacion_verificado_por_fkey"
+            columns: ["verificado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           accion: string
@@ -276,6 +416,79 @@ export type Database = {
           },
         ]
       }
+      medicacion_en_curso: {
+        Row: {
+          actualizado_en: string | null
+          cargado_por: string
+          creado_en: string
+          descripcion: string
+          desde: string
+          dosis: string | null
+          frecuencia_horas: number | null
+          hasta: string | null
+          id: string
+          mascota_id: string
+          origen: Database["public"]["Enums"]["origen_dato"]
+          recordar: boolean
+          verificado_en: string | null
+          verificado_por: string | null
+        }
+        Insert: {
+          actualizado_en?: string | null
+          cargado_por?: string
+          creado_en?: string
+          descripcion: string
+          desde?: string
+          dosis?: string | null
+          frecuencia_horas?: number | null
+          hasta?: string | null
+          id?: string
+          mascota_id: string
+          origen?: Database["public"]["Enums"]["origen_dato"]
+          recordar?: boolean
+          verificado_en?: string | null
+          verificado_por?: string | null
+        }
+        Update: {
+          actualizado_en?: string | null
+          cargado_por?: string
+          creado_en?: string
+          descripcion?: string
+          desde?: string
+          dosis?: string | null
+          frecuencia_horas?: number | null
+          hasta?: string | null
+          id?: string
+          mascota_id?: string
+          origen?: Database["public"]["Enums"]["origen_dato"]
+          recordar?: boolean
+          verificado_en?: string | null
+          verificado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicacion_en_curso_cargado_por_fkey"
+            columns: ["cargado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicacion_en_curso_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicacion_en_curso_verificado_por_fkey"
+            columns: ["verificado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfil: {
         Row: {
           activo: boolean
@@ -317,6 +530,70 @@ export type Database = {
           telefono?: string | null
         }
         Relationships: []
+      }
+      peso_registro: {
+        Row: {
+          actualizado_en: string | null
+          cargado_por: string
+          creado_en: string
+          fecha: string
+          id: string
+          mascota_id: string
+          nota: string | null
+          origen: Database["public"]["Enums"]["origen_dato"]
+          peso_kg: number
+          verificado_en: string | null
+          verificado_por: string | null
+        }
+        Insert: {
+          actualizado_en?: string | null
+          cargado_por?: string
+          creado_en?: string
+          fecha?: string
+          id?: string
+          mascota_id: string
+          nota?: string | null
+          origen?: Database["public"]["Enums"]["origen_dato"]
+          peso_kg: number
+          verificado_en?: string | null
+          verificado_por?: string | null
+        }
+        Update: {
+          actualizado_en?: string | null
+          cargado_por?: string
+          creado_en?: string
+          fecha?: string
+          id?: string
+          mascota_id?: string
+          nota?: string | null
+          origen?: Database["public"]["Enums"]["origen_dato"]
+          peso_kg?: number
+          verificado_en?: string | null
+          verificado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peso_registro_cargado_por_fkey"
+            columns: ["cargado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "peso_registro_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "peso_registro_verificado_por_fkey"
+            columns: ["verificado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -435,12 +712,22 @@ export type Database = {
           soy_yo: boolean
         }[]
       }
+      verificar_registro: {
+        Args: { p_id: string; p_tabla: string }
+        Returns: undefined
+      }
     }
     Enums: {
       especie: "perro" | "gato" | "ave" | "roedor" | "reptil" | "otro"
+      origen_dato: "tutor" | "clinica"
       rol: "cliente" | "recepcionista" | "veterinario" | "administrador"
       rol_tutor: "titular" | "tutor"
       sexo_mascota: "macho" | "hembra" | "desconocido"
+      tipo_antecedente: "alergia" | "cirugia" | "patologia_cronica" | "otro"
+      tipo_aplicacion:
+        | "vacuna"
+        | "desparasitacion_interna"
+        | "desparasitacion_externa"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -572,9 +859,16 @@ export const Constants = {
   public: {
     Enums: {
       especie: ["perro", "gato", "ave", "roedor", "reptil", "otro"],
+      origen_dato: ["tutor", "clinica"],
       rol: ["cliente", "recepcionista", "veterinario", "administrador"],
       rol_tutor: ["titular", "tutor"],
       sexo_mascota: ["macho", "hembra", "desconocido"],
+      tipo_antecedente: ["alergia", "cirugia", "patologia_cronica", "otro"],
+      tipo_aplicacion: [
+        "vacuna",
+        "desparasitacion_interna",
+        "desparasitacion_externa",
+      ],
     },
   },
 } as const

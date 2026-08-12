@@ -10,6 +10,7 @@ import { Instalar } from './paginas/Instalar.js';
 import { NoEncontrado } from './paginas/NoEncontrado.js';
 import { NuevaMascota } from './paginas/NuevaMascota.js';
 import { Registrarse } from './paginas/Registrarse.js';
+import { SaludMascota } from './paginas/SaludMascota.js';
 import { TutoresMascota } from './paginas/TutoresMascota.js';
 
 /** Atajo para no repetir el envoltorio en cada ruta de cliente. */
@@ -47,6 +48,14 @@ export function App() {
           element={
             <Privada>
               <FichaMascota />
+            </Privada>
+          }
+        />
+        <Route
+          path="/mascotas/:id/salud"
+          element={
+            <Privada>
+              <SaludMascota />
             </Privada>
           }
         />
