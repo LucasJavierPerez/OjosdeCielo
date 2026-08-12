@@ -338,6 +338,53 @@ export type Database = {
           },
         ]
       }
+      comprobante: {
+        Row: {
+          cae: string | null
+          cae_vencimiento: string | null
+          creado_en: string
+          cuit_receptor: string | null
+          id: string
+          numero: number
+          orden_id: string
+          punto_venta: number
+          tipo_comprobante: string
+          total: number
+        }
+        Insert: {
+          cae?: string | null
+          cae_vencimiento?: string | null
+          creado_en?: string
+          cuit_receptor?: string | null
+          id?: string
+          numero: number
+          orden_id: string
+          punto_venta?: number
+          tipo_comprobante?: string
+          total: number
+        }
+        Update: {
+          cae?: string | null
+          cae_vencimiento?: string | null
+          creado_en?: string
+          cuit_receptor?: string | null
+          id?: string
+          numero?: number
+          orden_id?: string
+          punto_venta?: number
+          tipo_comprobante?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprobante_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "orden"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       configuracion_clinica: {
         Row: {
           actualizado_en: string | null
@@ -645,6 +692,45 @@ export type Database = {
           },
         ]
       }
+      lote: {
+        Row: {
+          creado_en: string
+          id: string
+          numero: string
+          producto_id: string
+          vencimiento: string | null
+        }
+        Insert: {
+          creado_en?: string
+          id?: string
+          numero: string
+          producto_id: string
+          vencimiento?: string | null
+        }
+        Update: {
+          creado_en?: string
+          id?: string
+          numero?: string
+          producto_id?: string
+          vencimiento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lote_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "producto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lote_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "stock_actual"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       mascota: {
         Row: {
           actualizado_en: string | null
@@ -862,6 +948,146 @@ export type Database = {
           },
         ]
       }
+      movimiento_caja: {
+        Row: {
+          concepto: string
+          creado_en: string
+          id: string
+          medio: Database["public"]["Enums"]["medio_pago"]
+          monto: number
+          pago_id: string | null
+          tipo: string
+          turno_caja_id: string
+          usuario_id: string
+        }
+        Insert: {
+          concepto: string
+          creado_en?: string
+          id?: string
+          medio: Database["public"]["Enums"]["medio_pago"]
+          monto: number
+          pago_id?: string | null
+          tipo: string
+          turno_caja_id: string
+          usuario_id?: string
+        }
+        Update: {
+          concepto?: string
+          creado_en?: string
+          id?: string
+          medio?: Database["public"]["Enums"]["medio_pago"]
+          monto?: number
+          pago_id?: string | null
+          tipo?: string
+          turno_caja_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimiento_caja_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "pago"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimiento_caja_turno_caja_id_fkey"
+            columns: ["turno_caja_id"]
+            isOneToOne: false
+            referencedRelation: "turno_caja"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimiento_caja_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimiento_stock: {
+        Row: {
+          cantidad: number
+          creado_en: string
+          id: string
+          lote_id: string | null
+          mascota_id: string | null
+          motivo: string | null
+          orden_id: string | null
+          producto_id: string
+          tipo: Database["public"]["Enums"]["tipo_movimiento"]
+          usuario_id: string
+        }
+        Insert: {
+          cantidad: number
+          creado_en?: string
+          id?: string
+          lote_id?: string | null
+          mascota_id?: string | null
+          motivo?: string | null
+          orden_id?: string | null
+          producto_id: string
+          tipo: Database["public"]["Enums"]["tipo_movimiento"]
+          usuario_id?: string
+        }
+        Update: {
+          cantidad?: number
+          creado_en?: string
+          id?: string
+          lote_id?: string | null
+          mascota_id?: string | null
+          motivo?: string | null
+          orden_id?: string | null
+          producto_id?: string
+          tipo?: Database["public"]["Enums"]["tipo_movimiento"]
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimiento_stock_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lote"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimiento_stock_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "stock_por_lote"
+            referencedColumns: ["lote_id"]
+          },
+          {
+            foreignKeyName: "movimiento_stock_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimiento_stock_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "producto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimiento_stock_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "stock_actual"
+            referencedColumns: ["producto_id"]
+          },
+          {
+            foreignKeyName: "movimiento_stock_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notificacion_log: {
         Row: {
           enviado_en: string
@@ -896,6 +1122,186 @@ export type Database = {
             columns: ["perfil_id"]
             isOneToOne: false
             referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orden: {
+        Row: {
+          actualizado_en: string | null
+          canal: string
+          cliente_id: string | null
+          creado_en: string
+          creado_por: string | null
+          estado: Database["public"]["Enums"]["estado_orden"]
+          id: string
+          notas: string | null
+          total: number
+          turno_caja_id: string | null
+        }
+        Insert: {
+          actualizado_en?: string | null
+          canal?: string
+          cliente_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          estado?: Database["public"]["Enums"]["estado_orden"]
+          id?: string
+          notas?: string | null
+          total?: number
+          turno_caja_id?: string | null
+        }
+        Update: {
+          actualizado_en?: string | null
+          canal?: string
+          cliente_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          estado?: Database["public"]["Enums"]["estado_orden"]
+          id?: string
+          notas?: string | null
+          total?: number
+          turno_caja_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_turno_caja_id_fkey"
+            columns: ["turno_caja_id"]
+            isOneToOne: false
+            referencedRelation: "turno_caja"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orden_item: {
+        Row: {
+          cantidad: number
+          descripcion: string
+          id: string
+          orden_id: string
+          precio_unitario: number
+          producto_id: string
+          subtotal: number
+        }
+        Insert: {
+          cantidad: number
+          descripcion: string
+          id?: string
+          orden_id: string
+          precio_unitario: number
+          producto_id: string
+          subtotal: number
+        }
+        Update: {
+          cantidad?: number
+          descripcion?: string
+          id?: string
+          orden_id?: string
+          precio_unitario?: number
+          producto_id?: string
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orden_item_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "orden"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_item_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "producto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_item_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "stock_actual"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
+      pago: {
+        Row: {
+          confirmado_en: string | null
+          creado_en: string
+          estado: Database["public"]["Enums"]["estado_pago"]
+          id: string
+          medio: Database["public"]["Enums"]["medio_pago"]
+          monto: number
+          mp_payment_id: string | null
+          mp_preference_id: string | null
+          orden_id: string | null
+          payload_webhook: Json | null
+          registrado_por: string | null
+          turno_id: string | null
+        }
+        Insert: {
+          confirmado_en?: string | null
+          creado_en?: string
+          estado?: Database["public"]["Enums"]["estado_pago"]
+          id?: string
+          medio: Database["public"]["Enums"]["medio_pago"]
+          monto: number
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          orden_id?: string | null
+          payload_webhook?: Json | null
+          registrado_por?: string | null
+          turno_id?: string | null
+        }
+        Update: {
+          confirmado_en?: string | null
+          creado_en?: string
+          estado?: Database["public"]["Enums"]["estado_pago"]
+          id?: string
+          medio?: Database["public"]["Enums"]["medio_pago"]
+          monto?: number
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          orden_id?: string | null
+          payload_webhook?: Json | null
+          registrado_por?: string | null
+          turno_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pago_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "orden"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "turno"
             referencedColumns: ["id"]
           },
         ]
@@ -1031,6 +1437,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      producto: {
+        Row: {
+          actualizado_en: string | null
+          archivado_en: string | null
+          categoria: string | null
+          controla_lote: boolean
+          creado_en: string
+          descripcion: string | null
+          id: string
+          imagen_url: string | null
+          nombre: string
+          precio: number
+          requiere_receta: boolean
+          stock_minimo: number
+          visible_en_tienda: boolean
+        }
+        Insert: {
+          actualizado_en?: string | null
+          archivado_en?: string | null
+          categoria?: string | null
+          controla_lote?: boolean
+          creado_en?: string
+          descripcion?: string | null
+          id?: string
+          imagen_url?: string | null
+          nombre: string
+          precio: number
+          requiere_receta?: boolean
+          stock_minimo?: number
+          visible_en_tienda?: boolean
+        }
+        Update: {
+          actualizado_en?: string | null
+          archivado_en?: string | null
+          categoria?: string | null
+          controla_lote?: boolean
+          creado_en?: string
+          descripcion?: string | null
+          id?: string
+          imagen_url?: string | null
+          nombre?: string
+          precio?: number
+          requiere_receta?: boolean
+          stock_minimo?: number
+          visible_en_tienda?: boolean
+        }
+        Relationships: []
       }
       profesional: {
         Row: {
@@ -1248,11 +1702,128 @@ export type Database = {
           },
         ]
       }
+      turno_caja: {
+        Row: {
+          abierto_en: string
+          abierto_por: string
+          cerrado_en: string | null
+          cerrado_por: string | null
+          diferencia: number | null
+          id: string
+          monto_calculado: number | null
+          monto_declarado: number | null
+          monto_inicial: number
+          notas: string | null
+        }
+        Insert: {
+          abierto_en?: string
+          abierto_por?: string
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          diferencia?: number | null
+          id?: string
+          monto_calculado?: number | null
+          monto_declarado?: number | null
+          monto_inicial?: number
+          notas?: string | null
+        }
+        Update: {
+          abierto_en?: string
+          abierto_por?: string
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          diferencia?: number | null
+          id?: string
+          monto_calculado?: number | null
+          monto_declarado?: number | null
+          monto_inicial?: number
+          notas?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turno_caja_abierto_por_fkey"
+            columns: ["abierto_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turno_caja_cerrado_por_fkey"
+            columns: ["cerrado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      stock_actual: {
+        Row: {
+          bajo_minimo: boolean | null
+          cantidad: number | null
+          categoria: string | null
+          controla_lote: boolean | null
+          nombre: string | null
+          precio: number | null
+          producto_id: string | null
+          requiere_receta: boolean | null
+          stock_minimo: number | null
+          visible_en_tienda: boolean | null
+        }
+        Relationships: []
+      }
+      stock_por_lote: {
+        Row: {
+          cantidad: number | null
+          lote_id: string | null
+          numero: string | null
+          por_vencer: boolean | null
+          producto: string | null
+          producto_id: string | null
+          vencido: boolean | null
+          vencimiento: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lote_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "producto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lote_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "stock_actual"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
     }
     Functions: {
+      abrir_caja: {
+        Args: { p_monto_inicial?: number }
+        Returns: {
+          abierto_en: string
+          abierto_por: string
+          cerrado_en: string | null
+          cerrado_por: string | null
+          diferencia: number | null
+          id: string
+          monto_calculado: number | null
+          monto_declarado: number | null
+          monto_inicial: number
+          notas: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "turno_caja"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       aceptar_invitacion: {
         Args: { p_token: string }
         Returns: {
@@ -1299,6 +1870,16 @@ export type Database = {
           tutor_telefono: string
         }[]
       }
+      alertas_inventario: {
+        Args: never
+        Returns: {
+          cantidad: number
+          detalle: string
+          producto: string
+          producto_id: string
+          tipo: string
+        }[]
+      }
       archivar_mascota: { Args: { p_mascota_id: string }; Returns: undefined }
       avisar_hallazgo: {
         Args: { p_contacto?: string; p_mensaje: string; p_token: string }
@@ -1337,6 +1918,27 @@ export type Database = {
         Returns: undefined
       }
       cancelar_turno: { Args: { p_turno_id: string }; Returns: undefined }
+      cerrar_caja: {
+        Args: { p_monto_declarado: number; p_notas?: string }
+        Returns: {
+          abierto_en: string
+          abierto_por: string
+          cerrado_en: string | null
+          cerrado_por: string | null
+          diferencia: number | null
+          id: string
+          monto_calculado: number | null
+          monto_declarado: number | null
+          monto_inicial: number
+          notas: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "turno_caja"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       crear_mascota: {
         Args: {
           p_castrado?: boolean
@@ -1543,6 +2145,73 @@ export type Database = {
           nombre: string
         }[]
       }
+      registrar_movimiento: {
+        Args: {
+          p_cantidad: number
+          p_lote_id?: string
+          p_mascota_id?: string
+          p_motivo?: string
+          p_orden_id?: string
+          p_producto_id: string
+          p_tipo: Database["public"]["Enums"]["tipo_movimiento"]
+        }
+        Returns: {
+          cantidad: number
+          creado_en: string
+          id: string
+          lote_id: string | null
+          mascota_id: string | null
+          motivo: string | null
+          orden_id: string | null
+          producto_id: string
+          tipo: Database["public"]["Enums"]["tipo_movimiento"]
+          usuario_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "movimiento_stock"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      registrar_movimiento_caja: {
+        Args: {
+          p_concepto: string
+          p_medio: Database["public"]["Enums"]["medio_pago"]
+          p_monto: number
+          p_tipo: string
+        }
+        Returns: {
+          concepto: string
+          creado_en: string
+          id: string
+          medio: Database["public"]["Enums"]["medio_pago"]
+          monto: number
+          pago_id: string | null
+          tipo: string
+          turno_caja_id: string
+          usuario_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "movimiento_caja"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resumen_caja: {
+        Args: never
+        Returns: {
+          abierta_en: string
+          caja_id: string
+          efectivo: number
+          egresos: number
+          esperado_cajon: number
+          monto_inicial: number
+          otros_medios: number
+          ventas: number
+        }[]
+      }
       revocar_invitacion: {
         Args: { p_invitacion_id: string }
         Returns: undefined
@@ -1614,6 +2283,32 @@ export type Database = {
           soy_yo: boolean
         }[]
       }
+      vender_mostrador: {
+        Args: {
+          p_cliente_id?: string
+          p_items: Json
+          p_medio: Database["public"]["Enums"]["medio_pago"]
+          p_notas?: string
+        }
+        Returns: {
+          actualizado_en: string | null
+          canal: string
+          cliente_id: string | null
+          creado_en: string
+          creado_por: string | null
+          estado: Database["public"]["Enums"]["estado_orden"]
+          id: string
+          notas: string | null
+          total: number
+          turno_caja_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orden"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       verificar_registro: {
         Args: { p_id: string; p_tabla: string }
         Returns: undefined
@@ -1621,6 +2316,13 @@ export type Database = {
     }
     Enums: {
       especie: "perro" | "gato" | "ave" | "roedor" | "reptil" | "otro"
+      estado_orden:
+        | "borrador"
+        | "pendiente_pago"
+        | "pagada"
+        | "entregada"
+        | "cancelada"
+      estado_pago: "pendiente" | "aprobado" | "rechazado" | "devuelto"
       estado_recordatorio: "pendiente" | "enviado" | "cancelado" | "fallido"
       estado_turno:
         | "solicitado"
@@ -1629,6 +2331,13 @@ export type Database = {
         | "atendido"
         | "cancelado"
         | "ausente"
+      medio_pago:
+        | "efectivo"
+        | "debito"
+        | "credito"
+        | "transferencia"
+        | "mercadopago"
+        | "cuenta_corriente"
       origen_dato: "tutor" | "clinica"
       rol: "cliente" | "recepcionista" | "veterinario" | "administrador"
       rol_tutor: "titular" | "tutor"
@@ -1639,6 +2348,13 @@ export type Database = {
         | "vacuna"
         | "desparasitacion_interna"
         | "desparasitacion_externa"
+      tipo_movimiento:
+        | "ingreso"
+        | "venta"
+        | "uso_clinico"
+        | "ajuste"
+        | "vencimiento"
+        | "devolucion"
       tipo_notificacion:
         | "vacuna"
         | "desparasitacion"
@@ -1776,6 +2492,14 @@ export const Constants = {
   public: {
     Enums: {
       especie: ["perro", "gato", "ave", "roedor", "reptil", "otro"],
+      estado_orden: [
+        "borrador",
+        "pendiente_pago",
+        "pagada",
+        "entregada",
+        "cancelada",
+      ],
+      estado_pago: ["pendiente", "aprobado", "rechazado", "devuelto"],
       estado_recordatorio: ["pendiente", "enviado", "cancelado", "fallido"],
       estado_turno: [
         "solicitado",
@@ -1784,6 +2508,14 @@ export const Constants = {
         "atendido",
         "cancelado",
         "ausente",
+      ],
+      medio_pago: [
+        "efectivo",
+        "debito",
+        "credito",
+        "transferencia",
+        "mercadopago",
+        "cuenta_corriente",
       ],
       origen_dato: ["tutor", "clinica"],
       rol: ["cliente", "recepcionista", "veterinario", "administrador"],
@@ -1795,6 +2527,14 @@ export const Constants = {
         "vacuna",
         "desparasitacion_interna",
         "desparasitacion_externa",
+      ],
+      tipo_movimiento: [
+        "ingreso",
+        "venta",
+        "uso_clinico",
+        "ajuste",
+        "vencimiento",
+        "devolucion",
       ],
       tipo_notificacion: [
         "vacuna",
