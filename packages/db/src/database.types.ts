@@ -2521,6 +2521,49 @@ export type Database = {
           raza: string
         }[]
       }
+      metricas_profesionales: {
+        Args: { p_desde?: string; p_hasta?: string }
+        Returns: {
+          atendidos: number
+          ausentes: number
+          cancelados: number
+          consultas: number
+          profesional: string
+          profesional_id: string
+        }[]
+      }
+      metricas_resumen: {
+        Args: { p_desde?: string; p_hasta?: string }
+        Returns: Json
+      }
+      metricas_turnos: {
+        Args: { p_desde?: string; p_hasta?: string }
+        Returns: {
+          atendidos: number
+          ausentes: number
+          cancelados: number
+          confirmados: number
+          dia: string
+          solicitados: number
+        }[]
+      }
+      metricas_ventas: {
+        Args: { p_desde?: string; p_hasta?: string }
+        Returns: Json
+      }
+      pacientes_inactivos: {
+        Args: { p_meses?: number }
+        Returns: {
+          email: string
+          especie: Database["public"]["Enums"]["especie"]
+          mascota: string
+          mascota_id: string
+          meses_sin_venir: number
+          telefono: string
+          tutor: string
+          ultima_atencion: string
+        }[]
+      }
       profesionales_disponibles: {
         Args: never
         Returns: {

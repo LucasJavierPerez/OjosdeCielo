@@ -2082,6 +2082,90 @@ console.log('\n=== 84. Anular una receta ===');
     : fail('Se pidió reposición de una receta anulada');
 }
 
+// ===========================================================================
+// Fase 8 — Métricas
+// ===========================================================================
+
+console.log('\n=== 85. Las métricas operativas son del personal ===');
+{
+  for (const [quien, sesion] of [
+    ['Ana', ana],
+    ['Clara', clara],
+  ]) {
+    const { error } = await sesion.sb.rpc('metricas_resumen');
+    error ? ok(`${quien} no accede al tablero`) : fail(`FUGA: ${quien} vio las métricas`);
+  }
+
+  const { data, error } = await recepcion.sb.rpc('metricas_resumen');
+  error
+    ? fail(`Recepción no pudo ver el resumen: ${error.message}`)
+    : ok('Recepción ve el resumen operativo');
+
+  typeof data?.consultas === 'number'
+    ? ok('El resumen trae los contadores esperados')
+    : fail(`El resumen devolvió algo raro: ${JSON.stringify(data)}`);
+
+  const { data: turnos, error: errTurnos } = await recepcion.sb.rpc('metricas_turnos');
+  errTurnos || !Array.isArray(turnos)
+    ? fail(`Turnos por día falló: ${errTurnos?.message}`)
+    : ok(`Turnos por día devuelve ${turnos.length} días`);
+
+  const { data: profs, error: errProfs } = await vet.sb.rpc('metricas_profesionales');
+  errProfs || !Array.isArray(profs)
+    ? fail(`Métricas por profesional falló: ${errProfs?.message}`)
+    : ok('El veterinario ve el desglose por profesional');
+}
+
+console.log('\n=== 86. Las métricas económicas son sólo del administrador ===');
+{
+  for (const [quien, sesion] of [
+    ['Recepción', recepcion],
+    ['El veterinario', vet],
+    ['Ana', ana],
+  ]) {
+    const { error } = await sesion.sb.rpc('metricas_ventas');
+    error
+      ? ok(`${quien} no ve la facturación`)
+      : fail(`FUGA: ${quien} vio las métricas económicas`);
+  }
+
+  const { data, error } = await admin.sb.rpc('metricas_ventas');
+  if (error) {
+    fail(`El administrador no pudo ver la facturación: ${error.message}`);
+  } else {
+    data && typeof data.facturado !== 'undefined' && Array.isArray(data.productos)
+      ? ok('El administrador ve facturación y rotación de productos')
+      : fail(`Las métricas económicas devolvieron algo raro: ${JSON.stringify(data)}`);
+  }
+}
+
+console.log('\n=== 87. Pacientes inactivos ===');
+{
+  const { error } = await ana.sb.rpc('pacientes_inactivos', { p_meses: 12 });
+  error
+    ? ok('Un cliente no puede listar los pacientes inactivos de la clínica')
+    : fail('FUGA: un cliente listó pacientes de otros');
+
+  // Con 0 meses entran todas las mascotas sin atención registrada, que es lo
+  // que hay en el entorno de prueba. Sirve para verificar que la consulta
+  // devuelve el contacto del tutor, que es para lo que existe la lista.
+  const { data, error: errRecep } = await recepcion.sb.rpc('pacientes_inactivos', {
+    p_meses: 0,
+  });
+
+  if (errRecep) {
+    fail(`Recepción no pudo listar inactivos: ${errRecep.message}`);
+  } else {
+    const filas = data ?? [];
+    filas.length > 0
+      ? ok(`Recepción ve ${filas.length} pacientes sin atención`)
+      : fail('La lista de inactivos vino vacía');
+    filas.every((f) => f.mascota)
+      ? ok('Cada fila trae el paciente y el contacto para llamarlo')
+      : fail('Faltan datos en la lista de inactivos');
+  }
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

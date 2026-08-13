@@ -12,6 +12,7 @@ import { NuevoPaciente } from './paginas/NuevoPaciente.js';
 import { Pacientes } from './paginas/Pacientes.js';
 import { Reposiciones } from './paginas/Reposiciones.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
+import { Tablero } from './paginas/Tablero.js';
 
 function Interna({ children }: { children: ReactNode }) {
   return <RutaProtegida rolesPermitidos={ROLES_CLINICA}>{children}</RutaProtegida>;
@@ -58,6 +59,14 @@ export function App() {
         }
       />
 
+      <Route
+        path="/tablero"
+        element={
+          <Interna>
+            <Tablero />
+          </Interna>
+        }
+      />
       <Route
         path="/reposiciones"
         element={
