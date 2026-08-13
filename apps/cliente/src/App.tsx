@@ -2,6 +2,7 @@ import { RutaProtegida } from '@ojosdecielo/ui/auth';
 import type { ReactNode } from 'react';
 import { Route, Routes } from 'react-router';
 import { AvisoActualizacion } from './componentes/AvisoActualizacion.js';
+import { PuertaPolitica } from './componentes/PuertaPolitica.js';
 import { AceptarInvitacion } from './paginas/AceptarInvitacion.js';
 import { AjustesMascota } from './paginas/AjustesMascota.js';
 import { FichaMascota } from './paginas/FichaMascota.js';
@@ -17,6 +18,7 @@ import { Notificaciones } from './paginas/Notificaciones.js';
 import { NuevaMascota } from './paginas/NuevaMascota.js';
 import { NuevoTurno } from './paginas/NuevoTurno.js';
 import { OrdenCompra } from './paginas/OrdenCompra.js';
+import { Politica } from './paginas/Politica.js';
 import { RecetaImprimible } from './paginas/RecetaImprimible.js';
 import { RecetasMascota } from './paginas/RecetasMascota.js';
 import { Registrarse } from './paginas/Registrarse.js';
@@ -28,7 +30,11 @@ import { VerificarReceta } from './paginas/VerificarReceta.js';
 
 /** Atajo para no repetir el envoltorio en cada ruta de cliente. */
 function Privada({ children }: { children: ReactNode }) {
-  return <RutaProtegida rolesPermitidos={['cliente']}>{children}</RutaProtegida>;
+  return (
+    <RutaProtegida rolesPermitidos={['cliente']}>
+      <PuertaPolitica>{children}</PuertaPolitica>
+    </RutaProtegida>
+  );
 }
 
 export function App() {
@@ -39,6 +45,7 @@ export function App() {
         <Route path="/ingresar" element={<Ingresar />} />
         <Route path="/registrarse" element={<Registrarse />} />
         <Route path="/instalar" element={<Instalar />} />
+        <Route path="/politica" element={<Politica />} />
         <Route path="/sin-acceso" element={<SinAcceso />} />
 
         {/* Pública a propósito: la abre quien encontró a la mascota, que no

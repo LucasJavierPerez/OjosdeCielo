@@ -522,6 +522,42 @@ export type Database = {
         }
         Relationships: []
       }
+      consentimiento: {
+        Row: {
+          aceptado_en: string
+          id: number
+          perfil_id: string
+          version: string
+        }
+        Insert: {
+          aceptado_en?: string
+          id?: number
+          perfil_id: string
+          version: string
+        }
+        Update: {
+          aceptado_en?: string
+          id?: number
+          perfil_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consentimiento_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consentimiento_version_fkey"
+            columns: ["version"]
+            isOneToOne: false
+            referencedRelation: "politica_privacidad"
+            referencedColumns: ["version"]
+          },
+        ]
+      }
       consulta: {
         Row: {
           anamnesis: string | null
@@ -1615,6 +1651,27 @@ export type Database = {
           },
         ]
       }
+      politica_privacidad: {
+        Row: {
+          contenido: string
+          publicada_en: string
+          version: string
+          vigente: boolean
+        }
+        Insert: {
+          contenido: string
+          publicada_en?: string
+          version: string
+          vigente?: boolean
+        }
+        Update: {
+          contenido?: string
+          publicada_en?: string
+          version?: string
+          vigente?: boolean
+        }
+        Relationships: []
+      }
       preferencia_notificacion: {
         Row: {
           habilitado: boolean
@@ -2338,6 +2395,21 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      aceptar_politica: {
+        Args: never
+        Returns: {
+          aceptado_en: string
+          id: number
+          perfil_id: string
+          version: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "consentimiento"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       agenda_dia: {
         Args: { p_fecha: string; p_profesional_id?: string }
         Returns: {
@@ -2933,6 +3005,7 @@ export type Database = {
           perfil_id: string
         }[]
       }
+      politica_pendiente: { Args: never; Returns: Json }
       previsualizar_campana: { Args: { p_segmento: Json }; Returns: Json }
       profesionales_disponibles: {
         Args: never
@@ -2943,6 +3016,21 @@ export type Database = {
           matricula: string
           nombre: string
         }[]
+      }
+      publicar_politica: {
+        Args: { p_contenido: string; p_version: string }
+        Returns: {
+          contenido: string
+          publicada_en: string
+          version: string
+          vigente: boolean
+        }
+        SetofOptions: {
+          from: "*"
+          to: "politica_privacidad"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       receta_para_imprimir: { Args: { p_receta_id: string }; Returns: Json }
       registrar_intento_publico: {

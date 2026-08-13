@@ -11,6 +11,7 @@ export function Registrarse() {
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [listo, setListo] = useState(false);
+  const [acepta, setAcepta] = useState(false);
 
   async function alEnviar(e: React.FormEvent) {
     e.preventDefault();
@@ -18,6 +19,11 @@ export function Registrarse() {
 
     if (password.length < 8) {
       setError('La contraseña tiene que tener al menos 8 caracteres.');
+      return;
+    }
+
+    if (!acepta) {
+      setError('Para crear la cuenta hace falta aceptar la política de privacidad.');
       return;
     }
 
@@ -36,6 +42,15 @@ export function Registrarse() {
       setEnviando(false);
       return;
     }
+
+    // El consentimiento se registra recién ahora porque necesita la sesión, y
+    // la versión la elige el servidor: si la mandara el navegador se podría
+    // dejar constancia de haber aceptado un texto que nunca se mostró.
+    //
+    // Si la confirmación por email está activada todavía no hay sesión y esto
+    // no hace nada; en ese caso lo pide la app al primer ingreso, que es para
+    // lo que existe politica_pendiente().
+    await supabase.rpc('aceptar_politica');
 
     setListo(true);
   }
@@ -121,6 +136,22 @@ export function Registrarse() {
           </p>
         </div>
 
+        <label className="flex items-start gap-2.5 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={acepta}
+            onChange={(e) => setAcepta(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+          />
+          <span>
+            Leí y acepto la{' '}
+            <Link to="/politica" className="font-medium text-marca-600 underline">
+              política de privacidad
+            </Link>
+            .
+          </span>
+        </label>
+
         {error && (
           <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
             {error}
@@ -129,7 +160,7 @@ export function Registrarse() {
 
         <button
           type="submit"
-          disabled={enviando}
+          disabled={enviando || !acepta}
           className="w-full rounded-lg bg-marca-600 px-4 py-3 font-medium text-white hover:bg-marca-700 disabled:opacity-60"
         >
           {enviando ? 'Creando cuenta…' : 'Crear cuenta'}

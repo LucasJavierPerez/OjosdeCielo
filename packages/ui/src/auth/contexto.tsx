@@ -1,4 +1,5 @@
 import type { ClienteSupabase, Perfil, Session } from '@ojosdecielo/db';
+import { useQueryClient } from '@tanstack/react-query';
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 
 interface EstadoAuth {
@@ -22,6 +23,7 @@ export function ProveedorAuth({
   const [session, setSession] = useState<Session | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [cargando, setCargando] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let activo = true;
@@ -59,6 +61,12 @@ export function ProveedorAuth({
         // Al cerrar sesión no puede quedar nada del usuario anterior en caché:
         // el dispositivo puede ser compartido (AGENTS.md, regla 14).
         if (evento === 'SIGNED_OUT') {
+          // La caché en memoria de react-query también, y no sólo la del
+          // service worker: sin esto, quien entra después ve por un instante
+          // las mascotas y los turnos del anterior mientras cada consulta se
+          // vuelve a resolver. RLS impide traer datos ajenos, no impide
+          // mostrar los que ya estaban en pantalla.
+          queryClient.clear();
           void limpiarCachesDeDatos();
         }
       }
@@ -68,7 +76,7 @@ export function ProveedorAuth({
       activo = false;
       sub.subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, queryClient]);
 
   const valor = useMemo<EstadoAuth>(
     () => ({

@@ -2616,6 +2616,102 @@ console.log('\n=== 99. Agenda por rango ===');
   errInvertido ? ok('Un rango invertido se rechaza') : fail('Se aceptó un rango invertido');
 }
 
+console.log('\n=== 100. Consentimiento de la política de privacidad ===');
+{
+  const anonimo = createClient(URL, ANON);
+  const { data: publica } = await anonimo
+    .from('politica_privacidad')
+    .select('version, contenido')
+    .eq('vigente', true);
+  publica?.length === 1 && publica[0].contenido.length > 100
+    ? ok('La política se puede leer sin cuenta, que es cuando hace falta')
+    : fail('La política no es legible sin sesión');
+
+  const { data: aceptado, error } = await ana.sb.rpc('aceptar_politica');
+  error ? fail(`Ana no pudo aceptar: ${error.message}`) : ok('Ana acepta la política');
+
+  aceptado?.version === publica?.[0]?.version
+    ? ok('Queda registrada la versión vigente, no la que mande el navegador')
+    : fail(`Se guardó la versión ${aceptado?.version}`);
+
+  // Aceptar dos veces no genera dos registros: sería ruido, no más prueba.
+  await ana.sb.rpc('aceptar_politica');
+  const { data: suyos } = await ana.sb.from('consentimiento').select('id');
+  suyos?.length === 1
+    ? ok('Aceptar de nuevo no duplica el registro')
+    : fail(`Ana tiene ${suyos?.length} consentimientos`);
+
+  const { data: pendiente } = await ana.sb.rpc('politica_pendiente');
+  pendiente === null
+    ? ok('Tras aceptar no le queda nada pendiente')
+    : fail('Sigue figurando como pendiente después de aceptar');
+
+  const { data: deClara } = await clara.sb.rpc('politica_pendiente');
+  deClara !== null
+    ? ok('A quien no aceptó le figura pendiente')
+    : fail('Clara no aceptó pero no le figura pendiente');
+
+  // La prueba de que alguien consintió no se puede alterar.
+  const { error: errEdit } = await ana.sb
+    .from('consentimiento')
+    .update({ version: 'inventada' })
+    .eq('id', suyos?.[0]?.id);
+  const { error: errDel } = await ana.sb.from('consentimiento').delete().eq('id', suyos?.[0]?.id);
+  const { data: sigue } = await ana.sb.from('consentimiento').select('id');
+  (errEdit || errDel) && sigue?.length === 1
+    ? ok('Un consentimiento registrado no se edita ni se borra')
+    : fail('Se pudo alterar la prueba del consentimiento');
+
+  const { data: deOtro } = await clara.sb.from('consentimiento').select('id');
+  !deOtro || deOtro.length === 0
+    ? ok('Nadie ve los consentimientos ajenos')
+    : fail('FUGA: se ven consentimientos de otras personas');
+
+  for (const [quien, sesion] of [
+    ['Ana', ana],
+    ['Recepción', recepcion],
+  ]) {
+    const { error: err } = await sesion.sb.rpc('publicar_politica', {
+      p_version: `trucha-${Date.now()}`,
+      p_contenido: 'No debería existir',
+    });
+    err ? ok(`${quien} no puede publicar una política`) : fail(`FUGA: ${quien} publicó una`);
+  }
+
+  // Ojo: esto deja la política de prueba como vigente en la base local. Es a
+  // propósito —hay que verificar que publicar desplaza a la anterior— y se
+  // deshace con `pnpm db:reset`.
+  const nueva = `2.0-test-${Date.now()}`;
+  const { error: errPub } = await admin.sb.rpc('publicar_politica', {
+    p_version: nueva,
+    p_contenido: '# Política\n\nVersión de prueba.',
+  });
+  errPub
+    ? fail(`El administrador no pudo publicar: ${errPub.message}`)
+    : ok('El administrador publica una versión nueva');
+
+  const { data: vigentes } = await admin.sb
+    .from('politica_privacidad')
+    .select('version')
+    .eq('vigente', true);
+  vigentes?.length === 1 && vigentes[0].version === nueva
+    ? ok('Queda una sola vigente y es la nueva')
+    : fail(`Vigentes: ${JSON.stringify(vigentes)}`);
+
+  const { data: ahoraPendiente } = await ana.sb.rpc('politica_pendiente');
+  ahoraPendiente?.version === nueva
+    ? ok('Publicar una versión nueva la vuelve a pedir a quien ya había aceptado')
+    : fail('Una versión nueva no se le pide a quien aceptó la anterior');
+
+  const { data: vieja } = await admin.sb
+    .from('politica_privacidad')
+    .select('version')
+    .eq('version', '0.1-borrador');
+  vieja?.length === 1
+    ? ok('La versión anterior sigue existiendo: es la prueba de qué se aceptó')
+    : fail('Se perdió la versión anterior');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

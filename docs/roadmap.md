@@ -201,8 +201,16 @@ Va última porque las métricas necesitan volumen de datos cargado para signific
 Independiente de las fases: nada de esto es necesario para seguir desarrollando,
 pero sí antes de que la clínica atienda gente de verdad.
 
-- [ ] **Política de privacidad con consentimiento en el registro** — obligación
-      concreta de la Ley 25.326 (art. 6). Es lo más barato de la lista
+- [x] **Mecanismo de consentimiento** — casilla obligatoria en el registro, página
+      pública `/politica`, y una puerta que bloquea la app si falta aceptar (hace
+      falta: con confirmación por email el registro no tiene sesión todavía).
+      Se guarda qué versión aceptó cada persona y cuándo, y el registro no se
+      puede editar ni borrar: es la prueba
+- [ ] **Texto de la política revisado por un abogado.** Hay publicado un borrador
+      (versión `0.1-borrador`) que describe lo que la aplicación hace de verdad
+      —qué datos toma, con quién los comparte, qué muestran las páginas
+      públicas—, que es el insumo que un abogado necesita. Publicar la versión
+      revisada es una acción del administrador, no requiere deploy
 - [ ] Registro de la base ante la AAIP (lo hace la clínica como responsable)
 - [ ] Contrato de tratamiento con Supabase y verificar dónde quedan alojados los datos
 - [ ] Política de retención: hoy nada se borra nunca
