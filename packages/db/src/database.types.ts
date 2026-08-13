@@ -104,10 +104,13 @@ export type Database = {
           actualizado_en: string | null
           cargado_por: string
           creado_en: string
+          descartado_en: string | null
+          descartado_por: string | null
           descripcion: string
           fecha: string | null
           id: string
           mascota_id: string
+          motivo_descarte: string | null
           origen: Database["public"]["Enums"]["origen_dato"]
           tipo: Database["public"]["Enums"]["tipo_antecedente"]
           verificado_en: string | null
@@ -118,10 +121,13 @@ export type Database = {
           actualizado_en?: string | null
           cargado_por?: string
           creado_en?: string
+          descartado_en?: string | null
+          descartado_por?: string | null
           descripcion: string
           fecha?: string | null
           id?: string
           mascota_id: string
+          motivo_descarte?: string | null
           origen?: Database["public"]["Enums"]["origen_dato"]
           tipo: Database["public"]["Enums"]["tipo_antecedente"]
           verificado_en?: string | null
@@ -132,10 +138,13 @@ export type Database = {
           actualizado_en?: string | null
           cargado_por?: string
           creado_en?: string
+          descartado_en?: string | null
+          descartado_por?: string | null
           descripcion?: string
           fecha?: string | null
           id?: string
           mascota_id?: string
+          motivo_descarte?: string | null
           origen?: Database["public"]["Enums"]["origen_dato"]
           tipo?: Database["public"]["Enums"]["tipo_antecedente"]
           verificado_en?: string | null
@@ -145,6 +154,13 @@ export type Database = {
           {
             foreignKeyName: "antecedente_cargado_por_fkey"
             columns: ["cargado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "antecedente_descartado_por_fkey"
+            columns: ["descartado_por"]
             isOneToOne: false
             referencedRelation: "perfil"
             referencedColumns: ["id"]
@@ -170,10 +186,13 @@ export type Database = {
           actualizado_en: string | null
           cargado_por: string
           creado_en: string
+          descartado_en: string | null
+          descartado_por: string | null
           fecha: string
           id: string
           lote: string | null
           mascota_id: string
+          motivo_descarte: string | null
           nota: string | null
           origen: Database["public"]["Enums"]["origen_dato"]
           producto: string | null
@@ -186,10 +205,13 @@ export type Database = {
           actualizado_en?: string | null
           cargado_por?: string
           creado_en?: string
+          descartado_en?: string | null
+          descartado_por?: string | null
           fecha?: string
           id?: string
           lote?: string | null
           mascota_id: string
+          motivo_descarte?: string | null
           nota?: string | null
           origen?: Database["public"]["Enums"]["origen_dato"]
           producto?: string | null
@@ -202,10 +224,13 @@ export type Database = {
           actualizado_en?: string | null
           cargado_por?: string
           creado_en?: string
+          descartado_en?: string | null
+          descartado_por?: string | null
           fecha?: string
           id?: string
           lote?: string | null
           mascota_id?: string
+          motivo_descarte?: string | null
           nota?: string | null
           origen?: Database["public"]["Enums"]["origen_dato"]
           producto?: string | null
@@ -218,6 +243,13 @@ export type Database = {
           {
             foreignKeyName: "aplicacion_cargado_por_fkey"
             columns: ["cargado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aplicacion_descartado_por_fkey"
+            columns: ["descartado_por"]
             isOneToOne: false
             referencedRelation: "perfil"
             referencedColumns: ["id"]
@@ -1074,6 +1106,8 @@ export type Database = {
           actualizado_en: string | null
           cargado_por: string
           creado_en: string
+          descartado_en: string | null
+          descartado_por: string | null
           descripcion: string
           desde: string
           dosis: string | null
@@ -1081,6 +1115,7 @@ export type Database = {
           hasta: string | null
           id: string
           mascota_id: string
+          motivo_descarte: string | null
           origen: Database["public"]["Enums"]["origen_dato"]
           recordar: boolean
           verificado_en: string | null
@@ -1090,6 +1125,8 @@ export type Database = {
           actualizado_en?: string | null
           cargado_por?: string
           creado_en?: string
+          descartado_en?: string | null
+          descartado_por?: string | null
           descripcion: string
           desde?: string
           dosis?: string | null
@@ -1097,6 +1134,7 @@ export type Database = {
           hasta?: string | null
           id?: string
           mascota_id: string
+          motivo_descarte?: string | null
           origen?: Database["public"]["Enums"]["origen_dato"]
           recordar?: boolean
           verificado_en?: string | null
@@ -1106,6 +1144,8 @@ export type Database = {
           actualizado_en?: string | null
           cargado_por?: string
           creado_en?: string
+          descartado_en?: string | null
+          descartado_por?: string | null
           descripcion?: string
           desde?: string
           dosis?: string | null
@@ -1113,6 +1153,7 @@ export type Database = {
           hasta?: string | null
           id?: string
           mascota_id?: string
+          motivo_descarte?: string | null
           origen?: Database["public"]["Enums"]["origen_dato"]
           recordar?: boolean
           verificado_en?: string | null
@@ -1122,6 +1163,13 @@ export type Database = {
           {
             foreignKeyName: "medicacion_en_curso_cargado_por_fkey"
             columns: ["cargado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medicacion_en_curso_descartado_por_fkey"
+            columns: ["descartado_por"]
             isOneToOne: false
             referencedRelation: "perfil"
             referencedColumns: ["id"]
@@ -1556,7 +1604,7 @@ export type Database = {
           email: string
           id: string
           nombre: string
-          rol: Database["public"]["Enums"]["rol"]
+          roles: Database["public"]["Enums"]["rol"][]
           telefono: string | null
         }
         Insert: {
@@ -1569,7 +1617,7 @@ export type Database = {
           email: string
           id: string
           nombre: string
-          rol?: Database["public"]["Enums"]["rol"]
+          roles?: Database["public"]["Enums"]["rol"][]
           telefono?: string | null
         }
         Update: {
@@ -1582,7 +1630,7 @@ export type Database = {
           email?: string
           id?: string
           nombre?: string
-          rol?: Database["public"]["Enums"]["rol"]
+          roles?: Database["public"]["Enums"]["rol"][]
           telefono?: string | null
         }
         Relationships: []
@@ -1592,9 +1640,12 @@ export type Database = {
           actualizado_en: string | null
           cargado_por: string
           creado_en: string
+          descartado_en: string | null
+          descartado_por: string | null
           fecha: string
           id: string
           mascota_id: string
+          motivo_descarte: string | null
           nota: string | null
           origen: Database["public"]["Enums"]["origen_dato"]
           peso_kg: number
@@ -1605,9 +1656,12 @@ export type Database = {
           actualizado_en?: string | null
           cargado_por?: string
           creado_en?: string
+          descartado_en?: string | null
+          descartado_por?: string | null
           fecha?: string
           id?: string
           mascota_id: string
+          motivo_descarte?: string | null
           nota?: string | null
           origen?: Database["public"]["Enums"]["origen_dato"]
           peso_kg: number
@@ -1618,9 +1672,12 @@ export type Database = {
           actualizado_en?: string | null
           cargado_por?: string
           creado_en?: string
+          descartado_en?: string | null
+          descartado_por?: string | null
           fecha?: string
           id?: string
           mascota_id?: string
+          motivo_descarte?: string | null
           nota?: string | null
           origen?: Database["public"]["Enums"]["origen_dato"]
           peso_kg?: number
@@ -1631,6 +1688,13 @@ export type Database = {
           {
             foreignKeyName: "peso_registro_cargado_por_fkey"
             columns: ["cargado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "peso_registro_descartado_por_fkey"
+            columns: ["descartado_por"]
             isOneToOne: false
             referencedRelation: "perfil"
             referencedColumns: ["id"]
@@ -2534,9 +2598,30 @@ export type Database = {
         }
         Returns: undefined
       }
-      cambiar_rol: {
-        Args: { p_perfil_id: string; p_rol: Database["public"]["Enums"]["rol"] }
-        Returns: undefined
+      cambiar_roles: {
+        Args: {
+          p_perfil_id: string
+          p_roles: Database["public"]["Enums"]["rol"][]
+        }
+        Returns: {
+          activo: boolean
+          actualizado_en: string | null
+          apellido: string
+          archivado_en: string | null
+          creado_en: string
+          dni: string | null
+          email: string
+          id: string
+          nombre: string
+          roles: Database["public"]["Enums"]["rol"][]
+          telefono: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "perfil"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       cancelar_campana: {
         Args: { p_campana_id: string }
@@ -2733,6 +2818,10 @@ export type Database = {
         Args: { p_mascota_id: string }
         Returns: undefined
       }
+      descartar_registro: {
+        Args: { p_id: string; p_motivo: string; p_tabla: string }
+        Returns: undefined
+      }
       destinatarios_campana: {
         Args: { p_campana_id: string }
         Returns: {
@@ -2893,7 +2982,7 @@ export type Database = {
           email: string
           id: string
           nombre: string
-          rol: Database["public"]["Enums"]["rol"]
+          roles: Database["public"]["Enums"]["rol"][]
           soy_yo: boolean
         }[]
       }
@@ -3135,6 +3224,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      restaurar_registro: {
+        Args: { p_id: string; p_tabla: string }
+        Returns: undefined
+      }
       resumen_caja: {
         Args: never
         Returns: {
@@ -3156,7 +3249,10 @@ export type Database = {
         Args: { p_mascota_id: string; p_perfil_id: string }
         Returns: undefined
       }
-      rol_actual: { Args: never; Returns: Database["public"]["Enums"]["rol"] }
+      roles_actuales: {
+        Args: never
+        Returns: Database["public"]["Enums"]["rol"][]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       slots_disponibles: {
@@ -3225,6 +3321,10 @@ export type Database = {
         }
       }
       stock_disponible: { Args: { p_producto_id: string }; Returns: number }
+      tiene_rol: {
+        Args: { p_rol: Database["public"]["Enums"]["rol"] }
+        Returns: boolean
+      }
       transferir_titularidad: {
         Args: { p_mascota_id: string; p_nuevo_titular: string }
         Returns: undefined

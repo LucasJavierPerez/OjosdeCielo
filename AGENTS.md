@@ -89,8 +89,8 @@ viaja únicamente la pública (`VITE_VAPID_PUBLIC_KEY`).
 
 Una función que actúa en nombre del usuario debe verificar el permiso **con el
 token de ese usuario**, no con `service_role`. `invitar-personal` usa
-service_role sólo para crear la cuenta; el cambio de rol lo hace con el token
-del administrador, para que las reglas de `cambiar_rol` sigan aplicando.
+service_role sólo para crear la cuenta; el cambio de roles lo hace con el token
+del administrador, para que las reglas de `cambiar_roles` sigan aplicando.
 
 `service_role` bypassa RLS pero **igual necesita `GRANT` de tabla**: son dos
 capas distintas. Una función nueva que lea una tabla nueva falla con
@@ -113,11 +113,18 @@ Toda tabla nueva se crea con `ENABLE ROW LEVEL SECURITY` y sus políticas **en l
 **2. El acceso a una mascota se resuelve *siempre* por `mascota_tutor`.**
 Una mascota puede tener varios tutores. No existe `mascota.cliente_id`. Toda política RLS y toda consulta sobre datos de mascota atraviesa la tabla de unión, verificando `revocado_en IS NULL`. **Es el punto único de falla del aislamiento entre clientes:** cualquier cambio que lo toque exige pasar el agente `rls-auditor`.
 
-**3. Los datos de salud llevan origen, y el tutor sólo toca lo suyo.**
-Tutor y veterinario cargan en paralelo (`docs/stack.md`, Decisión 13). Toda tabla de salud escribible por ambos lleva `origen` / `cargado_por` / `verificado_por`. El tutor edita y borra únicamente filas con `origen = 'tutor'` que él cargó — garantizado por RLS, no por la UI. `origen` nunca cambia, ni siquiera al verificarse. En el panel, lo reportado por el tutor **siempre** se muestra marcado como tal.
+**3. Los datos de salud llevan origen, y nadie reescribe lo que dijo el otro.**
+Tutor y veterinario cargan en paralelo (`docs/stack.md`, Decisión 13). Toda tabla de salud escribible por ambos lleva `origen` / `cargado_por` / `verificado_por`. Cada lado edita y borra sólo lo suyo — garantizado por RLS, no por la UI. `origen` nunca cambia, ni siquiera al verificarse. En el panel, lo reportado por el tutor **siempre** se muestra marcado como tal.
+
+Cuando el tutor reporta algo equivocado, el veterinario **descarta**, no corrige: `descartar_registro()` con motivo obligatorio. El registro queda, deja de contar para curvas, alertas e historia, y el tutor lee por qué. Corregirle el número al tutor dejaría una fila que dice «reportado por el tutor» con un valor que el tutor nunca dijo. El profesional manda sobre la lectura clínica de los datos, no sobre el registro de quién dijo qué.
 
 **4. Consultas, diagnósticos y recetas son exclusivos del profesional.**
 Frontera que no se mueve: son actos profesionales. El tutor no los crea ni los edita bajo ninguna circunstancia.
+
+**4 bis. Los roles son un conjunto, no uno solo.**
+`perfil.roles` es `public.rol[]`. Una misma persona puede ser administradora, veterinaria y recepcionista: en una veterinaria unipersonal lo es, y con un enum único había que elegir. Nunca preguntar por «el rol»: usar `es_personal_clinica()`, `es_veterinario()`, `es_administrador()` o `tiene_rol()` en la base, y los helpers de `packages/core/roles` en el código. `cliente` convive con los demás — quien trabaja en la clínica también tiene sus mascotas.
+
+Un administrador **sí** puede editarse los roles propios, siempre que no se saque `administrador`. Sin eso, el administrador único de una clínica unipersonal jamás podría darse el rol de veterinario, porque no hay nadie más que se lo conceda. La regla del último administrador activo es, por eso, la única barrera real contra que la clínica se quede sin quien la administre: no es defensa en profundidad.
 
 **5. La historia clínica no se edita ni se borra.**
 Las correcciones son registros nuevos con `corrige_a` apuntando al anterior. Requisito profesional, no decisión técnica. Lo mismo para movimientos de stock y de caja: nunca `UPDATE` sobre un movimiento, siempre uno nuevo que compense.

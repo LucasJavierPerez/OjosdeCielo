@@ -19,7 +19,7 @@ export function Reposiciones() {
   const { supabase, perfil } = useAuth();
   const { data: pedidos, isLoading, isError, refetch } = useReposiciones(supabase);
 
-  const puedoResolver = perfil ? puedeCargarHistoriaClinica(perfil.rol) : false;
+  const puedoResolver = perfil ? puedeCargarHistoriaClinica(perfil.roles) : false;
 
   return (
     <Layout>

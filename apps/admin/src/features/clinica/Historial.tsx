@@ -12,7 +12,7 @@ export function Historial({ mascotaId }: { mascotaId: string }) {
   const [cargando, setCargando] = useState(false);
   const [corrigiendo, setCorrigiendo] = useState<string | null>(null);
 
-  const puedoCargar = perfil ? puedeCargarHistoriaClinica(perfil.rol) : false;
+  const puedoCargar = perfil ? puedeCargarHistoriaClinica(perfil.roles) : false;
 
   return (
     <section>

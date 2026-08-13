@@ -6,7 +6,7 @@ export interface Integrante {
   nombre: string;
   apellido: string;
   email: string;
-  rol: Rol;
+  roles: Rol[];
   activo: boolean;
   creado_en: string;
   soy_yo: boolean;
@@ -25,13 +25,16 @@ export function useEquipo(supabase: ClienteSupabase) {
   });
 }
 
-export function useCambiarRol(supabase: ClienteSupabase) {
+export function useCambiarRoles(supabase: ClienteSupabase) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ perfilId, rol }: { perfilId: string; rol: Rol }): Promise<void> => {
-      const { error } = await supabase.rpc('cambiar_rol', { p_perfil_id: perfilId, p_rol: rol });
-      // El mensaje de la base explica el motivo (último administrador, rol
-      // propio), así que se propaga en vez de uno genérico.
+    mutationFn: async ({ perfilId, roles }: { perfilId: string; roles: Rol[] }): Promise<void> => {
+      const { error } = await supabase.rpc('cambiar_roles', {
+        p_perfil_id: perfilId,
+        p_roles: roles,
+      });
+      // El mensaje de la base explica el motivo (último administrador, sacarse
+      // el rol propio), así que se propaga en vez de uno genérico.
       if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: clavesEquipo.todos }),
@@ -62,7 +65,7 @@ export interface DatosInvitacion {
   email: string;
   nombre: string;
   apellido: string;
-  rol: Rol;
+  roles: Rol[];
 }
 
 export function useInvitarPersonal(supabase: ClienteSupabase) {

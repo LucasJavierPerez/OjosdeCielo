@@ -31,7 +31,7 @@ export function Recetario({ mascotaId }: { mascotaId: string }) {
   const { data: recetas, isLoading, isError, refetch } = useRecetas(supabase, mascotaId);
   const [emitiendo, setEmitiendo] = useState(false);
 
-  const puedoRecetar = perfil ? puedeCargarHistoriaClinica(perfil.rol) : false;
+  const puedoRecetar = perfil ? puedeCargarHistoriaClinica(perfil.roles) : false;
 
   return (
     <section>

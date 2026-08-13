@@ -1,39 +1,23 @@
-import type { Rol } from '@ojosdecielo/db';
-import { Boton, Campo, Cargando, Entrada, MensajeError, Seleccion } from '@ojosdecielo/ui';
+import { etiquetarRoles, puedeVerMetricas, type Rol } from '@ojosdecielo/core';
+import { Boton, Campo, Cargando, Entrada, MensajeError } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
 import { Layout } from '../componentes/Layout.js';
 import {
   type Integrante,
   useCambiarEstado,
-  useCambiarRol,
+  useCambiarRoles,
   useEquipo,
   useInvitarPersonal,
 } from '../features/equipo/api.js';
-
-const ROLES_PERSONAL: { valor: Rol; etiqueta: string; detalle: string }[] = [
-  { valor: 'recepcionista', etiqueta: 'Recepcionista', detalle: 'Agenda y pacientes' },
-  {
-    valor: 'veterinario',
-    etiqueta: 'Veterinario',
-    detalle: 'Historia clínica y verificación de datos',
-  },
-  { valor: 'administrador', etiqueta: 'Administrador', detalle: 'Todo, más gestión del equipo' },
-];
-
-const ETIQUETA_ROL: Record<string, string> = {
-  recepcionista: 'Recepcionista',
-  veterinario: 'Veterinario',
-  administrador: 'Administrador',
-  cliente: 'Cliente',
-};
+import { ROLES_PERSONAL, SelectorRoles } from '../features/equipo/SelectorRoles.js';
 
 export function Equipo() {
   const { supabase, perfil } = useAuth();
   const { data: equipo, isLoading, isError, refetch } = useEquipo(supabase);
   const [invitando, setInvitando] = useState(false);
 
-  const soyAdmin = perfil?.rol === 'administrador';
+  const soyAdmin = puedeVerMetricas(perfil?.roles);
 
   return (
     <Layout>
@@ -79,13 +63,15 @@ function FilaIntegrante({
   puedoGestionar: boolean;
 }) {
   const { supabase } = useAuth();
-  const cambiarRol = useCambiarRol(supabase);
+  const cambiarRoles = useCambiarRoles(supabase);
   const cambiarEstado = useCambiarEstado(supabase);
   const [error, setError] = useState<string | null>(null);
 
-  // Nadie se cambia el rol ni se da de baja a sí mismo: la base lo rechaza y
-  // acá directamente no se ofrece.
-  const editable = puedoGestionar && !i.soy_yo;
+  // Los roles propios SÍ se editan: es el caso de la veterinaria unipersonal,
+  // donde no hay nadie más que se los conceda. Lo único que la base no deja es
+  // sacarse el de administrador, así que esa casilla se bloquea.
+  const editable = puedoGestionar;
+  const bloqueados: Rol[] = i.soy_yo ? ['administrador'] : [];
 
   return (
     <li
@@ -112,47 +98,44 @@ function FilaIntegrante({
         <div className="flex items-center gap-3">
           {editable ? (
             <>
-              <label htmlFor={`rol-${i.id}`} className="sr-only">
-                Rol de {i.nombre}
-              </label>
-              <Seleccion
-                id={`rol-${i.id}`}
-                value={i.rol}
-                disabled={cambiarRol.isPending || !i.activo}
-                className="mt-0 w-auto text-sm"
-                onChange={(e) => {
+              <SelectorRoles
+                id={`roles-${i.id}`}
+                roles={i.roles}
+                bloqueados={bloqueados}
+                deshabilitado={cambiarRoles.isPending || !i.activo}
+                onCambiar={(roles) => {
                   setError(null);
-                  cambiarRol.mutate(
-                    { perfilId: i.id, rol: e.target.value as Rol },
+                  if (roles.length === 0) {
+                    setError('Hace falta al menos un rol. Para sacarle el acceso, dale de baja.');
+                    return;
+                  }
+                  cambiarRoles.mutate(
+                    { perfilId: i.id, roles },
                     { onError: (err) => setError(err.message) },
                   );
                 }}
-              >
-                {ROLES_PERSONAL.map((r) => (
-                  <option key={r.valor} value={r.valor}>
-                    {r.etiqueta}
-                  </option>
-                ))}
-              </Seleccion>
+              />
 
-              <Boton
-                variante="texto"
-                className={i.activo ? 'text-sm text-red-700' : 'text-sm'}
-                cargando={cambiarEstado.isPending}
-                onClick={() => {
-                  setError(null);
-                  cambiarEstado.mutate(
-                    { perfilId: i.id, activo: !i.activo },
-                    { onError: (err) => setError(err.message) },
-                  );
-                }}
-              >
-                {i.activo ? 'Dar de baja' : 'Reactivar'}
-              </Boton>
+              {!i.soy_yo && (
+                <Boton
+                  variante="texto"
+                  className={i.activo ? 'text-sm text-red-700' : 'text-sm'}
+                  cargando={cambiarEstado.isPending}
+                  onClick={() => {
+                    setError(null);
+                    cambiarEstado.mutate(
+                      { perfilId: i.id, activo: !i.activo },
+                      { onError: (err) => setError(err.message) },
+                    );
+                  }}
+                >
+                  {i.activo ? 'Dar de baja' : 'Reactivar'}
+                </Boton>
+              )}
             </>
           ) : (
             <span className="rounded bg-slate-100 px-2 py-1 text-sm text-slate-600">
-              {ETIQUETA_ROL[i.rol] ?? i.rol}
+              {etiquetarRoles(i.roles)}
             </span>
           )}
         </div>
@@ -176,7 +159,7 @@ function FormularioInvitacion({ onCerrar }: { onCerrar: () => void }) {
     nombre: '',
     apellido: '',
     email: '',
-    rol: 'veterinario' as Rol,
+    roles: ['veterinario'] as Rol[],
   });
 
   if (listo) {
@@ -197,6 +180,10 @@ function FormularioInvitacion({ onCerrar }: { onCerrar: () => void }) {
       onSubmit={(e) => {
         e.preventDefault();
         setError(null);
+        if (datos.roles.length === 0) {
+          setError('Elegí al menos un rol.');
+          return;
+        }
         invitar.mutate(datos, {
           onSuccess: (resultado) =>
             setListo(
@@ -244,21 +231,19 @@ function FormularioInvitacion({ onCerrar }: { onCerrar: () => void }) {
           />
         </Campo>
         <Campo
-          id="inv-rol"
-          etiqueta="Rol"
-          ayuda={ROLES_PERSONAL.find((r) => r.valor === datos.rol)?.detalle}
+          id="inv-roles"
+          etiqueta="Roles"
+          ayuda={ROLES_PERSONAL.filter((r) => datos.roles.includes(r.valor))
+            .map((r) => r.detalle)
+            .join(' · ')}
         >
-          <Seleccion
-            id="inv-rol"
-            value={datos.rol}
-            onChange={(e) => setDatos({ ...datos, rol: e.target.value as Rol })}
-          >
-            {ROLES_PERSONAL.map((r) => (
-              <option key={r.valor} value={r.valor}>
-                {r.etiqueta}
-              </option>
-            ))}
-          </Seleccion>
+          <div className="mt-1">
+            <SelectorRoles
+              id="inv-roles"
+              roles={datos.roles}
+              onCambiar={(roles) => setDatos({ ...datos, roles })}
+            />
+          </div>
         </Campo>
       </div>
 

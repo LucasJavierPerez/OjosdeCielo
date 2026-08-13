@@ -34,20 +34,25 @@ async function comoUsuario(email) {
   return { sb, claims, userId: data.user.id };
 }
 
-console.log('\n=== 1. El rol llega al JWT (custom access token hook) ===');
+console.log('\n=== 1. Los roles llegan al JWT (custom access token hook) ===');
 const esperados = {
-  'admin@ojosdecielo.test': 'administrador',
-  'vet@ojosdecielo.test': 'veterinario',
-  'recepcion@ojosdecielo.test': 'recepcionista',
-  'ana@ejemplo.test': 'cliente',
+  'admin@ojosdecielo.test': ['administrador'],
+  'vet@ojosdecielo.test': ['veterinario'],
+  'recepcion@ojosdecielo.test': ['recepcionista'],
+  'ana@ejemplo.test': ['cliente'],
 };
+const mismosRoles = (a, b) =>
+  Array.isArray(a) && a.length === b.length && b.every((r) => a.includes(r));
+
 const sesiones = {};
-for (const [email, rolEsperado] of Object.entries(esperados)) {
+for (const [email, rolesEsperados] of Object.entries(esperados)) {
   const s = await comoUsuario(email);
   sesiones[email] = s;
-  s.claims.rol === rolEsperado
-    ? ok(`${email} → rol="${s.claims.rol}"`)
-    : fail(`${email} → esperaba "${rolEsperado}", llegó "${s.claims.rol}"`);
+  mismosRoles(s.claims.roles, rolesEsperados)
+    ? ok(`${email} → roles=${JSON.stringify(s.claims.roles)}`)
+    : fail(
+        `${email} → esperaba ${JSON.stringify(rolesEsperados)}, llegó ${JSON.stringify(s.claims.roles)}`,
+      );
 }
 
 console.log('\n=== 2. Un cliente sólo ve su propio perfil ===');
@@ -85,11 +90,14 @@ console.log('\n=== 3. El personal de la clínica ve todos los perfiles ===');
 console.log('\n=== 4. Un cliente NO puede auto-promoverse a veterinario ===');
 {
   const { sb, userId } = sesiones['ana@ejemplo.test'];
-  const { error } = await sb.from('perfil').update({ rol: 'veterinario' }).eq('id', userId);
-  const { data } = await sb.from('perfil').select('rol').eq('id', userId).single();
-  data?.rol === 'cliente'
-    ? ok(`Escalada bloqueada (rol sigue en "cliente")${error ? ' con error explícito' : ''}`)
-    : fail(`ESCALADA DE PRIVILEGIOS: el rol quedó en "${data?.rol}"`);
+  const { error } = await sb
+    .from('perfil')
+    .update({ roles: ['cliente', 'veterinario'] })
+    .eq('id', userId);
+  const { data } = await sb.from('perfil').select('roles').eq('id', userId).single();
+  mismosRoles(data?.roles, ['cliente'])
+    ? ok(`Escalada bloqueada (roles siguen en ["cliente"])${error ? ' con error explícito' : ''}`)
+    : fail(`ESCALADA DE PRIVILEGIOS: los roles quedaron en ${JSON.stringify(data?.roles)}`);
 }
 
 console.log('\n=== 5. Un cliente sí puede editar sus datos ===');
@@ -871,61 +879,129 @@ console.log('\n=== 47. Sólo el administrador cambia roles ===');
     ['Recepción', recepcion],
     ['Un cliente', ana],
   ]) {
-    const { error } = await s.sb.rpc('cambiar_rol', {
+    const { error } = await s.sb.rpc('cambiar_roles', {
       p_perfil_id: recepcion.userId,
-      p_rol: 'administrador',
+      p_roles: ['administrador'],
     });
-    if (!error) fail(`ESCALADA: ${quien} pudo cambiar un rol`);
+    if (!error) fail(`ESCALADA: ${quien} pudo cambiar roles`);
   }
   ok('Nadie fuera de administración puede cambiar roles');
 
-  const { data } = await admin.sb.from('perfil').select('rol').eq('id', recepcion.userId).single();
-  data?.rol === 'recepcionista'
-    ? ok('El rol quedó intacto')
-    : fail(`El rol cambió a "${data?.rol}"`);
+  const { data } = await admin.sb
+    .from('perfil')
+    .select('roles')
+    .eq('id', recepcion.userId)
+    .single();
+  mismosRoles(data?.roles, ['recepcionista'])
+    ? ok('Los roles quedaron intactos')
+    : fail(`Los roles cambiaron a ${JSON.stringify(data?.roles)}`);
 }
 
-console.log('\n=== 48. Nadie cambia su propio rol ===');
+console.log('\n=== 48. Un administrador se suma roles pero no se saca el suyo ===');
 {
-  // Ni siquiera un administrador: evita degradarse por error y perder acceso.
-  const { error } = await admin.sb.rpc('cambiar_rol', {
+  // El caso de la veterinaria unipersonal: la misma persona atiende, cobra y
+  // administra, y no hay nadie más que se lo conceda.
+  const { data, error } = await admin.sb.rpc('cambiar_roles', {
     p_perfil_id: admin.userId,
-    p_rol: 'recepcionista',
+    p_roles: ['administrador', 'veterinario', 'recepcionista'],
   });
   error
-    ? ok('El administrador no puede cambiarse el rol a sí mismo')
-    : fail('Un administrador se cambió el rol');
+    ? fail(`No pudo darse los tres roles: ${error.message}`)
+    : ok('El administrador único puede darse también veterinario y recepcionista');
+
+  mismosRoles(data?.roles, ['administrador', 'veterinario', 'recepcionista'])
+    ? ok('Los tres roles quedan guardados')
+    : fail(`Quedó ${JSON.stringify(data?.roles)}`);
+
+  // Lo que la regla original protegía sigue protegido: no se puede quedar
+  // afuera sacándose el rol que le da acceso a esta misma pantalla.
+  const { error: errQuitarse } = await admin.sb.rpc('cambiar_roles', {
+    p_perfil_id: admin.userId,
+    p_roles: ['veterinario'],
+  });
+  errQuitarse
+    ? ok('Pero no puede sacarse a sí mismo el de administrador')
+    : fail('Un administrador se quitó el rol de administrador');
+
+  // Con los tres roles en el JWT, las tres puertas se abren para la misma
+  // persona. Es el punto de todo el cambio.
+  const uni = await comoUsuario('admin@ojosdecielo.test');
+  mismosRoles(uni.claims.roles, ['administrador', 'recepcionista', 'veterinario'])
+    ? ok('Los tres roles llegan al JWT')
+    : fail(`Al JWT llegó ${JSON.stringify(uni.claims.roles)}`);
+
+  const { error: errClinica } = await uni.sb.rpc('metricas_ventas');
+  const { data: mascotasPanel } = await uni.sb.rpc('buscar_pacientes', { p_texto: '' });
+  errClinica
+    ? fail(`Con rol de administrador no vio la facturación: ${errClinica.message}`)
+    : ok('Como administrador ve la facturación');
+  mascotasPanel ? ok('Como personal ve los pacientes') : fail('No ve los pacientes del panel');
+
+  // Y actúa como veterinario, que es lo que antes le estaba vedado.
+  const { data: mascotaUni } = await uni.sb.rpc('crear_mascota', {
+    p_nombre: 'Unipersonal',
+    p_especie: 'perro',
+  });
+  const { error: errConsulta } = await uni.sb.from('consulta').insert({
+    mascota_id: mascotaUni.id,
+    motivo: 'Control',
+  });
+  errConsulta
+    ? fail(`Con rol de veterinario no pudo cargar una consulta: ${errConsulta.message}`)
+    : ok('Y con el mismo usuario carga una consulta como veterinario');
+
+  // Se vuelve al estado de partida para no alterar los tests siguientes.
+  await admin.sb.rpc('cambiar_roles', {
+    p_perfil_id: admin.userId,
+    p_roles: ['administrador'],
+  });
 }
 
-console.log('\n=== 49. Promover y degradar administradores ===');
+console.log('\n=== 49. Promover, degradar y el último administrador ===');
 {
-  const { error } = await admin.sb.rpc('cambiar_rol', {
+  const { error } = await admin.sb.rpc('cambiar_roles', {
     p_perfil_id: recepcion.userId,
-    p_rol: 'administrador',
+    p_roles: ['recepcionista', 'administrador'],
   });
-  error ? fail(`No pudo promover: ${error.message}`) : ok('Promovió a recepción a administradora');
+  error
+    ? fail(`No pudo promover: ${error.message}`)
+    : ok('Recepción suma el rol de administradora');
 
-  const { error: errDegradar } = await admin.sb.rpc('cambiar_rol', {
+  const { error: errDegradar } = await admin.sb.rpc('cambiar_roles', {
     p_perfil_id: recepcion.userId,
-    p_rol: 'recepcionista',
+    p_roles: ['recepcionista'],
   });
   errDegradar
     ? fail(`No pudo degradar habiendo dos: ${errDegradar.message}`)
     : ok('Con dos administradores, degradar a uno funciona');
 
-  // Tras la degradación, recepción perdió el permiso. Esto NO prueba la regla
-  // del último administrador: la clínica queda protegida por la regla anterior
-  // (nadie cambia su propio rol), que hace que el último admin no pueda
-  // degradarse ni quede nadie más con permiso para hacerlo. La verificación de
-  // "último administrador" en la base es defensa en profundidad, para el día
-  // que alguna de las otras reglas se relaje.
-  const { error: errSinPermiso } = await recepcion.sb.rpc('cambiar_rol', {
+  const { error: errSinPermiso } = await recepcion.sb.rpc('cambiar_roles', {
     p_perfil_id: admin.userId,
-    p_rol: 'recepcionista',
+    p_roles: ['recepcionista'],
   });
   errSinPermiso
     ? ok('Quien deja de ser administrador pierde el permiso de inmediato')
     : fail('ESCALADA: conserva permisos tras perder el rol');
+
+  // Esta regla ya no es defensa en profundidad: ahora que uno puede editarse
+  // los roles propios, es la única barrera que impide que la clínica se quede
+  // sin nadie que administre. Se verifica de verdad.
+  const { data: admins } = await admin.sb
+    .from('perfil')
+    .select('id')
+    .contains('roles', ['administrador'])
+    .eq('activo', true);
+  admins?.length === 1
+    ? ok('Queda un solo administrador activo, que es el escenario a proteger')
+    : fail(`Hay ${admins?.length} administradores, el escenario no es el esperado`);
+
+  const { error: errBaja } = await admin.sb.rpc('cambiar_estado_personal', {
+    p_perfil_id: admin.userId,
+    p_activo: false,
+  });
+  errBaja
+    ? ok('El último administrador no puede darse de baja')
+    : fail('La clínica se quedó sin administradores');
 }
 
 console.log('\n=== 50. Dar de baja conserva la trazabilidad ===');
@@ -938,18 +1014,18 @@ console.log('\n=== 50. Dar de baja conserva la trazabilidad ===');
 
   const { data } = await admin.sb
     .from('perfil')
-    .select('activo, rol')
+    .select('activo, roles')
     .eq('id', vet.userId)
     .single();
-  data?.activo === false && data?.rol === 'veterinario'
-    ? ok('Se conserva el rol y el registro, no se borra la cuenta')
+  data?.activo === false && mismosRoles(data?.roles, ['veterinario'])
+    ? ok('Se conservan los roles y el registro, no se borra la cuenta')
     : fail(`Estado inesperado: ${JSON.stringify(data)}`);
 
-  // El hook de acceso filtra por `activo`, así que al reingresar pierde el rol.
+  // El hook de acceso filtra por `activo`, así que al reingresar pierde todo.
   const reingreso = await comoUsuario('vet@ojosdecielo.test');
-  reingreso.claims.rol === 'cliente'
+  mismosRoles(reingreso.claims.roles, ['cliente'])
     ? ok('Al volver a entrar ya no tiene rol de clínica')
-    : fail(`Un usuario dado de baja conserva el rol "${reingreso.claims.rol}"`);
+    : fail(`Un usuario dado de baja conserva ${JSON.stringify(reingreso.claims.roles)}`);
 
   await admin.sb.rpc('cambiar_estado_personal', { p_perfil_id: vet.userId, p_activo: true });
   ok('Se puede reactivar');
@@ -2710,6 +2786,146 @@ console.log('\n=== 100. Consentimiento de la política de privacidad ===');
   vieja?.length === 1
     ? ok('La versión anterior sigue existiendo: es la prueba de qué se aceptó')
     : fail('Se perdió la versión anterior');
+}
+
+console.log('\n=== 101. El veterinario controla los datos del paciente ===');
+{
+  const { data: paciente } = await ana.sb.rpc('crear_mascota', {
+    p_nombre: 'Controlada',
+    p_especie: 'gato',
+  });
+
+  // El tutor reporta un peso equivocado: 13,1 kg en un gato.
+  const { data: pesoTutor } = await ana.sb
+    .from('peso_registro')
+    .insert({ mascota_id: paciente.id, peso_kg: 13.1 })
+    .select()
+    .single();
+
+  // 1. El veterinario carga el suyo. Esto ya funcionaba; se verifica que
+  //    quede como dato de la clínica y no del tutor.
+  const { data: pesoVet, error: errVet } = await vet.sb
+    .from('peso_registro')
+    .insert({ mascota_id: paciente.id, peso_kg: 4.2, nota: 'Balanza de consultorio' })
+    .select()
+    .single();
+  errVet
+    ? fail(`El veterinario no pudo cargar un peso: ${errVet.message}`)
+    : ok('El veterinario carga peso desde el panel');
+  pesoVet?.origen === 'clinica'
+    ? ok('Queda con origen clínica, puesto por el trigger')
+    : fail(`El peso del veterinario quedó con origen ${pesoVet?.origen}`);
+
+  // 2. Corrige el suyo.
+  const { error: errEditar } = await vet.sb
+    .from('peso_registro')
+    .update({ peso_kg: 4.35 })
+    .eq('id', pesoVet.id);
+  errEditar
+    ? fail(`El veterinario no pudo corregir su propio registro: ${errEditar.message}`)
+    : ok('Y lo corrige si se equivocó al tipear');
+
+  // 3. Lo que NO puede: reescribir lo que dijo el tutor.
+  await vet.sb.from('peso_registro').update({ peso_kg: 4.2 }).eq('id', pesoTutor.id);
+  const { data: sinTocar } = await vet.sb
+    .from('peso_registro')
+    .select('peso_kg')
+    .eq('id', pesoTutor.id)
+    .single();
+  Number(sinTocar?.peso_kg) === 13.1
+    ? ok('No reescribe lo que reportó el tutor: la etiqueta seguiría diciendo que lo dijo él')
+    : fail('El veterinario reescribió un dato del tutor');
+
+  // 4. Lo que sí: descartarlo, con motivo.
+  const { error: errSinMotivo } = await vet.sb.rpc('descartar_registro', {
+    p_tabla: 'peso_registro',
+    p_id: pesoTutor.id,
+    p_motivo: '  ',
+  });
+  errSinMotivo ? ok('Descartar sin motivo se rechaza') : fail('Se descartó sin motivo');
+
+  const { error: errAna } = await ana.sb.rpc('descartar_registro', {
+    p_tabla: 'peso_registro',
+    p_id: pesoTutor.id,
+    p_motivo: 'me equivoqué',
+  });
+  errAna
+    ? ok('El tutor no descarta: es una decisión profesional')
+    : fail('FUGA: el tutor descartó un registro');
+
+  const { error: errRecep } = await recepcion.sb.rpc('descartar_registro', {
+    p_tabla: 'peso_registro',
+    p_id: pesoTutor.id,
+    p_motivo: 'no corresponde',
+  });
+  errRecep ? ok('Recepción tampoco') : fail('FUGA: recepción descartó un dato clínico');
+
+  const { error: errDescartar } = await vet.sb.rpc('descartar_registro', {
+    p_tabla: 'peso_registro',
+    p_id: pesoTutor.id,
+    p_motivo: 'Error de tipeo: el gato pesa 4,2 kg, no 13,1',
+  });
+  errDescartar
+    ? fail(`El veterinario no pudo descartar: ${errDescartar.message}`)
+    : ok('El veterinario lo descarta con motivo');
+
+  // 5. El registro sigue existiendo y el tutor lee la explicación.
+  const { data: visto } = await ana.sb
+    .from('peso_registro')
+    .select('peso_kg, descartado_en, motivo_descarte')
+    .eq('id', pesoTutor.id)
+    .single();
+  visto?.descartado_en && visto.motivo_descarte?.includes('4,2')
+    ? ok('El registro no se borra y el tutor ve por qué se descartó')
+    : fail(`El descarte no quedó visible para el tutor: ${JSON.stringify(visto)}`);
+
+  // 6. Sale de la línea de tiempo, que es el efecto clínico buscado.
+  const { data: linea } = await ana.sb.rpc('linea_de_tiempo', { p_mascota_id: paciente.id });
+  const pesos = linea?.filter((e) => e.tipo === 'peso') ?? [];
+  pesos.length === 1 && pesos[0].detalle.startsWith('4.35')
+    ? ok('La historia muestra sólo el peso válido')
+    : fail(`La historia muestra ${JSON.stringify(pesos.map((p) => p.detalle))}`);
+
+  // 7. Nadie toca el descarte por la puerta de atrás.
+  const { error: errDirecto } = await ana.sb
+    .from('peso_registro')
+    .update({ descartado_en: null, motivo_descarte: null })
+    .eq('id', pesoTutor.id);
+  const { data: sigueDescartado } = await ana.sb
+    .from('peso_registro')
+    .select('descartado_en')
+    .eq('id', pesoTutor.id)
+    .single();
+  errDirecto || sigueDescartado?.descartado_en
+    ? ok('El tutor no puede levantar el descarte editando la fila')
+    : fail('FUGA: el tutor deshizo el descarte del profesional');
+
+  const { error: errAutoDescarte } = await ana.sb
+    .from('peso_registro')
+    .update({ descartado_en: new Date().toISOString() })
+    .eq('id', pesoVet.id);
+  const { data: vetIntacto } = await ana.sb
+    .from('peso_registro')
+    .select('descartado_en')
+    .eq('id', pesoVet.id)
+    .single();
+  errAutoDescarte || vetIntacto?.descartado_en === null
+    ? ok('Ni descartar el registro de la clínica')
+    : fail('FUGA: el tutor descartó un dato de la clínica');
+
+  // 8. Se puede deshacer.
+  const { error: errRestaurar } = await vet.sb.rpc('restaurar_registro', {
+    p_tabla: 'peso_registro',
+    p_id: pesoTutor.id,
+  });
+  errRestaurar
+    ? fail(`No se pudo restaurar: ${errRestaurar.message}`)
+    : ok('Un descarte por error se deshace');
+
+  const { data: lineaFinal } = await ana.sb.rpc('linea_de_tiempo', { p_mascota_id: paciente.id });
+  (lineaFinal?.filter((e) => e.tipo === 'peso') ?? []).length === 2
+    ? ok('Y el registro vuelve a la historia')
+    : fail('El registro restaurado no volvió a la historia');
 }
 
 console.log(

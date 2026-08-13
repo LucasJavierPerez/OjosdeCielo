@@ -23,6 +23,11 @@ import {
   useTutoresPaciente,
   useVerificarRegistro,
 } from '../features/pacientes/api.js';
+import {
+  AccionesRegistro,
+  FormularioPeso,
+  type TablaSalud,
+} from '../features/pacientes/EdicionSalud.js';
 import { FormularioAntecedente } from '../features/pacientes/FormularioAntecedente.js';
 import { Recetario } from '../features/recetario/Recetario.js';
 
@@ -32,6 +37,8 @@ interface RegistroSalud {
   id: string;
   origen: string;
   verificado_por: string | null;
+  descartado_en?: string | null;
+  motivo_descarte?: string | null;
 }
 
 export function FichaPaciente() {
@@ -42,7 +49,7 @@ export function FichaPaciente() {
   const { data: tutores } = useTutoresPaciente(supabase, id);
   const { data: contacto } = useContactoTutor(supabase, id);
 
-  const puedoVerificar = perfil ? puedeCargarHistoriaClinica(perfil.rol) : false;
+  const puedoVerificar = perfil ? puedeCargarHistoriaClinica(perfil.roles) : false;
 
   if (isLoading) {
     return (
@@ -127,19 +134,7 @@ export function FichaPaciente() {
 
           <Recetario mascotaId={id} />
 
-          <Bloque titulo="Peso" vacio={!salud?.pesos.length}>
-            {salud?.pesos.map((p) => (
-              <FilaSalud
-                key={p.id}
-                registro={p}
-                mascotaId={id}
-                tabla="peso_registro"
-                puedoVerificar={puedoVerificar}
-                principal={`${Number(p.peso_kg)} kg`}
-                secundario={formatearFechaCivil(p.fecha)}
-              />
-            ))}
-          </Bloque>
+          <BloquePeso mascotaId={id} pesos={salud?.pesos ?? []} puedoEditar={puedoVerificar} />
 
           <Bloque titulo="Vacunas y desparasitaciones" vacio={!salud?.aplicaciones.length}>
             {salud?.aplicaciones.map((a) => {
@@ -249,11 +244,18 @@ function FilaSalud({
   const esDelTutor = registro.origen === 'tutor';
   const yaVerificado = registro.verificado_por !== null;
 
+  const descartado = Boolean(registro.descartado_en);
+
   return (
-    <li className="flex items-start justify-between gap-4 py-2.5 text-sm">
+    <li className="flex flex-wrap items-start justify-between gap-4 py-2.5 text-sm">
       <div className="min-w-0">
-        <p className="font-medium">{principal}</p>
+        <p className={descartado ? 'font-medium text-slate-400 line-through' : 'font-medium'}>
+          {principal}
+        </p>
         <p className="text-slate-500">{secundario}</p>
+        {descartado && registro.motivo_descarte && (
+          <p className="mt-0.5 text-xs text-amber-700">Descartado: {registro.motivo_descarte}</p>
+        )}
         {extra}
       </div>
 
@@ -275,7 +277,7 @@ function FilaSalud({
           </span>
         )}
 
-        {esDelTutor && !yaVerificado && puedoVerificar && (
+        {esDelTutor && !yaVerificado && puedoVerificar && !descartado && (
           <Boton
             variante="texto"
             className="text-xs"
@@ -285,6 +287,13 @@ function FilaSalud({
             Verificar
           </Boton>
         )}
+
+        <AccionesRegistro
+          tabla={tabla as TablaSalud}
+          registro={registro}
+          mascotaId={mascotaId}
+          puedoEditar={puedoVerificar}
+        />
       </div>
     </li>
   );
@@ -328,6 +337,50 @@ function BloqueAntecedentes({
           puedoVerificar={puedoVerificar}
           principal={ETIQUETA_ANTECEDENTE[a.tipo as TipoAntecedente]}
           secundario={a.descripcion}
+        />
+      ))}
+    </Bloque>
+  );
+}
+
+function BloquePeso({
+  mascotaId,
+  pesos,
+  puedoEditar,
+}: {
+  mascotaId: string;
+  pesos: (RegistroSalud & { peso_kg: number; fecha: string })[];
+  puedoEditar: boolean;
+}) {
+  const [cargando, setCargando] = useState(false);
+
+  return (
+    <Bloque
+      titulo="Peso"
+      vacio={pesos.length === 0}
+      accion={
+        // Pesar es un acto clínico: lo registra el veterinario, no recepción.
+        puedoEditar && !cargando ? (
+          <Boton variante="texto" className="text-sm" onClick={() => setCargando(true)}>
+            Registrar peso
+          </Boton>
+        ) : null
+      }
+      encabezado={
+        cargando ? (
+          <FormularioPeso mascotaId={mascotaId} onListo={() => setCargando(false)} />
+        ) : null
+      }
+    >
+      {pesos.map((p) => (
+        <FilaSalud
+          key={p.id}
+          registro={p}
+          mascotaId={mascotaId}
+          tabla="peso_registro"
+          puedoVerificar={puedoEditar}
+          principal={`${Number(p.peso_kg)} kg`}
+          secundario={formatearFechaCivil(p.fecha)}
         />
       ))}
     </Bloque>

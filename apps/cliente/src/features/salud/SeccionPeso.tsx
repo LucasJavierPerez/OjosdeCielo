@@ -12,7 +12,7 @@ import { useAuth } from '@ojosdecielo/ui/auth';
 import { lazy, Suspense, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useBorrarPeso, useCargarPeso, usePesos } from './api.js';
-import { EtiquetaOrigen, puedeEditar } from './Origen.js';
+import { EtiquetaOrigen, MotivoDescarte, puedeEditar } from './Origen.js';
 import { Seccion } from './Seccion.js';
 
 // Recharts pesa medio megabyte. Se carga sólo cuando hay una curva que dibujar,
@@ -28,7 +28,9 @@ export function SeccionPeso({ mascotaId }: { mascotaId: string }) {
 
   // Del más nuevo al más viejo para la lista; el gráfico los quiere al revés.
   const recientes = [...(pesos ?? [])].reverse();
-  const ultimo = recientes[0];
+  // El resumen de arriba muestra el último peso que vale, no el último cargado.
+  const ultimo = recientes.find((p) => !p.descartado_en);
+  const vigentes = (pesos ?? []).filter((p) => !p.descartado_en);
 
   return (
     <Seccion
@@ -39,9 +41,9 @@ export function SeccionPeso({ mascotaId }: { mascotaId: string }) {
       textoVacio="Todavía no registraste el peso. Con dos mediciones vas a ver la evolución."
       onAgregar={() => setAgregando(true)}
     >
-      {pesos && pesos.length >= 2 && (
+      {vigentes.length >= 2 && (
         <Suspense fallback={<div className="mt-4 h-48 animate-pulse rounded-lg bg-slate-100" />}>
-          <GraficoPeso pesos={pesos} />
+          <GraficoPeso pesos={vigentes} />
         </Suspense>
       )}
 
@@ -49,16 +51,25 @@ export function SeccionPeso({ mascotaId }: { mascotaId: string }) {
 
       {recientes.length > 0 && (
         <ul className="mt-3 divide-y divide-slate-100">
-          {recientes.map((p, i) => {
-            const anterior = recientes[i + 1];
-            const variacion = anterior
-              ? variacionPeso(Number(p.peso_kg), Number(anterior.peso_kg))
-              : 0;
+          {recientes.map((p) => {
+            // La variación se compara contra el peso vigente anterior, no
+            // contra el de la lista: un valor descartado en el medio daría un
+            // salto que no existió.
+            const posicion = vigentes.findIndex((v) => v.id === p.id);
+            const anterior = posicion > 0 ? vigentes[posicion - 1] : undefined;
+            const variacion =
+              anterior && !p.descartado_en
+                ? variacionPeso(Number(p.peso_kg), Number(anterior.peso_kg))
+                : 0;
 
             return (
               <li key={p.id} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
-                  <p className="font-medium">
+                  <p
+                    className={
+                      p.descartado_en ? 'font-medium text-slate-400 line-through' : 'font-medium'
+                    }
+                  >
                     {Number(p.peso_kg)} kg
                     {anterior && variacionRelevante(variacion) && (
                       <span
@@ -77,6 +88,7 @@ export function SeccionPeso({ mascotaId }: { mascotaId: string }) {
                     <EtiquetaOrigen registro={p} />
                   </p>
                   {p.nota && <p className="mt-0.5 text-xs text-slate-500">{p.nota}</p>}
+                  <MotivoDescarte registro={p} />
                 </div>
                 {perfil && puedeEditar(p, perfil.id) && (
                   <BotonBorrar mascotaId={mascotaId} id={p.id} />

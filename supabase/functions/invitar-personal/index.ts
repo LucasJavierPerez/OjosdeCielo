@@ -1,5 +1,5 @@
 /**
- * Invita a alguien al equipo de la clínica con un rol asignado.
+ * Invita a alguien al equipo de la clínica con uno o más roles.
  *
  * Vive en el servidor porque crear una cuenta requiere `service_role`, que
  * nunca puede salir del navegador. La función verifica por su cuenta que quien
@@ -42,15 +42,15 @@ Deno.serve(async (req) => {
 
   const { data: quienLlama } = await comoUsuario
     .from('perfil')
-    .select('rol, activo')
+    .select('roles, activo')
     .eq('id', sesion.user.id)
     .single();
 
-  if (quienLlama?.rol !== 'administrador' || !quienLlama.activo) {
+  if (!quienLlama?.roles?.includes('administrador') || !quienLlama.activo) {
     return json({ error: 'Sólo un administrador puede invitar personal' }, 403);
   }
 
-  let cuerpo: { email?: string; rol?: string; nombre?: string; apellido?: string };
+  let cuerpo: { email?: string; roles?: string[]; nombre?: string; apellido?: string };
   try {
     cuerpo = await req.json();
   } catch {
@@ -58,15 +58,17 @@ Deno.serve(async (req) => {
   }
 
   const email = cuerpo.email?.trim().toLowerCase();
-  const rol = cuerpo.rol as RolPersonal | undefined;
+  // Se deduplica acá además de en la base: un cuerpo con el mismo rol repetido
+  // no es un error del usuario, es ruido.
+  const roles = [...new Set(cuerpo.roles ?? [])] as RolPersonal[];
   const nombre = cuerpo.nombre?.trim() ?? '';
   const apellido = cuerpo.apellido?.trim() ?? '';
 
   if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return json({ error: 'Poné un email válido' }, 400);
   }
-  if (!rol || !ROLES_VALIDOS.includes(rol)) {
-    return json({ error: 'Rol inválido' }, 400);
+  if (roles.length === 0 || !roles.every((r) => ROLES_VALIDOS.includes(r))) {
+    return json({ error: 'Elegí al menos un rol válido' }, 400);
   }
   if (!nombre || !apellido) {
     return json({ error: 'Poné nombre y apellido' }, 400);
@@ -76,22 +78,26 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
-  // Si ya existe, se le cambia el rol en vez de fallar: el caso real es una
+  // Si ya existe, se le suman los roles en vez de fallar: el caso real es una
   // persona registrada como cliente que ahora entra a trabajar en la clínica.
   const { data: existentes } = await admin
     .from('perfil')
-    .select('id, rol')
+    .select('id, roles')
     .eq('email', email)
     .limit(1);
 
   const existente = existentes?.[0];
   if (existente) {
+    // Se SUMAN, no se reemplazan: quien ya era cliente de la clínica sigue
+    // siéndolo, con sus propias mascotas en la app.
+    const combinados = [...new Set([...(existente.roles ?? []), ...roles])];
+
     // Con el token del administrador, no con service_role: así la RPC vuelve a
     // verificar el permiso por su cuenta y todas sus reglas siguen aplicando
-    // (no degradar al último admin, no cambiarse el rol a uno mismo).
-    const { error } = await comoUsuario.rpc('cambiar_rol', {
+    // (no degradar al último admin, no sacarse el rol propio).
+    const { error } = await comoUsuario.rpc('cambiar_roles', {
       p_perfil_id: existente.id,
-      p_rol: rol,
+      p_roles: combinados,
     });
     if (error) return json({ error: error.message }, 400);
     return json({ resultado: 'rol_actualizado', email });
@@ -110,10 +116,11 @@ Deno.serve(async (req) => {
   }
 
   // El trigger de auth.users ya creó el perfil con rol 'cliente'; recién ahora
-  // se le asigna el que corresponde.
-  const { error: errorRol } = await comoUsuario.rpc('cambiar_rol', {
+  // se le asignan los que corresponden. Se reemplaza y no se suma: quien nunca
+  // usó la app no necesita el rol de cliente hasta que cargue una mascota.
+  const { error: errorRol } = await comoUsuario.rpc('cambiar_roles', {
     p_perfil_id: invitado.user.id,
-    p_rol: rol,
+    p_roles: roles,
   });
 
   if (errorRol) return json({ error: errorRol.message }, 400);

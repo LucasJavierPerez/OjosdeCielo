@@ -18,9 +18,12 @@ import type { PesoRegistro } from './api.js';
  * hueco. La curva es una sola porque la historia del animal es una sola.
  */
 export function GraficoPeso({ pesos }: { pesos: PesoRegistro[] }) {
-  if (pesos.length < 2) return null;
+  // Un peso descartado por el profesional no entra en la curva: es el punto de
+  // haberlo descartado.
+  const vigentes = pesos.filter((p) => !p.descartado_en);
+  if (vigentes.length < 2) return null;
 
-  const datos = pesos.map((p) => ({
+  const datos = vigentes.map((p) => ({
     fecha: p.fecha,
     peso: Number(p.peso_kg),
     esClinica: p.origen === 'clinica',

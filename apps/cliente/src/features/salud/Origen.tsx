@@ -3,6 +3,8 @@ import { cn } from '@ojosdecielo/ui';
 interface ConOrigen {
   origen: 'tutor' | 'clinica';
   verificado_por: string | null;
+  descartado_en?: string | null;
+  motivo_descarte?: string | null;
 }
 
 /**
@@ -15,6 +17,16 @@ interface ConOrigen {
 export function EtiquetaOrigen({ registro }: { registro: ConOrigen }) {
   const esClinica = registro.origen === 'clinica';
   const verificado = registro.verificado_por !== null;
+
+  // El descarte gana sobre todo lo demás: si el profesional dijo que el dato no
+  // vale, eso es lo primero que el tutor tiene que leer.
+  if (registro.descartado_en) {
+    return (
+      <span className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800">
+        Descartado por la clínica
+      </span>
+    );
+  }
 
   const texto = esClinica ? 'Clínica' : verificado ? 'Verificado' : 'Cargado por vos';
 
@@ -37,4 +49,15 @@ export function puedeEditar(registro: ConOrigen & { cargado_por: string }, perfi
   // Espeja la política RLS. La UI usa esto sólo para no ofrecer una acción que
   // el servidor va a rechazar; quien decide es la base de datos.
   return registro.origen === 'tutor' && registro.cargado_por === perfilId;
+}
+
+/**
+ * Motivo del descarte, para mostrarlo debajo del registro.
+ *
+ * El tutor tiene que entender por qué su dato dejó de contar, o va a pensar
+ * que la app se lo comió.
+ */
+export function MotivoDescarte({ registro }: { registro: ConOrigen }) {
+  if (!registro.descartado_en || !registro.motivo_descarte) return null;
+  return <p className="mt-0.5 text-xs text-amber-700">{registro.motivo_descarte}</p>;
 }

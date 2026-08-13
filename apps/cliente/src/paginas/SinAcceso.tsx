@@ -1,3 +1,4 @@
+import { etiquetarRoles } from '@ojosdecielo/core';
 import { Boton } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { Navigate } from 'react-router';
@@ -19,8 +20,8 @@ export function SinAcceso() {
     <main className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 text-center">
       <h1 className="text-2xl font-semibold">Esta app es para los tutores</h1>
       <p className="mt-2 text-slate-600">
-        Tu cuenta es del personal de la clínica{perfil ? ` (${perfil.rol})` : ''}. Para atender
-        pacientes entrá al panel.
+        Tu cuenta es del personal de la clínica{perfil ? ` (${etiquetarRoles(perfil.roles)})` : ''}.
+        Para atender pacientes entrá al panel.
       </p>
 
       {urlPanel && (

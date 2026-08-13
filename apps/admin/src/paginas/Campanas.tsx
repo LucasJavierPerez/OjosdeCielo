@@ -26,7 +26,7 @@ export function Campanas() {
   const { data: campanas, isLoading, isError, refetch } = useCampanas(supabase);
   const [creando, setCreando] = useState(false);
 
-  const esAdmin = perfil ? puedeVerMetricas(perfil.rol) : false;
+  const esAdmin = perfil ? puedeVerMetricas(perfil.roles) : false;
 
   return (
     <Layout>

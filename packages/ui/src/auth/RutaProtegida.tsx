@@ -40,7 +40,12 @@ export function RutaProtegida({
     return <Navigate to={redirigirA} state={{ desde: location.pathname }} replace />;
   }
 
-  if (rolesPermitidos && perfil && !rolesPermitidos.includes(perfil.rol)) {
+  // Basta con tener alguno de los roles permitidos: quien atiende y además
+  // administra entra por las dos puertas.
+  const permitido =
+    !rolesPermitidos || !perfil || rolesPermitidos.some((r) => perfil.roles.includes(r));
+
+  if (!permitido) {
     return <Navigate to="/sin-acceso" replace />;
   }
 

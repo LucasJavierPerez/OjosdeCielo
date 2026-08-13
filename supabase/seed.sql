@@ -57,12 +57,12 @@ begin
   where u.email like '%@ojosdecielo.test' or u.email like '%@ejemplo.test'
   on conflict do nothing;
 
-  -- El trigger creó todos los perfiles como 'cliente' (a propósito: el rol no
+  -- El trigger creó todos los perfiles como 'cliente' (a propósito: los roles no
   -- se toma de metadata). Acá se asignan los roles de la clínica, que es lo que
   -- en producción haría un administrador.
-  update public.perfil set rol = 'administrador'  where id = v_admin_id;
-  update public.perfil set rol = 'veterinario'    where id = v_vet_id;
-  update public.perfil set rol = 'recepcionista'  where id = v_recepcion_id;
+  update public.perfil set roles = array['administrador']::public.rol[] where id = v_admin_id;
+  update public.perfil set roles = array['veterinario']::public.rol[]   where id = v_vet_id;
+  update public.perfil set roles = array['recepcionista']::public.rol[] where id = v_recepcion_id;
 
   update public.configuracion_clinica
      set direccion = 'Av. Siempreviva 742',
@@ -114,7 +114,7 @@ begin
 
   -- Datos cargados por Ana (origen 'tutor').
   perform set_config('request.jwt.claims',
-    json_build_object('sub', v_ana::text, 'rol', 'cliente')::text, true);
+    json_build_object('sub', v_ana::text, 'roles', json_build_array('cliente'))::text, true);
 
   insert into public.peso_registro (mascota_id, fecha, peso_kg) values
     (v_pulga, current_date - 120, 11.400),
@@ -135,14 +135,14 @@ begin
 
   -- Un peso medido en la clínica, para ver los dos orígenes conviviendo.
   perform set_config('request.jwt.claims',
-    json_build_object('sub', v_vet::text, 'rol', 'veterinario')::text, true);
+    json_build_object('sub', v_vet::text, 'roles', json_build_array('veterinario'))::text, true);
 
   insert into public.peso_registro (mascota_id, fecha, peso_kg, nota) values
     (v_pulga, current_date - 2, 13.100, 'Balanza de consultorio');
 
   -- Datos de Clara, el control de aislamiento.
   perform set_config('request.jwt.claims',
-    json_build_object('sub', v_clara::text, 'rol', 'cliente')::text, true);
+    json_build_object('sub', v_clara::text, 'roles', json_build_array('cliente'))::text, true);
 
   insert into public.peso_registro (mascota_id, fecha, peso_kg) values
     (v_rocco, current_date - 10, 31.200);

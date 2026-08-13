@@ -49,7 +49,7 @@ export function Tablero() {
   const [mesesInactividad, setMesesInactividad] = useState(12);
 
   const rango: Rango = { desde: haceDias(dias), hasta: hoy() };
-  const esAdmin = perfil ? puedeVerMetricas(perfil.rol) : false;
+  const esAdmin = perfil ? puedeVerMetricas(perfil.roles) : false;
 
   const { data: resumen, isLoading, isError, refetch } = useResumen(supabase, rango);
   const { data: turnos } = useTurnosPorDia(supabase, rango);

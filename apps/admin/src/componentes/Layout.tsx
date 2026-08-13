@@ -1,3 +1,4 @@
+import { etiquetarRoles } from '@ojosdecielo/core';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
@@ -47,7 +48,7 @@ export function Layout({ children }: { children: ReactNode }) {
             <span className="text-slate-600">
               {perfil?.nombre} {perfil?.apellido}
               <span className="ml-2 rounded bg-slate-100 px-2 py-0.5 text-xs capitalize text-slate-600">
-                {perfil?.rol}
+                {etiquetarRoles(perfil?.roles)}
               </span>
             </span>
             <button
