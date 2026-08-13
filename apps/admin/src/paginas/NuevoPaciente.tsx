@@ -1,4 +1,4 @@
-import { ESPECIES, ETIQUETA_ESPECIE, ETIQUETA_SEXO, SEXOS } from '@ojosdecielo/core';
+import { ESPECIES, ETIQUETA_ESPECIE, ETIQUETA_SEXO, hoyCivil, SEXOS } from '@ojosdecielo/core';
 import type { Especie, SexoMascota } from '@ojosdecielo/db';
 import { Boton, Campo, Entrada, MensajeError, Seleccion } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
@@ -100,7 +100,7 @@ export function NuevoPaciente() {
               <Entrada
                 id="nacimiento"
                 type="date"
-                max={new Date().toISOString().slice(0, 10)}
+                max={hoyCivil()}
                 value={d.fecha_nacimiento}
                 onChange={(e) => set('fecha_nacimiento')(e.target.value)}
               />

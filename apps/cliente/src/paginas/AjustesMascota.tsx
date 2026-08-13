@@ -1,4 +1,4 @@
-import { formatearFechaCivil } from '@ojosdecielo/core';
+import { formatearFechaCivil, hoyCivil } from '@ojosdecielo/core';
 import { Boton, Cargando, Entrada, MensajeError } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
@@ -31,9 +31,7 @@ export function AjustesMascota() {
   const dejar = useDejarMascota(supabase, id);
   const eliminar = useEliminarMascota(supabase, id);
 
-  const [fechaFallecimiento, setFechaFallecimiento] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const [fechaFallecimiento, setFechaFallecimiento] = useState(hoyCivil());
 
   if (isLoading || !mascota) {
     return (
@@ -140,7 +138,7 @@ export function AjustesMascota() {
             <Entrada
               id="fecha-fallecimiento"
               type="date"
-              max={new Date().toISOString().slice(0, 10)}
+              max={hoyCivil()}
               value={fechaFallecimiento}
               onChange={(e) => setFechaFallecimiento(e.target.value)}
             />

@@ -5,6 +5,7 @@ import {
   ETIQUETA_APLICACION,
   estadoVencimiento,
   formatearFechaCivil,
+  hoyCivil,
   sugerirProximaFecha,
   TIPOS_APLICACION,
   type TipoAplicacion,
@@ -149,7 +150,7 @@ function FormularioAplicacion({
   const { supabase } = useAuth();
   const cargar = useCargarAplicacion(supabase, mascotaId);
   const [error, setError] = useState<string | null>(null);
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyCivil();
 
   const {
     register,

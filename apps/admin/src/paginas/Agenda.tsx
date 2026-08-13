@@ -1,4 +1,10 @@
-import { formatearFechaLarga, formatearHora } from '@ojosdecielo/core';
+import {
+  formatearFechaCivil,
+  formatearFechaLarga,
+  formatearHora,
+  hoyCivil,
+  sumarDiasCiviles,
+} from '@ojosdecielo/core';
 import type { Database } from '@ojosdecielo/db';
 import { Boton, Cargando, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
@@ -6,6 +12,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Layout } from '../componentes/Layout.js';
+import { lunesDeLaSemana, VistaSemana } from '../features/agenda/VistaSemana.js';
 
 /** El estado sale del enum de la base: agregar uno nuevo rompe acá. */
 type EstadoTurno = Database['public']['Enums']['estado_turno'];
@@ -52,7 +59,8 @@ const SIGUIENTES: Partial<Record<EstadoTurno, { estado: EstadoTurno; texto: stri
 export function Agenda() {
   const { supabase } = useAuth();
   const qc = useQueryClient();
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState(hoyCivil);
+  const [vista, setVista] = useState<'dia' | 'semana'>('dia');
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -62,6 +70,7 @@ export function Agenda() {
     refetch,
   } = useQuery({
     queryKey: ['agenda', fecha],
+    enabled: vista === 'dia',
     queryFn: async (): Promise<TurnoAgenda[]> => {
       const { data, error: err } = await supabase.rpc('agenda_dia', { p_fecha: fecha });
       if (err) throw err;
@@ -88,11 +97,8 @@ export function Agenda() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['agenda', fecha] }),
   });
 
-  const mover = (dias: number) => {
-    const d = new Date(`${fecha}T12:00:00Z`);
-    d.setDate(d.getDate() + dias);
-    setFecha(d.toISOString().slice(0, 10));
-  };
+  const mover = (dias: number) =>
+    setFecha(sumarDiasCiviles(fecha, vista === 'semana' ? dias * 7 : dias));
 
   const activos = (turnos ?? []).filter((t) => t.estado !== 'cancelado');
 
@@ -113,19 +119,39 @@ export function Agenda() {
           <Boton variante="secundario" className="text-sm" onClick={() => mover(1)}>
             ›
           </Boton>
-          <Boton
-            variante="texto"
-            className="text-sm"
-            onClick={() => setFecha(new Date().toISOString().slice(0, 10))}
-          >
+          <Boton variante="texto" className="text-sm" onClick={() => setFecha(hoyCivil())}>
             Hoy
           </Boton>
+
+          <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
+            {[
+              { v: 'dia' as const, t: 'Día' },
+              { v: 'semana' as const, t: 'Semana' },
+            ].map((o) => (
+              <button
+                key={o.v}
+                type="button"
+                onClick={() => setVista(o.v)}
+                className={
+                  vista === o.v
+                    ? 'rounded-md bg-slate-900 px-3 py-1 text-sm font-medium text-white'
+                    : 'rounded-md px-3 py-1 text-sm text-slate-600 hover:bg-slate-100'
+                }
+              >
+                {o.t}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <p className="mt-1 text-sm capitalize text-slate-600">
-        {formatearFechaLarga(`${fecha}T12:00:00Z`)}
-        {activos.length > 0 && ` · ${activos.length} turno${activos.length > 1 ? 's' : ''}`}
+      <p className="mt-1 text-sm text-slate-600 first-letter:uppercase">
+        {vista === 'dia'
+          ? formatearFechaLarga(`${fecha}T12:00:00Z`)
+          : `Semana del ${formatearFechaCivil(lunesDeLaSemana(fecha))}`}
+        {vista === 'dia' &&
+          activos.length > 0 &&
+          ` · ${activos.length} turno${activos.length > 1 ? 's' : ''}`}
       </p>
 
       {error && (
@@ -134,15 +160,26 @@ export function Agenda() {
         </div>
       )}
 
-      {isLoading && <Cargando etiqueta="Cargando la agenda" />}
+      {vista === 'semana' && (
+        <VistaSemana
+          fecha={fecha}
+          profesionalId={null}
+          onElegirDia={(d) => {
+            setFecha(d);
+            setVista('dia');
+          }}
+        />
+      )}
 
-      {isError && (
+      {vista === 'dia' && isLoading && <Cargando etiqueta="Cargando la agenda" />}
+
+      {vista === 'dia' && isError && (
         <div className="mt-4">
           <MensajeError titulo="No pudimos cargar la agenda" onReintentar={() => void refetch()} />
         </div>
       )}
 
-      {turnos && activos.length === 0 && (
+      {vista === 'dia' && turnos && activos.length === 0 && (
         <div className="mt-6">
           <Vacio
             titulo="Sin turnos para este día"
@@ -151,7 +188,7 @@ export function Agenda() {
         </div>
       )}
 
-      {activos.length > 0 && (
+      {vista === 'dia' && activos.length > 0 && (
         <ul className="mt-6 space-y-2">
           {activos.map((t) => (
             <li

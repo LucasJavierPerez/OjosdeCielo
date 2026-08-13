@@ -1,4 +1,4 @@
-import { formatearFechaCivil } from '@ojosdecielo/core';
+import { formatearFechaCivil, hoyCivil } from '@ojosdecielo/core';
 import { Boton, Cargando, cn, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
@@ -79,7 +79,7 @@ function Receta({
     texto: receta.estado,
     clase: 'bg-slate-100 text-slate-600',
   };
-  const vencida = receta.vence_el < new Date().toISOString().slice(0, 10);
+  const vencida = receta.vence_el < hoyCivil();
   const usable = receta.estado === 'vigente' && !vencida;
 
   return (

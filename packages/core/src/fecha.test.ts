@@ -1,11 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  aFechaCivil,
   calcularEdad,
   diasHastaFechaCivil,
   enZonaClinica,
   formatearFecha,
   formatearFechaCivil,
   formatearHora,
+  hoyCivil,
+  sumarDiasCiviles,
   ZONA_CLINICA,
 } from './fecha.js';
 
@@ -43,23 +46,76 @@ describe('fechas civiles (columnas date)', () => {
   });
 
   it('cuenta días sin que la zona horaria corra el resultado', () => {
-    const hoy = new Date();
-    const iso = (d: Date) => d.toISOString().slice(0, 10);
-    expect(diasHastaFechaCivil(iso(hoy))).toBe(0);
+    expect(diasHastaFechaCivil(hoyCivil())).toBe(0);
+    expect(diasHastaFechaCivil(sumarDiasCiviles(hoyCivil(), 10))).toBe(10);
+  });
+});
 
-    const enDiez = new Date(hoy);
-    enDiez.setDate(enDiez.getDate() + 10);
-    expect(diasHastaFechaCivil(iso(enDiez))).toBe(10);
+describe('hoyCivil', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /**
+   * Regresión del bug que apareció en toda la aplicación: `toISOString()`
+   * devuelve UTC, y en Argentina (UTC-3) a partir de las 21 h eso ya es el día
+   * siguiente. La agenda abría en el día equivocado y los formularios
+   * proponían mañana. Se congela el reloj a las 23:00 de Buenos Aires, que es
+   * el momento en que las dos respuestas difieren.
+   */
+  it('devuelve el día de la clínica a las 23 h, no el de UTC', () => {
+    // 2026-08-13T02:00:00Z = 12 de agosto, 23:00, en Buenos Aires.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-13T02:00:00Z'));
+
+    expect(hoyCivil()).toBe('2026-08-12');
+    // Lo que hacía el código viejo, para dejar la diferencia a la vista.
+    expect(new Date().toISOString().slice(0, 10)).toBe('2026-08-13');
+  });
+
+  it('coincide con UTC en horario de oficina', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-12T15:00:00Z'));
+    expect(hoyCivil()).toBe('2026-08-12');
+  });
+});
+
+describe('sumarDiasCiviles', () => {
+  it('cruza un fin de mes', () => {
+    expect(sumarDiasCiviles('2026-01-30', 3)).toBe('2026-02-02');
+  });
+
+  it('resta con días negativos', () => {
+    expect(sumarDiasCiviles('2026-03-01', -1)).toBe('2026-02-28');
+  });
+
+  it('respeta un año bisiesto', () => {
+    expect(sumarDiasCiviles('2028-02-28', 1)).toBe('2028-02-29');
+  });
+
+  it('no se corre al cruzar el cambio de horario de verano del hemisferio norte', () => {
+    // Marzo es cuando una implementación con horas locales pierde o gana una
+    // hora y termina devolviendo el día equivocado.
+    expect(sumarDiasCiviles('2026-03-07', 1)).toBe('2026-03-08');
+    expect(sumarDiasCiviles('2026-03-08', 1)).toBe('2026-03-09');
+  });
+
+  it('devuelve la entrada si no es una fecha civil', () => {
+    expect(sumarDiasCiviles('no es fecha', 1)).toBe('no es fecha');
+  });
+});
+
+describe('aFechaCivil', () => {
+  it('usa las partes locales y no las de UTC', () => {
+    // 23:00 local del 12 de agosto en una máquina en UTC-3.
+    const d = new Date(2026, 7, 12, 23, 0, 0);
+    expect(aFechaCivil(d)).toBe('2026-08-12');
   });
 });
 
 describe('calcularEdad', () => {
   /** Fecha civil de hace N días, en el formato `yyyy-MM-dd` que guarda la base. */
-  const haceDias = (dias: number): string => {
-    const d = new Date();
-    d.setDate(d.getDate() - dias);
-    return d.toISOString().slice(0, 10);
-  };
+  const haceDias = (dias: number): string => sumarDiasCiviles(hoyCivil(), -dias);
 
   it('expresa en días a los cachorros de pocos días', () => {
     expect(calcularEdad(haceDias(5))).toBe('5 días');

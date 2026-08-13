@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   type DatosPeso,
   formatearFechaCivil,
+  hoyCivil,
   pesoSchema,
   variacionPeso,
   variacionRelevante,
@@ -138,7 +139,7 @@ function FormularioPeso({ mascotaId, onCerrar }: { mascotaId: string; onCerrar: 
     formState: { errors },
   } = useForm<DatosPeso>({
     resolver: zodResolver(pesoSchema),
-    defaultValues: { fecha: new Date().toISOString().slice(0, 10), nota: '' },
+    defaultValues: { fecha: hoyCivil(), nota: '' },
   });
 
   return (

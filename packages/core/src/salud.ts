@@ -6,9 +6,9 @@
  */
 
 import { z } from 'zod';
-import { diasHastaFechaCivil } from './fecha.js';
+import { diasHastaFechaCivil, hoyCivil, sumarDiasCiviles } from './fecha.js';
 
-const hoy = () => new Date().toISOString().slice(0, 10);
+const hoy = () => hoyCivil();
 
 // ---------------------------------------------------------------------------
 // Peso
@@ -89,11 +89,8 @@ export type DatosAplicacion = z.infer<typeof aplicacionSchema>;
 
 /** Suma el intervalo típico a la fecha de aplicación. Trabaja en fecha civil. */
 export function sugerirProximaFecha(fecha: string, tipo: TipoAplicacion): string {
-  const [anio, mes, dia] = fecha.slice(0, 10).split('-').map(Number);
-  if (!anio || !mes || !dia) return '';
-  const d = new Date(Date.UTC(anio, mes - 1, dia));
-  d.setUTCDate(d.getUTCDate() + INTERVALO_SUGERIDO_DIAS[tipo]);
-  return d.toISOString().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}/.test(fecha)) return '';
+  return sumarDiasCiviles(fecha, INTERVALO_SUGERIDO_DIAS[tipo]);
 }
 
 export type EstadoVencimiento = 'vencida' | 'proxima' | 'al_dia';

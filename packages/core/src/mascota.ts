@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { hoyCivil } from './fecha.js';
 
 export const ESPECIES = ['perro', 'gato', 'ave', 'roedor', 'reptil', 'otro'] as const;
 export const especieSchema = z.enum(ESPECIES);
@@ -30,7 +31,7 @@ export const ETIQUETA_SEXO: Record<Sexo, string> = {
   desconocido: 'Sin especificar',
 };
 
-const hoy = () => new Date().toISOString().slice(0, 10);
+const hoy = () => hoyCivil();
 
 export const mascotaSchema = z.object({
   nombre: z

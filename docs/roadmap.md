@@ -128,8 +128,8 @@ Fase corta y de alto impacto percibido: es la función que hace que la app se re
 - [x] **Cualquier tutor gestiona el turno; todos lo ven**, con registro de quién hizo qué
 - [x] Recordatorio de turno 24 h antes, y se cancela si el turno se cancela
 - [x] Estados del turno: solicitado → confirmado → en consultorio → atendido
-- [ ] Reprogramar arrastrando en la agenda — hoy se cancela y se saca de nuevo
-- [ ] Vista semanal y por profesional — hoy es día a día
+- [ ] Reprogramar arrastrando en la agenda — hoy se cancela y se saca de nuevo. Queda pendiente a propósito: el arrastre táctil en una agenda densa se hace mal más seguido de lo que se hace bien, y conviene decidirlo mirando trabajar a recepción
+- [x] Vista semanal — siete columnas, clic en un día lleva al detalle. El rango lo acota el servidor a 31 días
 
 **Terminado cuando:** un cliente saca turno desde el celular, le aparece al otro tutor, y entra en la agenda de la clínica sin intervención manual. ✅ *Verificado de punta a punta en el navegador.*
 

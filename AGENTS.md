@@ -137,6 +137,8 @@ TypeScript en `strict`. Si el tipo no cierra, el problema es el modelo, no el co
 **10. Instantes y fechas civiles se tratan distinto.**
 Un `timestamptz` (un turno) se convierte a `America/Argentina/Buenos_Aires` para mostrarlo: `formatearFecha`, `formatearFechaHora`. Una columna `date` (fecha de nacimiento, próxima vacunación) **no se convierte de zona**: `formatearFechaCivil`, `diasHastaFechaCivil`. Pasar una fecha civil por `new Date()` la lee como medianoche UTC y en Argentina muestra el día anterior — ya pasó una vez. Nunca `new Date()` a secas para lógica de turnos o recordatorios: usar los helpers de `packages/core/fecha`.
 
+El error tiene una segunda forma, que apareció en 18 lugares a la vez: **`new Date().toISOString().slice(0, 10)` no es "hoy"**, es hoy en UTC. En zona −03, a partir de las 21 h devuelve el día siguiente; la agenda abría en el día equivocado y los formularios proponían mañana. Para eso están `hoyCivil()`, `aFechaCivil()` y `sumarDiasCiviles()`. Del lado de la base, agrupar por día es `(columna at time zone 'America/Argentina/Buenos_Aires')::date`, nunca la columna cruda. Y vale también para los tests: la suite de RLS falló una noche por esto mismo.
+
 **11. Dinero en `numeric(12,2)` en la base y en enteros de centavos o `Decimal` en el código.**
 Nunca `float` para plata.
 

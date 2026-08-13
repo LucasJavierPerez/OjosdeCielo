@@ -2357,6 +2357,26 @@ export type Database = {
           tutor_telefono: string
         }[]
       }
+      agenda_rango: {
+        Args: { p_desde: string; p_hasta: string; p_profesional_id?: string }
+        Returns: {
+          color_agenda: string
+          dia: string
+          especie: Database["public"]["Enums"]["especie"]
+          estado: Database["public"]["Enums"]["estado_turno"]
+          fin: string
+          id: string
+          inicio: string
+          mascota_id: string
+          mascota_nombre: string
+          motivo: string
+          notas_internas: string
+          profesional: string
+          profesional_id: string
+          tutor_nombre: string
+          tutor_telefono: string
+        }[]
+      }
       alertas_inventario: {
         Args: never
         Returns: {

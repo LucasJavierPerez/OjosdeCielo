@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   type DatosMedicacion,
   formatearFechaCivil,
+  hoyCivil,
   medicacionActiva,
   medicacionSchema,
 } from '@ojosdecielo/core';
@@ -98,7 +99,7 @@ function FormularioMedicacion({
       descripcion: '',
       dosis: '',
       frecuencia_horas: '',
-      desde: new Date().toISOString().slice(0, 10),
+      desde: hoyCivil(),
       hasta: '',
     },
   });

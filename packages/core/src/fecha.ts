@@ -46,9 +46,42 @@ export function formatearFechaCivil(fecha: string): string {
   return `${dia}/${mes}/${anio}`;
 }
 
+/**
+ * Hoy, como fecha civil `yyyy-MM-dd` en la zona de la clínica.
+ *
+ * Existe para no volver a escribir `new Date().toISOString().slice(0, 10)`,
+ * que es lo mismo pero **en UTC**: en Argentina (UTC-3), a partir de las 21 h
+ * devuelve el día siguiente. Con eso la agenda abría en el día equivocado y
+ * los formularios proponían mañana como fecha por defecto.
+ */
+export function hoyCivil(): string {
+  return format(ahora(), 'yyyy-MM-dd');
+}
+
+/**
+ * Una fecha civil `yyyy-MM-dd` a partir de un `Date`, leyendo sus partes
+ * locales. Igual que `hoyCivil()`, evita el desplazamiento de `toISOString()`.
+ */
+export function aFechaCivil(fecha: Date): string {
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  return `${fecha.getFullYear()}-${mes}-${dia}`;
+}
+
+/** Suma días a una fecha civil sin salir de fecha civil. */
+export function sumarDiasCiviles(fecha: string, dias: number): string {
+  const [anio, mes, dia] = fecha.slice(0, 10).split('-').map(Number);
+  if (!anio || !mes || !dia) return fecha;
+  // Date.UTC y no el constructor local: el horario de verano de cualquier
+  // zona podría comerse o duplicar una hora y correr el día.
+  const d = new Date(Date.UTC(anio, mes - 1, dia));
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
 /** Días de calendario entre hoy y una fecha civil. Negativo si ya pasó. */
 export function diasHastaFechaCivil(fecha: string): number {
-  const hoy = format(ahora(), 'yyyy-MM-dd');
+  const hoy = hoyCivil();
   const [a1, m1, d1] = hoy.split('-').map(Number);
   const [a2, m2, d2] = fecha.slice(0, 10).split('-').map(Number);
   if (!a1 || !m1 || !d1 || !a2 || !m2 || !d2) return 0;

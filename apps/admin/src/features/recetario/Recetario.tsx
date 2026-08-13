@@ -1,7 +1,9 @@
 import {
   formatearFechaCivil,
   formatearFechaHora,
+  hoyCivil,
   puedeCargarHistoriaClinica,
+  sumarDiasCiviles,
 } from '@ojosdecielo/core';
 import { Boton, Campo, Cargando, cn, Entrada, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
@@ -21,11 +23,8 @@ const ETIQUETA_ESTADO: Record<string, { texto: string; clase: string }> = {
   anulada: { texto: 'Anulada', clase: 'bg-red-100 text-red-800' },
 };
 
-const enUnMes = () => {
-  const d = new Date();
-  d.setMonth(d.getMonth() + 1);
-  return d.toISOString().slice(0, 10);
-};
+// Un mes es el vencimiento habitual de una receta; el veterinario lo cambia.
+const enUnMes = () => sumarDiasCiviles(hoyCivil(), 30);
 
 export function Recetario({ mascotaId }: { mascotaId: string }) {
   const { supabase, perfil } = useAuth();
@@ -101,7 +100,7 @@ function FilaReceta({
     texto: receta.estado,
     clase: 'bg-slate-100 text-slate-600',
   };
-  const vencida = receta.vence_el < new Date().toISOString().slice(0, 10);
+  const vencida = receta.vence_el < hoyCivil();
 
   return (
     <li className="rounded-xl border border-slate-200 bg-white p-4">

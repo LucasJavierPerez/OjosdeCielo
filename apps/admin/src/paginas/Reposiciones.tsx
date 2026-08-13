@@ -1,4 +1,9 @@
-import { formatearFechaCivil, puedeCargarHistoriaClinica, textoRelativo } from '@ojosdecielo/core';
+import {
+  formatearFechaCivil,
+  hoyCivil,
+  puedeCargarHistoriaClinica,
+  textoRelativo,
+} from '@ojosdecielo/core';
 import { Boton, Cargando, Entrada, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
@@ -73,7 +78,7 @@ function Pedido({
   const [nota, setNota] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const recetaVencida = pedido.receta_vence_el < new Date().toISOString().slice(0, 10);
+  const recetaVencida = pedido.receta_vence_el < hoyCivil();
 
   const decidir = (aprobar: boolean) => {
     setError(null);

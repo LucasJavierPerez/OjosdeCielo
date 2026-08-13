@@ -1,4 +1,4 @@
-import { formatearFechaLarga, formatearHora } from '@ojosdecielo/core';
+import { formatearFechaLarga, formatearHora, hoyCivil, sumarDiasCiviles } from '@ojosdecielo/core';
 import { Campo, Cargando, Entrada, MensajeError, Seleccion, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
@@ -14,13 +14,8 @@ import {
 
 /** Los próximos 14 días, para elegir sin abrir un calendario completo. */
 function proximosDias(cantidad = 14): string[] {
-  const dias: string[] = [];
-  const d = new Date();
-  for (let i = 1; i <= cantidad; i++) {
-    d.setDate(d.getDate() + (i === 1 ? 1 : 1));
-    dias.push(d.toISOString().slice(0, 10));
-  }
-  return dias;
+  const hoy = hoyCivil();
+  return Array.from({ length: cantidad }, (_, i) => sumarDiasCiviles(hoy, i + 1));
 }
 
 export function NuevoTurno() {

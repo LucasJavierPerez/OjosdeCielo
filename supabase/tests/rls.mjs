@@ -2581,6 +2581,41 @@ console.log('\n=== 98. Línea de tiempo unificada ===');
     : fail('El veterinario no ve la línea de tiempo');
 }
 
+console.log('\n=== 99. Agenda por rango ===');
+{
+  const { error } = await ana.sb.rpc('agenda_rango', {
+    p_desde: proximoHabil(),
+    p_hasta: proximoHabil(),
+  });
+  error ? ok('Un cliente no ve la agenda por rango') : fail('FUGA: un cliente vio la agenda');
+
+  const { data, error: errRecep } = await recepcion.sb.rpc('agenda_rango', {
+    p_desde: proximoHabil(),
+    p_hasta: proximoHabil(),
+  });
+  errRecep
+    ? fail(`Recepción no pudo ver el rango: ${errRecep.message}`)
+    : ok(`Recepción ve el rango (${data.length} turno[s])`);
+
+  data?.every((t) => typeof t.dia === 'string' && t.dia.length === 10)
+    ? ok('Cada turno viene con su fecha civil ya resuelta')
+    : fail('Falta la fecha civil por turno');
+
+  const { error: errLargo } = await recepcion.sb.rpc('agenda_rango', {
+    p_desde: '2020-01-01',
+    p_hasta: '2026-12-31',
+  });
+  errLargo
+    ? ok('Un rango de años se rechaza en el servidor, no en la pantalla')
+    : fail('Se aceptó un rango de años');
+
+  const { error: errInvertido } = await recepcion.sb.rpc('agenda_rango', {
+    p_desde: '2026-08-20',
+    p_hasta: '2026-08-10',
+  });
+  errInvertido ? ok('Un rango invertido se rechaza') : fail('Se aceptó un rango invertido');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'
