@@ -9,7 +9,7 @@
 create table public.mascota_token_qr (
   id          uuid primary key default gen_random_uuid(),
   mascota_id  uuid not null references public.mascota(id) on delete cascade,
-  token       text not null unique default encode(gen_random_bytes(16), 'hex'),
+  token       text not null unique default encode(extensions.gen_random_bytes(16), 'hex'),
   activo      boolean not null default true,
   revocado_en timestamptz,
   creado_en   timestamptz not null default now()

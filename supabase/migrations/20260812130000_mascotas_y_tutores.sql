@@ -80,7 +80,7 @@ create trigger mascota_tutor_auditoria
 create table public.invitacion_tutor (
   id           uuid primary key default gen_random_uuid(),
   mascota_id   uuid not null references public.mascota(id) on delete cascade,
-  token        text not null unique default encode(gen_random_bytes(24), 'hex'),
+  token        text not null unique default encode(extensions.gen_random_bytes(24), 'hex'),
   creada_por   uuid not null references public.perfil(id) on delete cascade,
   vence_en     timestamptz not null default now() + interval '7 days',
   aceptada_en  timestamptz,

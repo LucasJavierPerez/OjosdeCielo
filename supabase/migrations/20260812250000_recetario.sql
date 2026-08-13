@@ -22,7 +22,7 @@ create table public.receta (
   vence_el         date not null,
   diagnostico      text,
   indicaciones     text,
-  codigo           text not null unique default upper(encode(gen_random_bytes(6), 'hex')),
+  codigo           text not null unique default upper(encode(extensions.gen_random_bytes(6), 'hex')),
   estado           public.estado_receta not null default 'vigente',
   dispensada_en    timestamptz,
   anulada_en       timestamptz,
