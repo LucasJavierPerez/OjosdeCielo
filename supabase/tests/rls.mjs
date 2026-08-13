@@ -2506,6 +2506,49 @@ console.log('\n=== 96. Leído y cierre ===');
     : fail('La conversación cerrada se perdió');
 }
 
+// ===========================================================================
+// Límite de intentos en las páginas públicas
+// ===========================================================================
+
+console.log('\n=== 97. Las páginas públicas cortan un barrido ===');
+{
+  const anonimo = createClient(URL, ANON);
+
+  // Veintiún códigos inexistentes seguidos. El límite es 20 fallidos por hora.
+  let cortoEn = null;
+  for (let i = 0; i < 25; i++) {
+    const { error } = await anonimo.rpc('verificar_receta', {
+      p_codigo: `NOEXISTE${String(i).padStart(4, '0')}`,
+    });
+    if (error && cortoEn === null) cortoEn = i;
+  }
+
+  cortoEn !== null && cortoEn <= 21
+    ? ok(`Tras ${cortoEn} códigos inventados deja de responder`)
+    : fail(`No cortó el barrido (cortó en ${cortoEn})`);
+
+  // El registro queda para poder mirarlo después.
+  const { data: intentos } = await recepcion.sb
+    .from('intento_publico')
+    .select('origen, acierto')
+    .eq('origen', 'receta');
+  intentos && intentos.length > 20
+    ? ok(`Quedan ${intentos.length} intentos registrados para revisar`)
+    : fail('Los intentos no quedaron registrados');
+
+  const { data: deAna } = await ana.sb.from('intento_publico').select('id');
+  !deAna || deAna.length === 0
+    ? ok('Un cliente no ve el registro de intentos')
+    : fail('FUGA: un cliente ve el registro de accesos públicos');
+
+  // El QR se cuenta aparte: saturar la verificación de recetas no puede dejar
+  // sin servicio a quien encontró una mascota perdida.
+  const { error: errQr } = await anonimo.rpc('mascota_por_qr', { p_token: 'inexistente' });
+  !errQr
+    ? ok('El QR tiene su propio contador: sigue respondiendo')
+    : fail('Saturar recetas dejó sin servicio al QR de extravío');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

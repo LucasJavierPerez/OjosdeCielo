@@ -42,7 +42,7 @@ export function MascotaPublica() {
     };
   }, []);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['qr', token],
     retry: false,
     queryFn: async (): Promise<MascotaPublica | null> => {
@@ -56,6 +56,23 @@ export function MascotaPublica() {
     return (
       <main className="safe-top mx-auto min-h-dvh max-w-md px-6 py-12">
         <Cargando />
+      </main>
+    );
+  }
+
+  // 53400 lo tira el límite de intentos. Decir "código inválido" ahí estaría
+  // mal: el código puede ser perfecto y la persona quedarse sin poder avisar
+  // que encontró un animal.
+  const frenado = (error as { code?: string } | null)?.code === '53400';
+
+  if (frenado) {
+    return (
+      <main className="safe-top mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 text-center">
+        <h1 className="text-2xl font-semibold">Probá de nuevo en un rato</h1>
+        <p className="mt-2 text-slate-600">
+          Hubo demasiadas consultas desde esta conexión. Si encontraste una mascota y no podés
+          esperar, llamá directo a la clínica.
+        </p>
       </main>
     );
   }

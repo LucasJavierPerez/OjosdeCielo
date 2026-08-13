@@ -51,7 +51,7 @@ export function VerificarReceta() {
     };
   }, []);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['verificar-receta', codigo],
     retry: false,
     queryFn: async (): Promise<RecetaVerificada | null> => {
@@ -65,6 +65,20 @@ export function VerificarReceta() {
     return (
       <main className="safe-top mx-auto min-h-dvh max-w-md px-6 py-12">
         <Cargando />
+      </main>
+    );
+  }
+
+  if ((error as { code?: string } | null)?.code === '53400') {
+    return (
+      <main className="safe-top mx-auto min-h-dvh max-w-md px-6 py-12">
+        <div className="rounded-xl bg-amber-50 p-6 text-center">
+          <p className="text-lg font-semibold text-amber-900">Probá de nuevo en un rato</p>
+          <p className="mt-2 text-sm text-amber-800">
+            Hubo demasiadas consultas desde esta conexión. Si necesitás verificar una receta ya
+            mismo, llamá a la clínica.
+          </p>
+        </div>
       </main>
     );
   }

@@ -105,7 +105,7 @@ acceso le quita el rol al reingresar.
 - [x] Marcar como perdida / encontrada
 - [x] Aviso de hallazgo sin cuenta, con push a todos los tutores
 - [x] `noindex` en la página pública
-- [ ] Rate limiting — hoy la defensa es la longitud del token, no un límite de intentos
+- [x] Rate limiting — 20 intentos fallidos por hora y por IP, contados aparte para el QR y para las recetas: saturar una puerta no cierra la otra. Los intentos quedan registrados 30 días
 
 **La decisión de privacidad de esta fase:** el teléfono del tutor aparece **sólo** si
 la mascota está marcada como perdida. Un QR se escanea por curiosidad, y no hay
