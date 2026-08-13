@@ -13,6 +13,7 @@ import {
   useStock,
   useVenderMostrador,
 } from '../features/inventario/api.js';
+import { HistorialCaja } from '../features/inventario/HistorialCaja.js';
 
 const pesos = (n: number) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
@@ -78,6 +79,8 @@ export function Caja() {
             Abrir caja
           </Boton>
         </div>
+
+        <HistorialCaja />
       </Layout>
     );
   }
@@ -102,6 +105,8 @@ export function Caja() {
           <CierreCaja esperado={Number(caja.esperado_cajon)} />
         </div>
       </div>
+
+      <HistorialCaja />
     </Layout>
   );
 }

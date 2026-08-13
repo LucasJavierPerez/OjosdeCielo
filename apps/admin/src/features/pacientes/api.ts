@@ -53,13 +53,33 @@ export function usePaciente(supabase: ClienteSupabase, id: string) {
   });
 }
 
+export interface ContactoPaciente {
+  id: string;
+  perfil_id: string | null;
+  registrado: boolean;
+  rol_tutor: 'titular' | 'tutor' | null;
+  nombre: string;
+  apellido: string | null;
+  email: string | null;
+  telefono: string | null;
+  dni: string | null;
+}
+
+/**
+ * Los contactos del paciente: tutores con cuenta y el contacto suelto de quien
+ * todavía no la tiene, en una sola lista.
+ *
+ * No usa `tutores_de_mascota()` porque esa la comparte con la app del tutor y
+ * no devuelve teléfono ni DNI: sumárselos convertiría la pantalla de «quién
+ * accede» en una agenda de contactos ajenos.
+ */
 export function useTutoresPaciente(supabase: ClienteSupabase, id: string) {
   return useQuery({
     queryKey: claves.tutores(id),
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc('tutores_de_mascota', { p_mascota_id: id });
+    queryFn: async (): Promise<ContactoPaciente[]> => {
+      const { data, error } = await supabase.rpc('contactos_del_paciente', { p_mascota_id: id });
       if (error) throw error;
-      return data;
+      return data as ContactoPaciente[];
     },
   });
 }

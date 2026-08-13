@@ -220,3 +220,58 @@ export function useVenderMostrador(supabase: ClienteSupabase) {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Historial y flujo de caja
+// ---------------------------------------------------------------------------
+
+export interface CierreCaja {
+  id: string;
+  abierto_en: string;
+  cerrado_en: string;
+  abierto_por: string;
+  cerrado_por: string | null;
+  monto_inicial: number;
+  monto_calculado: number;
+  monto_declarado: number;
+  diferencia: number;
+  notas: string | null;
+  ingresos: number;
+  egresos: number;
+  ventas: number;
+}
+
+export interface MesCaja {
+  mes: string;
+  ingresos: number;
+  egresos: number;
+  neto: number;
+  efectivo: number;
+  otros_medios: number;
+  movimientos: number;
+}
+
+export function useHistorialCajas(supabase: ClienteSupabase) {
+  return useQuery({
+    queryKey: ['historial-cajas'],
+    queryFn: async (): Promise<CierreCaja[]> => {
+      const { data, error } = await supabase.rpc('historial_cajas', { p_limite: 30 });
+      if (error) throw error;
+      return data as CierreCaja[];
+    },
+  });
+}
+
+export function useFlujoMensual(supabase: ClienteSupabase, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['flujo-mensual'],
+    // El servidor rechaza a quien no es administrador; no consultarlo siquiera
+    // evita mostrarle un error a recepción, que no tiene la culpa.
+    enabled: habilitado,
+    queryFn: async (): Promise<MesCaja[]> => {
+      const { data, error } = await supabase.rpc('flujo_caja_mensual', { p_meses: 12 });
+      if (error) throw error;
+      return data as MesCaja[];
+    },
+  });
+}

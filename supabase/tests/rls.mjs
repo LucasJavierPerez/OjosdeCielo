@@ -9,6 +9,13 @@
  * por esta vía; consultado como `postgres` el resultado parecía correcto.
  *
  * Cada vez que se toque una política RLS, este archivo se corre y se amplía.
+ *
+ * SE CORRE SOBRE UNA BASE RECIÉN RESETEADA: `pnpm db:reset && pnpm test:rls`,
+ * que es lo que hace el CI. Dos corridas seguidas sobre la misma base fallan a
+ * propósito — la sección 97 gasta el cupo de intentos de las páginas públicas,
+ * y a la segunda vuelta el límite corta las consultas del QR. Eso no es un
+ * defecto del test: es la protección haciendo lo suyo. Aflojarla para que la
+ * suite sea re-ejecutable sería cambiar el sistema para complacer al test.
  */
 import { createClient } from '@supabase/supabase-js';
 
@@ -2699,9 +2706,12 @@ console.log('\n=== 100. Consentimiento de la política de privacidad ===');
     .from('politica_privacidad')
     .select('version, contenido')
     .eq('vigente', true);
-  publica?.length === 1 && publica[0].contenido.length > 100
+  // Se verifica que haya UNA vigente y que tenga texto, no que sea el borrador:
+  // esta misma sección publica una versión de prueba más abajo, y atarse a un
+  // contenido concreto hacía fallar la segunda corrida sobre la misma base.
+  publica?.length === 1 && publica[0].contenido.trim().length > 0
     ? ok('La política se puede leer sin cuenta, que es cuando hace falta')
-    : fail('La política no es legible sin sesión');
+    : fail(`La política no es legible sin sesión: ${JSON.stringify(publica)}`);
 
   const { data: aceptado, error } = await ana.sb.rpc('aceptar_politica');
   error ? fail(`Ana no pudo aceptar: ${error.message}`) : ok('Ana acepta la política');
@@ -2710,12 +2720,17 @@ console.log('\n=== 100. Consentimiento de la política de privacidad ===');
     ? ok('Queda registrada la versión vigente, no la que mande el navegador')
     : fail(`Se guardó la versión ${aceptado?.version}`);
 
-  // Aceptar dos veces no genera dos registros: sería ruido, no más prueba.
+  // Aceptar dos veces no genera dos registros: sería ruido, no más prueba. Se
+  // cuenta sobre la versión vigente y no sobre todas, porque de corridas
+  // anteriores pueden quedar consentimientos de versiones viejas.
   await ana.sb.rpc('aceptar_politica');
-  const { data: suyos } = await ana.sb.from('consentimiento').select('id');
+  const { data: suyos } = await ana.sb
+    .from('consentimiento')
+    .select('id')
+    .eq('version', publica?.[0]?.version ?? '');
   suyos?.length === 1
     ? ok('Aceptar de nuevo no duplica el registro')
-    : fail(`Ana tiene ${suyos?.length} consentimientos`);
+    : fail(`Ana tiene ${suyos?.length} consentimientos de la versión vigente`);
 
   const { data: pendiente } = await ana.sb.rpc('politica_pendiente');
   pendiente === null
@@ -2733,8 +2748,13 @@ console.log('\n=== 100. Consentimiento de la política de privacidad ===');
     .update({ version: 'inventada' })
     .eq('id', suyos?.[0]?.id);
   const { error: errDel } = await ana.sb.from('consentimiento').delete().eq('id', suyos?.[0]?.id);
-  const { data: sigue } = await ana.sb.from('consentimiento').select('id');
-  (errEdit || errDel) && sigue?.length === 1
+  // Se comprueba que sobreviva ESA fila y sin cambios, no un total: de corridas
+  // anteriores pueden quedar consentimientos de versiones viejas.
+  const { data: sigue } = await ana.sb
+    .from('consentimiento')
+    .select('id, version')
+    .eq('id', suyos?.[0]?.id);
+  (errEdit || errDel) && sigue?.length === 1 && sigue[0].version !== 'inventada'
     ? ok('Un consentimiento registrado no se edita ni se borra')
     : fail('Se pudo alterar la prueba del consentimiento');
 
@@ -3001,6 +3021,146 @@ console.log('\n=== 102. Corregir un producto no reescribe lo ya vendido ===');
   errAna || Number(intacto?.precio) === 21500.5
     ? ok('Un cliente no puede tocar los precios')
     : fail('FUGA: un cliente cambió un precio');
+}
+
+console.log('\n=== 103. La clínica corrige datos de contacto ===');
+{
+  // Un tutor registrado con el teléfono mal anotado.
+  const { error: errVet } = await vet.sb.rpc('actualizar_datos_tutor', {
+    p_perfil_id: ana.userId,
+    p_nombre: 'Ana',
+    p_apellido: 'Molina',
+    p_telefono: '+54 11 5555-0000',
+  });
+  errVet
+    ? fail(`El veterinario no pudo corregir el teléfono: ${errVet.message}`)
+    : ok('El veterinario corrige el teléfono de un tutor');
+
+  const { data: corregido } = await recepcion.sb
+    .from('perfil')
+    .select('telefono, email')
+    .eq('id', ana.userId)
+    .single();
+  corregido?.telefono === '+54 11 5555-0000'
+    ? ok('Queda guardado')
+    : fail(`El teléfono quedó en ${corregido?.telefono}`);
+  corregido?.email === 'ana@ejemplo.test'
+    ? ok('El email no se toca: es con el que ingresa a la app')
+    : fail(`El email cambió a ${corregido?.email}`);
+
+  // Un cliente no anda corrigiendo datos de otro.
+  const { error: errClara } = await clara.sb.rpc('actualizar_datos_tutor', {
+    p_perfil_id: ana.userId,
+    p_nombre: 'Otra',
+    p_apellido: 'Persona',
+  });
+  errClara ? ok('Un cliente no puede editar a otro') : fail('FUGA: un cliente editó a otro');
+
+  // Los datos del personal se editan desde Equipo, con las reglas de roles.
+  const { error: errPersonal } = await recepcion.sb.rpc('actualizar_datos_tutor', {
+    p_perfil_id: vet.userId,
+    p_nombre: 'Martín',
+    p_apellido: 'Gómez',
+    p_telefono: '911',
+  });
+  errPersonal
+    ? ok('Recepción no edita los datos de un compañero por esta vía')
+    : fail('Recepción editó el perfil de un colega sin pasar por Equipo');
+
+  const { error: errAdmin } = await admin.sb.rpc('actualizar_datos_tutor', {
+    p_perfil_id: vet.userId,
+    p_nombre: 'Martín',
+    p_apellido: 'Gómez',
+    p_telefono: '+54 11 4444-1111',
+  });
+  errAdmin
+    ? fail(`El administrador no pudo editar al veterinario: ${errAdmin.message}`)
+    : ok('El administrador sí puede');
+
+  // Un teléfono no es un rol: la RPC no puede servir para escalar.
+  const { data: rolesVet } = await admin.sb
+    .from('perfil')
+    .select('roles, activo')
+    .eq('id', vet.userId)
+    .single();
+  rolesVet?.roles?.includes('veterinario') && rolesVet.activo
+    ? ok('Editar contacto no toca roles ni el estado de la cuenta')
+    : fail(`Los roles quedaron en ${JSON.stringify(rolesVet)}`);
+}
+
+console.log('\n=== 104. El arqueo de caja queda guardado y se puede consultar ===');
+{
+  const { data: caja } = await recepcion.sb.rpc('resumen_caja');
+  if (!caja || caja.length === 0) {
+    await recepcion.sb.rpc('abrir_caja', { p_monto_inicial: 1000 });
+  }
+
+  await recepcion.sb.rpc('registrar_movimiento_caja', {
+    p_tipo: 'ingreso',
+    p_monto: 2500,
+    p_medio: 'efectivo',
+    p_concepto: 'Consulta',
+  });
+
+  // Se cuenta de menos a propósito: la diferencia es lo que hay que poder
+  // explicar después, y para eso el arqueo tiene que quedar guardado.
+  const { data: cerrada, error } = await recepcion.sb.rpc('cerrar_caja', {
+    p_monto_declarado: 3000,
+    p_notas: 'Faltaron 500, se revisa mañana',
+  });
+  error ? fail(`No se pudo cerrar la caja: ${error.message}`) : ok('Se cierra la caja con arqueo');
+
+  const { data: historial, error: errHist } = await recepcion.sb.rpc('historial_cajas');
+  if (errHist) {
+    fail(`Recepción no pudo ver el historial: ${errHist.message}`);
+  } else {
+    const fila = historial.find((c) => c.id === cerrada.id);
+    fila ? ok('El cierre aparece en el historial') : fail('El cierre no quedó en el historial');
+    fila && Number(fila.diferencia) !== 0 && fila.notas?.includes('500')
+      ? ok(`Con la diferencia (${fila.diferencia}) y la nota de quien cerró`)
+      : fail(`El arqueo no conserva diferencia ni notas: ${JSON.stringify(fila)}`);
+    fila?.cerrado_por && fila.abierto_por
+      ? ok('Y quién la abrió y quién la cerró')
+      : fail('Falta quién abrió o cerró');
+  }
+
+  const { error: errAna } = await ana.sb.rpc('historial_cajas');
+  errAna
+    ? ok('Un cliente no ve los cierres de caja')
+    : fail('FUGA: un cliente ve el historial de caja');
+}
+
+console.log('\n=== 105. Entradas y salidas por mes ===');
+{
+  for (const [quien, sesion] of [
+    ['Recepción', recepcion],
+    ['El veterinario', vet],
+    ['Ana', ana],
+  ]) {
+    const { error } = await sesion.sb.rpc('flujo_caja_mensual');
+    error
+      ? ok(`${quien} no ve el acumulado por mes`)
+      : fail(`FUGA: ${quien} vio el movimiento de dinero por mes`);
+  }
+
+  const { data, error } = await admin.sb.rpc('flujo_caja_mensual', { p_meses: 6 });
+  if (error) {
+    fail(`El administrador no pudo verlo: ${error.message}`);
+  } else {
+    data.length === 6
+      ? ok('Devuelve los 6 meses pedidos, incluso los que no tuvieron movimiento')
+      : fail(`Devolvió ${data.length} meses`);
+
+    const conPlata = data.find((m) => Number(m.ingresos) > 0);
+    conPlata && Number(conPlata.neto) === Number(conPlata.ingresos) - Number(conPlata.egresos)
+      ? ok('El neto es entradas menos salidas')
+      : fail(`El neto no cierra: ${JSON.stringify(conPlata)}`);
+
+    conPlata &&
+    Number(conPlata.efectivo) + Number(conPlata.otros_medios) === Number(conPlata.ingresos)
+      ? ok('Y el desglose por medio suma el total de entradas')
+      : fail(`El desglose no suma: ${JSON.stringify(conPlata)}`);
+  }
 }
 
 console.log(

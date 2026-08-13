@@ -15,7 +15,6 @@ import { useAuth } from '@ojosdecielo/ui/auth';
 import { type ReactNode, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { Layout } from '../componentes/Layout.js';
-import { useContactoTutor } from '../features/clinica/api.js';
 import { Historial } from '../features/clinica/Historial.js';
 import {
   usePaciente,
@@ -28,6 +27,7 @@ import {
   FormularioPeso,
   type TablaSalud,
 } from '../features/pacientes/EdicionSalud.js';
+import { EditarContacto } from '../features/pacientes/EditarContacto.js';
 import { FormularioAntecedente } from '../features/pacientes/FormularioAntecedente.js';
 import { Recetario } from '../features/recetario/Recetario.js';
 
@@ -47,9 +47,9 @@ export function FichaPaciente() {
   const { data: mascota, isLoading, isError, refetch } = usePaciente(supabase, id);
   const { data: salud } = useSaludPaciente(supabase, id);
   const { data: tutores } = useTutoresPaciente(supabase, id);
-  const { data: contacto } = useContactoTutor(supabase, id);
 
   const puedoVerificar = perfil ? puedeCargarHistoriaClinica(perfil.roles) : false;
+  const [editando, setEditando] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -94,29 +94,49 @@ export function FichaPaciente() {
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <section className="lg:col-span-1">
           <h2 className="text-sm font-medium text-slate-500">Tutores</h2>
-          {contacto && !contacto.vinculado_en && (
-            <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
-              <p className="font-medium text-amber-900">
-                {contacto.nombre} {contacto.apellido}
-              </p>
-              {contacto.telefono && <p className="text-amber-800">{contacto.telefono}</p>}
-              {contacto.email && <p className="text-amber-800">{contacto.email}</p>}
-              <p className="mt-1 text-xs text-amber-700">
-                Todavía no usa la app. Si se registra con este email, va a ver toda la historia.
-              </p>
-            </div>
-          )}
-
           <ul className="mt-2 space-y-2">
             {tutores?.map((t) => (
               <li key={t.id} className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
-                <p className="font-medium">
-                  {t.nombre} {t.apellido}
-                </p>
-                <p className="text-slate-500">{t.email}</p>
-                <p className="mt-1 text-xs text-slate-400">
-                  {t.rol === 'titular' ? 'Titular' : 'Tutor'}
-                </p>
+                {editando === t.id ? (
+                  <EditarContacto
+                    mascotaId={id}
+                    onCerrar={() => setEditando(null)}
+                    contacto={
+                      t.registrado && t.perfil_id
+                        ? {
+                            tipo: 'registrado',
+                            perfilId: t.perfil_id,
+                            datos: datosDe(t),
+                          }
+                        : { tipo: 'sin_cuenta', contactoId: t.id, datos: datosDe(t) }
+                    }
+                  />
+                ) : (
+                  <>
+                    <p className="font-medium">
+                      {t.nombre} {t.apellido}
+                    </p>
+                    {t.email && <p className="text-slate-500">{t.email}</p>}
+                    {t.telefono && <p className="text-slate-500">{t.telefono}</p>}
+                    {!t.registrado && (
+                      <p className="mt-1 text-xs text-amber-700">
+                        Todavía no usa la app. Si se registra con ese email, va a ver la historia.
+                      </p>
+                    )}
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="text-xs text-slate-400">
+                        {t.rol_tutor === 'titular' ? 'Titular' : 'Tutor'}
+                      </span>
+                      <Boton
+                        variante="texto"
+                        className="text-xs text-slate-500"
+                        onClick={() => setEditando(t.id)}
+                      >
+                        Corregir datos
+                      </Boton>
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>
@@ -385,4 +405,21 @@ function BloquePeso({
       ))}
     </Bloque>
   );
+}
+
+/** Los campos del contacto tal como los espera el formulario de edición. */
+function datosDe(c: {
+  nombre: string;
+  apellido: string | null;
+  telefono: string | null;
+  email: string | null;
+  dni: string | null;
+}) {
+  return {
+    nombre: c.nombre,
+    apellido: c.apellido ?? '',
+    telefono: c.telefono ?? '',
+    email: c.email ?? '',
+    dni: c.dni ?? '',
+  };
 }

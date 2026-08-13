@@ -2474,6 +2474,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      actualizar_datos_tutor: {
+        Args: {
+          p_apellido: string
+          p_dni?: string
+          p_nombre: string
+          p_perfil_id: string
+          p_telefono?: string
+        }
+        Returns: {
+          activo: boolean
+          actualizado_en: string | null
+          apellido: string
+          archivado_en: string | null
+          creado_en: string
+          dni: string | null
+          email: string
+          id: string
+          nombre: string
+          roles: Database["public"]["Enums"]["rol"][]
+          telefono: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "perfil"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       agenda_dia: {
         Args: { p_fecha: string; p_profesional_id?: string }
         Returns: {
@@ -2689,6 +2717,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      contactos_del_paciente: {
+        Args: { p_mascota_id: string }
+        Returns: {
+          apellido: string
+          dni: string
+          email: string
+          id: string
+          nombre: string
+          perfil_id: string
+          registrado: boolean
+          rol_tutor: Database["public"]["Enums"]["rol_tutor"]
+          telefono: string
+        }[]
+      }
       crear_campana: {
         Args: {
           p_cuerpo: string
@@ -2880,6 +2922,18 @@ export type Database = {
       es_titular_de: { Args: { p_mascota_id: string }; Returns: boolean }
       es_tutor_de: { Args: { p_mascota_id: string }; Returns: boolean }
       es_veterinario: { Args: never; Returns: boolean }
+      flujo_caja_mensual: {
+        Args: { p_meses?: number }
+        Returns: {
+          efectivo: number
+          egresos: number
+          ingresos: number
+          mes: string
+          movimientos: number
+          neto: number
+          otros_medios: number
+        }[]
+      }
       generar_qr: {
         Args: { p_mascota_id: string }
         Returns: {
@@ -2900,6 +2954,24 @@ export type Database = {
       generar_recordatorios: {
         Args: { p_aviso_previo?: number; p_dias_antes?: number }
         Returns: number
+      }
+      historial_cajas: {
+        Args: { p_limite?: number }
+        Returns: {
+          abierto_en: string
+          abierto_por: string
+          cerrado_en: string
+          cerrado_por: string
+          diferencia: number
+          egresos: number
+          id: string
+          ingresos: number
+          monto_calculado: number
+          monto_declarado: number
+          monto_inicial: number
+          notas: string
+          ventas: number
+        }[]
       }
       historial_mascota: {
         Args: { p_mascota_id: string }
