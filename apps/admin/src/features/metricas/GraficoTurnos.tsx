@@ -20,7 +20,7 @@ import type { TurnosPorDia } from './api.js';
 export function GraficoTurnos({ datos }: { datos: TurnosPorDia[] }) {
   const puntos = datos.map((d) => ({
     // Sólo día y mes: con treinta barras la fecha completa no entra.
-    dia: d.dia.slice(8, 10) + '/' + d.dia.slice(5, 7),
+    dia: `${d.dia.slice(8, 10)}/${d.dia.slice(5, 7)}`,
     Atendidos: d.atendidos,
     Confirmados: d.confirmados,
     Solicitados: d.solicitados,

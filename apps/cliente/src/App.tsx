@@ -10,6 +10,7 @@ import { Ingresar } from './paginas/Ingresar.js';
 import { Inicio } from './paginas/Inicio.js';
 import { Instalar } from './paginas/Instalar.js';
 import { MascotaPublica } from './paginas/MascotaPublica.js';
+import { Mensajes } from './paginas/Mensajes.js';
 import { MisTurnos } from './paginas/MisTurnos.js';
 import { NoEncontrado } from './paginas/NoEncontrado.js';
 import { Notificaciones } from './paginas/Notificaciones.js';
@@ -155,6 +156,14 @@ export function App() {
           element={
             <Privada>
               <OrdenCompra />
+            </Privada>
+          }
+        />
+        <Route
+          path="/mensajes"
+          element={
+            <Privada>
+              <Mensajes />
             </Privada>
           }
         />

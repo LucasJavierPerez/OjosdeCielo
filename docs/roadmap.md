@@ -176,13 +176,21 @@ Fase de mayor riesgo técnico: dinero, stock y concurrencia. Conviene atacarla c
 
 ## Fase 8 — Recetario y métricas
 
-- Recetario digital con PDF firmado
-- Solicitud de reposición de medicación crónica
-- Dashboard: turnos por día y profesional, rotación de productos, pacientes inactivos
-- Broadcast segmentado (ej. campaña antirrábica)
-- Mensajería directa clínica ↔ cliente
+- [x] Recetario digital con verificación pública por código y QR
+- [x] Solicitud de reposición de medicación crónica
+- [x] Dashboard: turnos por día y profesional, rotación de productos, pacientes inactivos
+- [x] Broadcast segmentado (ej. campaña antirrábica), con vista previa antes de enviar
+- [x] Mensajería directa clínica ↔ cliente
 
-**Terminado cuando:** la clínica lanza una campaña de vacunación desde el panel y mide la respuesta.
+**Sobre "PDF firmado":** no hay firma digital con certificado. Eso lo tramita
+el profesional ante su colegio, no la aplicación. Lo que hay es un código de
+verificación público: la farmacia entra a `/r/:codigo` y ve quién la emitió,
+para qué mascota, qué contiene y si sigue vigente. Contra el riesgo real
+—receta fotocopiada, adulterada o vencida— eso sirve; una firma criptográfica
+que nadie sabe validar, no. Si la clínica llega a necesitar la firma con
+certificado, se agrega encima de esto sin rehacer nada.
+
+**Terminado cuando:** la clínica lanza una campaña de vacunación desde el panel y mide la respuesta. ⚠️ *Todo el circuito verificado salvo la llegada real del push a un celular, que necesita un teléfono físico (mismo pendiente que la fase 3). El despacho, la autorización y la idempotencia sí se probaron contra la Edge Function corriendo.*
 
 Va última porque las métricas necesitan volumen de datos cargado para significar algo.
 

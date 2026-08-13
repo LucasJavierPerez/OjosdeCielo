@@ -116,6 +116,16 @@ export function Inicio() {
       </Link>
 
       <Link
+        to="/mensajes"
+        className="mt-2 flex min-h-11 items-center justify-between rounded-xl border border-slate-200 px-4 hover:bg-slate-50"
+      >
+        <span className="font-medium">Mensajes</span>
+        <span aria-hidden="true" className="text-slate-400">
+          ›
+        </span>
+      </Link>
+
+      <Link
         to="/tienda"
         className="mt-2 flex min-h-11 items-center justify-between rounded-xl border border-slate-200 px-4 hover:bg-slate-50"
       >

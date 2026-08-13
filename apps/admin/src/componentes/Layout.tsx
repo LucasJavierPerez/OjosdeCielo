@@ -9,6 +9,8 @@ const SECCIONES = [
   { a: '/reposiciones', texto: 'Reposiciones' },
   { a: '/caja', texto: 'Caja' },
   { a: '/inventario', texto: 'Inventario' },
+  { a: '/mensajes', texto: 'Mensajes' },
+  { a: '/campanas', texto: 'Campañas' },
   { a: '/equipo', texto: 'Equipo' },
 ];
 

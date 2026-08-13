@@ -2166,6 +2166,346 @@ console.log('\n=== 87. Pacientes inactivos ===');
   }
 }
 
+// ===========================================================================
+// Fase 8 — Campañas y mensajería
+// ===========================================================================
+
+console.log('\n=== 88. Sólo el administrador crea y lanza campañas ===');
+let campanaId;
+{
+  for (const [quien, sesion] of [
+    ['Ana', ana],
+    ['Recepción', recepcion],
+    ['El veterinario', vet],
+  ]) {
+    const { error } = await sesion.sb.rpc('crear_campana', {
+      p_titulo: 'Campaña trucha',
+      p_cuerpo: 'No debería existir',
+    });
+    error ? ok(`${quien} no puede crear una campaña`) : fail(`FUGA: ${quien} creó una campaña`);
+  }
+
+  const { data, error } = await admin.sb.rpc('crear_campana', {
+    p_titulo: 'Antirrábica al día',
+    p_cuerpo: 'Tu perro tiene la antirrábica vencida. Te esperamos.',
+    p_segmento: { especie: 'perro' },
+    p_url: '/turnos/nuevo',
+  });
+
+  if (error) {
+    fail(`El administrador no pudo crear la campaña: ${error.message}`);
+  } else {
+    campanaId = data.id;
+    ok('El administrador crea la campaña');
+  }
+
+  const { data: vista } = await admin.sb.from('campana').select('estado').eq('id', campanaId);
+  vista?.[0]?.estado === 'borrador'
+    ? ok('Nace en borrador: crear no es mandar')
+    : fail(`La campaña nació en estado ${vista?.[0]?.estado}`);
+}
+
+console.log('\n=== 89. La vista previa dice a cuánta gente llega ===');
+{
+  const { error } = await ana.sb.rpc('previsualizar_campana', { p_segmento: {} });
+  error ? ok('Un cliente no puede previsualizar el padrón') : fail('FUGA: un cliente previsualizó');
+
+  const { data: todos, error: errTodos } = await recepcion.sb.rpc('previsualizar_campana', {
+    p_segmento: {},
+  });
+  errTodos
+    ? fail(`Recepción no pudo previsualizar: ${errTodos.message}`)
+    : ok(`Sin criterios alcanza a ${todos.total} tutores`);
+
+  const { data: gatos } = await admin.sb.rpc('previsualizar_campana', {
+    p_segmento: { especie: 'gato' },
+  });
+  const { data: perros } = await admin.sb.rpc('previsualizar_campana', {
+    p_segmento: { especie: 'perro' },
+  });
+
+  gatos.total > 0 && perros.total > 0 && gatos.total !== todos.total
+    ? ok(`Segmentar por especie cambia el alcance (perros ${perros.total}, gatos ${gatos.total})`)
+    : fail(`La segmentación por especie no filtró: ${JSON.stringify({ todos, perros, gatos })}`);
+
+  Array.isArray(todos.muestra) && todos.muestra.length > 0 && todos.muestra[0].nombre
+    ? ok('La vista previa muestra nombres concretos, no sólo un número')
+    : fail('La vista previa no trae muestra');
+
+  const { data: imposible } = await admin.sb.rpc('previsualizar_campana', {
+    p_segmento: { sin_venir_meses: 0, vacuna_vencida_dias: 99999 },
+  });
+  imposible.total === 0
+    ? ok('Un criterio que no alcanza a nadie devuelve cero, no todos')
+    : fail(`Un criterio imposible alcanzó a ${imposible.total}`);
+}
+
+console.log('\n=== 90. Silenciar campañas no silencia los recordatorios ===');
+{
+  const { data: antes } = await admin.sb.rpc('previsualizar_campana', { p_segmento: {} });
+
+  // Se guarda el estado previo de la preferencia de vacunas: el test 37 ya la
+  // tocó, así que lo que se verifica es que NO cambie, no que valga algo fijo.
+  const leerVacuna = async () => {
+    const { data } = await ana.sb
+      .from('preferencia_notificacion')
+      .select('habilitado')
+      .eq('perfil_id', ana.userId)
+      .eq('tipo', 'vacuna');
+    return data?.[0]?.habilitado ?? null;
+  };
+  const vacunaAntes = await leerVacuna();
+
+  await ana.sb.from('preferencia_notificacion').upsert({
+    perfil_id: ana.userId,
+    tipo: 'campana',
+    habilitado: false,
+  });
+
+  const { data: despues } = await admin.sb.rpc('previsualizar_campana', { p_segmento: {} });
+  despues.total === antes.total - 1
+    ? ok('Quien silenció las campañas sale del alcance, no sólo del envío')
+    : fail(`El alcance pasó de ${antes.total} a ${despues.total}, esperaba uno menos`);
+
+  (await leerVacuna()) === vacunaAntes
+    ? ok('La preferencia de recordatorios de vacunas queda intacta')
+    : fail('Silenciar campañas cambió también la preferencia de recordatorios');
+
+  // Se revierte para no ensuciar lo que venga después.
+  await ana.sb
+    .from('preferencia_notificacion')
+    .update({ habilitado: true })
+    .eq('perfil_id', ana.userId)
+    .eq('tipo', 'campana');
+}
+
+console.log('\n=== 91. Lanzar congela el alcance ===');
+{
+  const { error: errAna } = await ana.sb.rpc('lanzar_campana', { p_campana_id: campanaId });
+  errAna ? ok('Un cliente no lanza una campaña') : fail('FUGA: un cliente lanzó una campaña');
+
+  const { data, error } = await admin.sb.rpc('lanzar_campana', { p_campana_id: campanaId });
+  error ? fail(`No se pudo lanzar: ${error.message}`) : ok('El administrador lanza la campaña');
+
+  typeof data?.destinatarios === 'number' && data.destinatarios > 0
+    ? ok(`Queda congelado el alcance: ${data.destinatarios} destinatarios`)
+    : fail(`No se congeló el alcance: ${JSON.stringify(data)}`);
+
+  const { error: errDoble } = await admin.sb.rpc('lanzar_campana', { p_campana_id: campanaId });
+  errDoble ? ok('Una campaña lanzada no se vuelve a lanzar') : fail('Se lanzó dos veces');
+
+  const { error: errCancelar } = await admin.sb.rpc('cancelar_campana', {
+    p_campana_id: campanaId,
+  });
+  errCancelar
+    ? ok('Una campaña que ya salió no se cancela')
+    : fail('Se canceló una campaña ya enviada');
+
+  const { data: vacia } = await admin.sb.rpc('crear_campana', {
+    p_titulo: 'A nadie',
+    p_cuerpo: 'Esta no debería poder salir',
+    p_segmento: { vacuna_vencida_dias: 99999, sin_venir_meses: 0 },
+  });
+  const { error: errVacia } = await admin.sb.rpc('lanzar_campana', {
+    p_campana_id: vacia.id,
+  });
+  errVacia
+    ? ok('Una campaña que no alcanza a nadie se rechaza al lanzar')
+    : fail('Se lanzó una campaña sin destinatarios');
+}
+
+console.log('\n=== 92. Los destinatarios sólo los ve el servidor ===');
+{
+  for (const [quien, sesion] of [
+    ['Ana', ana],
+    ['El administrador', admin],
+  ]) {
+    const { error } = await sesion.sb.rpc('destinatarios_campana', { p_campana_id: campanaId });
+    error
+      ? ok(`${quien} no puede leer los endpoints push desde el navegador`)
+      : fail(`FUGA: ${quien} leyó las suscripciones push de todos`);
+  }
+
+  const { error } = await comoWebhook.rpc('destinatarios_campana', { p_campana_id: campanaId });
+  error
+    ? fail(`El servidor no pudo leer los destinatarios: ${error.message}`)
+    : ok('El servidor sí');
+
+  const { data: campanas } = await ana.sb.from('campana').select('id');
+  !campanas || campanas.length === 0
+    ? ok('Un cliente no ve las campañas de la clínica')
+    : fail(`FUGA: un cliente ve ${campanas.length} campañas`);
+}
+
+console.log('\n=== 93. Mensajería: cada uno ve lo suyo ===');
+let convId;
+{
+  const { data, error } = await ana.sb.rpc('abrir_conversacion', {
+    p_asunto: '¿Le doy la pastilla con comida?',
+    p_mensaje: 'Milo escupe el comprimido. ¿Se lo puedo dar con el alimento?',
+  });
+
+  if (error) {
+    fail(`Ana no pudo abrir la conversación: ${error.message}`);
+  } else {
+    convId = data.id;
+    ok('Ana abre una conversación');
+  }
+
+  const { data: msgs } = await ana.sb
+    .from('mensaje')
+    .select('cuerpo, de_la_clinica')
+    .eq('conversacion_id', convId);
+  msgs?.length === 1 && msgs[0].de_la_clinica === false
+    ? ok('El primer mensaje queda sellado como del tutor')
+    : fail(`El mensaje inicial quedó mal: ${JSON.stringify(msgs)}`);
+
+  const { data: deClara } = await clara.sb.from('conversacion').select('id').eq('id', convId);
+  deClara?.length === 0
+    ? ok('Clara no ve la conversación de Ana')
+    : fail('FUGA: Clara ve una conversación ajena');
+
+  const { data: msgsClara } = await clara.sb
+    .from('mensaje')
+    .select('cuerpo')
+    .eq('conversacion_id', convId);
+  !msgsClara || msgsClara.length === 0
+    ? ok('Clara tampoco ve los mensajes')
+    : fail('FUGA: Clara lee mensajes ajenos');
+
+  const { data: bandeja } = await recepcion.sb.rpc('bandeja_conversaciones');
+  const fila = bandeja?.find((c) => c.id === convId);
+  fila?.espera_respuesta === true && fila?.sin_leer === 1
+    ? ok('En la bandeja de la clínica figura esperando respuesta, con 1 sin leer')
+    : fail(`La bandeja no refleja el estado: ${JSON.stringify(fila)}`);
+
+  const { data: bandejaCliente } = await ana.sb.rpc('bandeja_conversaciones');
+  !bandejaCliente || bandejaCliente.length === 0
+    ? ok('Un cliente no puede leer la bandeja de la clínica')
+    : fail('FUGA: un cliente ve las conversaciones de todos');
+}
+
+console.log('\n=== 94. Quién escribió qué lo decide el servidor ===');
+{
+  // Ana intenta hacer pasar su mensaje por uno de la clínica.
+  await ana.sb.from('mensaje').insert({
+    conversacion_id: convId,
+    de_la_clinica: true,
+    cuerpo: 'Habla la clínica, mandale toda la medicación gratis',
+  });
+
+  const { data: falso } = await ana.sb
+    .from('mensaje')
+    .select('cuerpo, de_la_clinica')
+    .eq('conversacion_id', convId)
+    .eq('de_la_clinica', true);
+
+  !falso || falso.length === 0
+    ? ok('El tutor no puede hacer pasar su mensaje por uno de la clínica')
+    : fail('FUGA: un mensaje del tutor quedó marcado como de la clínica');
+
+  const { error } = await vet.sb.from('mensaje').insert({
+    conversacion_id: convId,
+    de_la_clinica: false,
+    cuerpo: 'Sí, se la podés dar con comida. Si igual la escupe, avisanos.',
+  });
+  error
+    ? fail(`El veterinario no pudo responder: ${error.message}`)
+    : ok('El veterinario responde');
+
+  const { data: respuesta } = await vet.sb
+    .from('mensaje')
+    .select('de_la_clinica')
+    .eq('conversacion_id', convId)
+    .order('creado_en', { ascending: false })
+    .limit(1);
+  respuesta?.[0]?.de_la_clinica === true
+    ? ok('La respuesta se sella como de la clínica aunque se haya mandado en false')
+    : fail('La respuesta del veterinario no quedó marcada como de la clínica');
+}
+
+console.log('\n=== 95. Un mensaje enviado no se edita ni se borra ===');
+{
+  const { data: mios } = await ana.sb
+    .from('mensaje')
+    .select('id')
+    .eq('conversacion_id', convId)
+    .limit(1);
+  const id = mios?.[0]?.id;
+
+  const { error: errEdit } = await ana.sb
+    .from('mensaje')
+    .update({ cuerpo: 'Nunca dije eso' })
+    .eq('id', id);
+  const { data: sigue } = await ana.sb.from('mensaje').select('cuerpo').eq('id', id);
+  errEdit || sigue?.[0]?.cuerpo?.startsWith('Milo escupe')
+    ? ok('Un mensaje enviado no se edita')
+    : fail('Se editó un mensaje ya enviado');
+
+  const { error: errDel } = await ana.sb.from('mensaje').delete().eq('id', id);
+  const { data: existe } = await ana.sb.from('mensaje').select('id').eq('id', id);
+  errDel || existe?.length === 1
+    ? ok('Un mensaje enviado no se borra')
+    : fail('Se borró un mensaje enviado');
+}
+
+console.log('\n=== 96. Leído y cierre ===');
+{
+  const { data: n, error } = await recepcion.sb.rpc('marcar_conversacion_leida', {
+    p_conversacion_id: convId,
+  });
+  error ? fail(`No se pudo marcar leída: ${error.message}`) : ok(`La clínica marca ${n} leído(s)`);
+
+  const { data: bandeja } = await recepcion.sb.rpc('bandeja_conversaciones');
+  bandeja?.find((c) => c.id === convId)?.sin_leer === 0
+    ? ok('El contador de sin leer baja a cero')
+    : fail('El contador de sin leer no bajó');
+
+  // Nadie marca leído lo suyo: si pudiera, el contador de la clínica se
+  // vaciaría solo cada vez que responde.
+  const { data: propios } = await vet.sb
+    .from('mensaje')
+    .select('id, leido_en')
+    .eq('conversacion_id', convId)
+    .eq('de_la_clinica', true);
+  const { error: errPropio } = await vet.sb
+    .from('mensaje')
+    .update({ leido_en: new Date().toISOString() })
+    .eq('id', propios?.[0]?.id);
+  const { data: tras } = await vet.sb.from('mensaje').select('leido_en').eq('id', propios?.[0]?.id);
+  errPropio || tras?.[0]?.leido_en === null
+    ? ok('Nadie marca como leído lo que escribió')
+    : fail('FUGA: se pudo marcar leído el propio mensaje');
+
+  const { error: errClara } = await clara.sb.rpc('marcar_conversacion_leida', {
+    p_conversacion_id: convId,
+  });
+  errClara
+    ? ok('Clara no puede marcar leída una conversación ajena')
+    : fail('FUGA: Clara marcó leída una conversación ajena');
+
+  await ana.sb
+    .from('conversacion')
+    .update({ cerrada_en: new Date().toISOString() })
+    .eq('id', convId);
+
+  const { error: errEscribir } = await ana.sb.from('mensaje').insert({
+    conversacion_id: convId,
+    de_la_clinica: false,
+    cuerpo: 'Una cosa más',
+  });
+  errEscribir
+    ? ok('En una conversación cerrada no se escribe')
+    : fail('Se escribió en una conversación cerrada');
+
+  const { data: cerradas } = await recepcion.sb.rpc('bandeja_conversaciones', {
+    p_cerradas: true,
+  });
+  cerradas?.some((c) => c.id === convId)
+    ? ok('La cerrada pasa a la bandeja de cerradas, no desaparece')
+    : fail('La conversación cerrada se perdió');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

@@ -338,6 +338,95 @@ export type Database = {
           },
         ]
       }
+      campana: {
+        Row: {
+          creada_en: string
+          creada_por: string
+          cuerpo: string
+          destinatarios: number | null
+          enviada_en: string | null
+          estado: Database["public"]["Enums"]["estado_campana"]
+          id: string
+          segmento: Json
+          titulo: string
+          url: string | null
+        }
+        Insert: {
+          creada_en?: string
+          creada_por?: string
+          cuerpo: string
+          destinatarios?: number | null
+          enviada_en?: string | null
+          estado?: Database["public"]["Enums"]["estado_campana"]
+          id?: string
+          segmento?: Json
+          titulo: string
+          url?: string | null
+        }
+        Update: {
+          creada_en?: string
+          creada_por?: string
+          cuerpo?: string
+          destinatarios?: number | null
+          enviada_en?: string | null
+          estado?: Database["public"]["Enums"]["estado_campana"]
+          id?: string
+          segmento?: Json
+          titulo?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campana_creada_por_fkey"
+            columns: ["creada_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campana_envio: {
+        Row: {
+          campana_id: string
+          enviado_en: string
+          error: string | null
+          estado: string
+          id: number
+          perfil_id: string
+        }
+        Insert: {
+          campana_id: string
+          enviado_en?: string
+          error?: string | null
+          estado: string
+          id?: number
+          perfil_id: string
+        }
+        Update: {
+          campana_id?: string
+          enviado_en?: string
+          error?: string | null
+          estado?: string
+          id?: number
+          perfil_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campana_envio_campana_id_fkey"
+            columns: ["campana_id"]
+            isOneToOne: false
+            referencedRelation: "campana"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campana_envio_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comprobante: {
         Row: {
           cae: string | null
@@ -562,6 +651,51 @@ export type Database = {
             columns: ["perfil_id"]
             isOneToOne: false
             referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversacion: {
+        Row: {
+          asunto: string
+          cerrada_en: string | null
+          cliente_id: string
+          creada_en: string
+          id: string
+          mascota_id: string | null
+          ultimo_mensaje_en: string
+        }
+        Insert: {
+          asunto: string
+          cerrada_en?: string | null
+          cliente_id: string
+          creada_en?: string
+          id?: string
+          mascota_id?: string | null
+          ultimo_mensaje_en?: string
+        }
+        Update: {
+          asunto?: string
+          cerrada_en?: string | null
+          cliente_id?: string
+          creada_en?: string
+          id?: string
+          mascota_id?: string | null
+          ultimo_mensaje_en?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversacion_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversacion_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
             referencedColumns: ["id"]
           },
         ]
@@ -944,6 +1078,51 @@ export type Database = {
             columns: ["verificado_por"]
             isOneToOne: false
             referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mensaje: {
+        Row: {
+          autor_id: string
+          conversacion_id: string
+          creado_en: string
+          cuerpo: string
+          de_la_clinica: boolean
+          id: string
+          leido_en: string | null
+        }
+        Insert: {
+          autor_id?: string
+          conversacion_id: string
+          creado_en?: string
+          cuerpo: string
+          de_la_clinica: boolean
+          id?: string
+          leido_en?: string | null
+        }
+        Update: {
+          autor_id?: string
+          conversacion_id?: string
+          creado_en?: string
+          cuerpo?: string
+          de_la_clinica?: boolean
+          id?: string
+          leido_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensaje_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensaje_conversacion_id_fkey"
+            columns: ["conversacion_id"]
+            isOneToOne: false
+            referencedRelation: "conversacion"
             referencedColumns: ["id"]
           },
         ]
@@ -2085,6 +2264,29 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      abrir_conversacion: {
+        Args: {
+          p_asunto: string
+          p_cliente_id?: string
+          p_mascota_id?: string
+          p_mensaje: string
+        }
+        Returns: {
+          asunto: string
+          cerrada_en: string | null
+          cliente_id: string
+          creada_en: string
+          id: string
+          mascota_id: string | null
+          ultimo_mensaje_en: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "conversacion"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       aceptar_invitacion: {
         Args: { p_token: string }
         Returns: {
@@ -2171,6 +2373,23 @@ export type Database = {
         Args: { p_contacto?: string; p_mensaje: string; p_token: string }
         Returns: undefined
       }
+      bandeja_conversaciones: {
+        Args: { p_cerradas?: boolean }
+        Returns: {
+          asunto: string
+          cerrada_en: string
+          cliente: string
+          cliente_id: string
+          espera_respuesta: boolean
+          id: string
+          mascota: string
+          mascota_id: string
+          sin_leer: number
+          telefono: string
+          ultimo_mensaje: string
+          ultimo_mensaje_en: string
+        }[]
+      }
       buscar_pacientes: {
         Args: { p_texto?: string }
         Returns: {
@@ -2202,6 +2421,27 @@ export type Database = {
       cambiar_rol: {
         Args: { p_perfil_id: string; p_rol: Database["public"]["Enums"]["rol"] }
         Returns: undefined
+      }
+      cancelar_campana: {
+        Args: { p_campana_id: string }
+        Returns: {
+          creada_en: string
+          creada_por: string
+          cuerpo: string
+          destinatarios: number | null
+          enviada_en: string | null
+          estado: Database["public"]["Enums"]["estado_campana"]
+          id: string
+          segmento: Json
+          titulo: string
+          url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campana"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       cancelar_orden: { Args: { p_orden_id: string }; Returns: undefined }
       cancelar_turno: { Args: { p_turno_id: string }; Returns: undefined }
@@ -2238,6 +2478,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      cerrar_campana: { Args: { p_campana_id: string }; Returns: undefined }
       confirmar_pago_online: {
         Args: {
           p_monto: number
@@ -2246,6 +2487,32 @@ export type Database = {
           p_payload?: Json
         }
         Returns: undefined
+      }
+      crear_campana: {
+        Args: {
+          p_cuerpo: string
+          p_segmento?: Json
+          p_titulo: string
+          p_url?: string
+        }
+        Returns: {
+          creada_en: string
+          creada_por: string
+          cuerpo: string
+          destinatarios: number | null
+          enviada_en: string | null
+          estado: Database["public"]["Enums"]["estado_campana"]
+          id: string
+          segmento: Json
+          titulo: string
+          url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campana"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       crear_mascota: {
         Args: {
@@ -2349,6 +2616,16 @@ export type Database = {
       desarchivar_mascota: {
         Args: { p_mascota_id: string }
         Returns: undefined
+      }
+      destinatarios_campana: {
+        Args: { p_campana_id: string }
+        Returns: {
+          auth_key: string
+          endpoint: string
+          p256dh: string
+          perfil_id: string
+          sub_id: string
+        }[]
       }
       destinatarios_recordatorio: {
         Args: { p_recordatorio_id: string }
@@ -2457,6 +2734,27 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      lanzar_campana: {
+        Args: { p_campana_id: string }
+        Returns: {
+          creada_en: string
+          creada_por: string
+          cuerpo: string
+          destinatarios: number | null
+          enviada_en: string | null
+          estado: Database["public"]["Enums"]["estado_campana"]
+          id: string
+          segmento: Json
+          titulo: string
+          url: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "campana"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       listar_personal: {
         Args: never
         Returns: {
@@ -2469,6 +2767,10 @@ export type Database = {
           rol: Database["public"]["Enums"]["rol"]
           soy_yo: boolean
         }[]
+      }
+      marcar_conversacion_leida: {
+        Args: { p_conversacion_id: string }
+        Returns: number
       }
       marcar_encontrada: { Args: { p_mascota_id: string }; Returns: undefined }
       marcar_fallecida: {
@@ -2564,6 +2866,17 @@ export type Database = {
           ultima_atencion: string
         }[]
       }
+      perfiles_del_segmento: {
+        Args: { p_segmento: Json }
+        Returns: {
+          apellido: string
+          email: string
+          mascotas: string
+          nombre: string
+          perfil_id: string
+        }[]
+      }
+      previsualizar_campana: { Args: { p_segmento: Json }; Returns: Json }
       profesionales_disponibles: {
         Args: never
         Returns: {
@@ -2814,6 +3127,7 @@ export type Database = {
     }
     Enums: {
       especie: "perro" | "gato" | "ave" | "roedor" | "reptil" | "otro"
+      estado_campana: "borrador" | "enviando" | "enviada" | "cancelada"
       estado_orden:
         | "borrador"
         | "pendiente_pago"
@@ -2861,6 +3175,7 @@ export type Database = {
         | "medicacion"
         | "turno"
         | "hallazgo"
+        | "campana"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2992,6 +3307,7 @@ export const Constants = {
   public: {
     Enums: {
       especie: ["perro", "gato", "ave", "roedor", "reptil", "otro"],
+      estado_campana: ["borrador", "enviando", "enviada", "cancelada"],
       estado_orden: [
         "borrador",
         "pendiente_pago",
@@ -3044,6 +3360,7 @@ export const Constants = {
         "medicacion",
         "turno",
         "hallazgo",
+        "campana",
       ],
     },
   },
