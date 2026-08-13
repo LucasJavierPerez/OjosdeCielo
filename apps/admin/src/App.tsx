@@ -10,6 +10,7 @@ import { Ingresar } from './paginas/Ingresar.js';
 import { Inventario } from './paginas/Inventario.js';
 import { NuevoPaciente } from './paginas/NuevoPaciente.js';
 import { Pacientes } from './paginas/Pacientes.js';
+import { Reposiciones } from './paginas/Reposiciones.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
 
 function Interna({ children }: { children: ReactNode }) {
@@ -57,6 +58,14 @@ export function App() {
         }
       />
 
+      <Route
+        path="/reposiciones"
+        element={
+          <Interna>
+            <Reposiciones />
+          </Interna>
+        }
+      />
       <Route
         path="/caja"
         element={

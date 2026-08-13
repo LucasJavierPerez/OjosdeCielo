@@ -133,6 +133,11 @@ export function FichaMascota() {
           detalle="Peso, vacunas, alergias y medicación"
         />
         <EnlaceFicha
+          a={`/mascotas/${mascota.id}/recetas`}
+          titulo="Recetas"
+          detalle="Ver, imprimir y pedir reposición de crónicos"
+        />
+        <EnlaceFicha
           a={`/mascotas/${mascota.id}/tutores`}
           titulo="Quién accede"
           detalle="Compartir el cuidado con otra persona"

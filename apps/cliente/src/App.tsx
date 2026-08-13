@@ -16,11 +16,14 @@ import { Notificaciones } from './paginas/Notificaciones.js';
 import { NuevaMascota } from './paginas/NuevaMascota.js';
 import { NuevoTurno } from './paginas/NuevoTurno.js';
 import { OrdenCompra } from './paginas/OrdenCompra.js';
+import { RecetaImprimible } from './paginas/RecetaImprimible.js';
+import { RecetasMascota } from './paginas/RecetasMascota.js';
 import { Registrarse } from './paginas/Registrarse.js';
 import { SaludMascota } from './paginas/SaludMascota.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
 import { Tienda } from './paginas/Tienda.js';
 import { TutoresMascota } from './paginas/TutoresMascota.js';
+import { VerificarReceta } from './paginas/VerificarReceta.js';
 
 /** Atajo para no repetir el envoltorio en cada ruta de cliente. */
 function Privada({ children }: { children: ReactNode }) {
@@ -40,6 +43,7 @@ export function App() {
         {/* Pública a propósito: la abre quien encontró a la mascota, que no
             tiene cuenta ni motivo para crearla. */}
         <Route path="/m/:token" element={<MascotaPublica />} />
+        <Route path="/r/:codigo" element={<VerificarReceta />} />
 
         <Route
           path="/"
@@ -70,6 +74,22 @@ export function App() {
           element={
             <Privada>
               <SaludMascota />
+            </Privada>
+          }
+        />
+        <Route
+          path="/mascotas/:id/recetas"
+          element={
+            <Privada>
+              <RecetasMascota />
+            </Privada>
+          }
+        />
+        <Route
+          path="/recetas/:id"
+          element={
+            <Privada>
+              <RecetaImprimible />
             </Privada>
           }
         />

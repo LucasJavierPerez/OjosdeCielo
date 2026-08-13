@@ -23,6 +23,7 @@ import {
   useTutoresPaciente,
   useVerificarRegistro,
 } from '../features/pacientes/api.js';
+import { Recetario } from '../features/recetario/Recetario.js';
 
 type TablaVerificable = 'peso_registro' | 'aplicacion' | 'antecedente' | 'medicacion_en_curso';
 
@@ -122,6 +123,8 @@ export function FichaPaciente() {
 
         <div className="space-y-6 lg:col-span-2">
           <Historial mascotaId={id} />
+
+          <Recetario mascotaId={id} />
 
           <Bloque titulo="Peso" vacio={!salud?.pesos.length}>
             {salud?.pesos.map((p) => (
