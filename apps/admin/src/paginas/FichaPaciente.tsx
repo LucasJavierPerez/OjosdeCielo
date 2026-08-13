@@ -12,7 +12,7 @@ import {
 } from '@ojosdecielo/core';
 import { Boton, Cargando, cn, MensajeError } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { Layout } from '../componentes/Layout.js';
 import { useContactoTutor } from '../features/clinica/api.js';
@@ -23,6 +23,7 @@ import {
   useTutoresPaciente,
   useVerificarRegistro,
 } from '../features/pacientes/api.js';
+import { FormularioAntecedente } from '../features/pacientes/FormularioAntecedente.js';
 import { Recetario } from '../features/recetario/Recetario.js';
 
 type TablaVerificable = 'peso_registro' | 'aplicacion' | 'antecedente' | 'medicacion_en_curso';
@@ -171,19 +172,11 @@ export function FichaPaciente() {
             })}
           </Bloque>
 
-          <Bloque titulo="Alergias y antecedentes" vacio={!salud?.antecedentes.length}>
-            {salud?.antecedentes.map((a) => (
-              <FilaSalud
-                key={a.id}
-                registro={a}
-                mascotaId={id}
-                tabla="antecedente"
-                puedoVerificar={puedoVerificar}
-                principal={ETIQUETA_ANTECEDENTE[a.tipo as TipoAntecedente]}
-                secundario={a.descripcion}
-              />
-            ))}
-          </Bloque>
+          <BloqueAntecedentes
+            mascotaId={id}
+            antecedentes={salud?.antecedentes ?? []}
+            puedoVerificar={puedoVerificar}
+          />
 
           <Bloque titulo="Medicación" vacio={!salud?.medicacion.length}>
             {salud?.medicacion.map((m) => (
@@ -207,15 +200,23 @@ export function FichaPaciente() {
 function Bloque({
   titulo,
   vacio,
+  accion,
+  encabezado,
   children,
 }: {
   titulo: string;
   vacio?: boolean;
+  accion?: ReactNode;
+  encabezado?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4">
-      <h2 className="font-medium">{titulo}</h2>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-medium">{titulo}</h2>
+        {accion}
+      </div>
+      {encabezado}
       {vacio ? (
         <p className="mt-2 text-sm text-slate-400">Sin registros</p>
       ) : (
@@ -286,5 +287,49 @@ function FilaSalud({
         )}
       </div>
     </li>
+  );
+}
+
+function BloqueAntecedentes({
+  mascotaId,
+  antecedentes,
+  puedoVerificar,
+}: {
+  mascotaId: string;
+  antecedentes: (RegistroSalud & { tipo: string; descripcion: string })[];
+  puedoVerificar: boolean;
+}) {
+  const [cargando, setCargando] = useState(false);
+
+  return (
+    <Bloque
+      titulo="Alergias y antecedentes"
+      vacio={antecedentes.length === 0}
+      accion={
+        // Diagnosticar es del veterinario. Recepción ve, no escribe.
+        puedoVerificar && !cargando ? (
+          <Boton variante="texto" className="text-sm" onClick={() => setCargando(true)}>
+            Agregar
+          </Boton>
+        ) : null
+      }
+      encabezado={
+        cargando ? (
+          <FormularioAntecedente mascotaId={mascotaId} onListo={() => setCargando(false)} />
+        ) : null
+      }
+    >
+      {antecedentes.map((a) => (
+        <FilaSalud
+          key={a.id}
+          registro={a}
+          mascotaId={mascotaId}
+          tabla="antecedente"
+          puedoVerificar={puedoVerificar}
+          principal={ETIQUETA_ANTECEDENTE[a.tipo as TipoAntecedente]}
+          secundario={a.descripcion}
+        />
+      ))}
+    </Bloque>
   );
 }

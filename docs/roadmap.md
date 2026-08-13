@@ -45,7 +45,7 @@ Las estimaciones asumen un desarrollador principal trabajando de forma sostenida
 ---
 
 ## Fase 2 — Salud autogestionada ✅
-*El tutor construye el historial de su mascota sin depender de nadie. **Completada**, salvo la línea de tiempo unificada.*
+*El tutor construye el historial de su mascota sin depender de nadie. **Completada**.*
 
 - [x] Bloque de origen (`origen` / `cargado_por` / `verificado_por`) en las cuatro tablas de salud
 - [x] Registro de peso + gráfico de evolución, con los dos orígenes distinguidos
@@ -53,7 +53,7 @@ Las estimaciones asumen un desarrollador principal trabajando de forma sostenida
 - [x] Alergias y antecedentes reportados por el tutor
 - [x] Medicación en curso
 - [x] `verificar_registro()`: un veterinario confirma un dato del tutor sin cambiarle el origen
-- [ ] Línea de tiempo unificada de la salud — hoy son secciones separadas, no un orden cronológico único
+- [x] Línea de tiempo unificada de la salud — pestaña «Historia» en la app: consultas, vacunas, pesos, antecedentes, medicación, recetas y visitas en un solo orden cronológico
 - [x] Panel admin: ve lo que cargó el tutor **marcado como reportado**, con botón de verificar
 
 **Terminado cuando:** un tutor carga el carnet de vacunación completo de su mascota y ve la próxima fecha calculada. ✅ *Verificado en el navegador.*
@@ -144,7 +144,7 @@ Fase corta y de alto impacto percibido: es la función que hace que la app se re
 - [x] Alta de pacientes desde la clínica, con tutor sin cuenta y vinculación automática
 - [x] El peso medido en consulta se suma a la curva del paciente
 - [x] App cliente: historial profesional y descarga de estudios
-- [ ] Antecedentes diagnosticados por el profesional desde el panel
+- [x] Antecedentes diagnosticados por el profesional desde el panel — quedan con origen `clinica`, puesto por el trigger
 - [ ] Auditoría de **lectura** — buena práctica, no obligación legal (ver `stack.md`, Protección de datos personales). Tiene sentido cuando la clínica tenga varios empleados
 - [ ] Migración de datos desde el sistema actual de la clínica
 

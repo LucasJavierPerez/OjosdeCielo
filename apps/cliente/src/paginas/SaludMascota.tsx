@@ -1,10 +1,12 @@
 import { Cargando, MensajeError } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
+import { useState } from 'react';
 import { useParams } from 'react-router';
 import { Encabezado } from '../componentes/Encabezado.js';
 import { useMascota } from '../features/mascotas/api.js';
 import { useRealtimeMascota } from '../features/mascotas/tutores.js';
 import { HistorialClinico } from '../features/salud/HistorialClinico.js';
+import { LineaDeTiempo } from '../features/salud/LineaDeTiempo.js';
 import { SeccionAntecedentes } from '../features/salud/SeccionAntecedentes.js';
 import { SeccionAplicaciones } from '../features/salud/SeccionAplicaciones.js';
 import { SeccionMedicacion } from '../features/salud/SeccionMedicacion.js';
@@ -14,6 +16,7 @@ export function SaludMascota() {
   const { id = '' } = useParams<{ id: string }>();
   const { supabase } = useAuth();
   const { data: mascota, isLoading, isError, refetch } = useMascota(supabase, id);
+  const [vista, setVista] = useState<'historia' | 'secciones'>('historia');
 
   // Si el otro tutor carga algo, aparece acá sin recargar.
   useRealtimeMascota(supabase, id);
@@ -47,7 +50,33 @@ export function SaludMascota() {
         en modo lectura.
       </p>
 
-      <div className="mt-4">
+      <div className="mt-6 flex gap-1 rounded-lg border border-slate-200 p-1">
+        {[
+          { v: 'historia' as const, t: 'Historia' },
+          { v: 'secciones' as const, t: 'Por tema' },
+        ].map((o) => (
+          <button
+            key={o.v}
+            type="button"
+            onClick={() => setVista(o.v)}
+            className={
+              vista === o.v
+                ? 'flex-1 rounded-md bg-slate-900 py-1.5 text-sm font-medium text-white'
+                : 'flex-1 rounded-md py-1.5 text-sm text-slate-600'
+            }
+          >
+            {o.t}
+          </button>
+        ))}
+      </div>
+
+      {vista === 'historia' && (
+        <div className="mt-5">
+          <LineaDeTiempo mascotaId={mascota.id} />
+        </div>
+      )}
+
+      <div className={vista === 'secciones' ? 'mt-4' : 'hidden'}>
         <HistorialClinico mascotaId={mascota.id} />
         <SeccionPeso mascotaId={mascota.id} />
         <SeccionAplicaciones mascotaId={mascota.id} />

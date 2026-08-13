@@ -768,6 +768,30 @@ export type Database = {
         }
         Relationships: []
       }
+      intento_publico: {
+        Row: {
+          acierto: boolean
+          creado_en: string
+          id: number
+          ip: string
+          origen: string
+        }
+        Insert: {
+          acierto: boolean
+          creado_en?: string
+          id?: number
+          ip: string
+          origen: string
+        }
+        Update: {
+          acierto?: boolean
+          creado_en?: string
+          id?: number
+          ip?: string
+          origen?: string
+        }
+        Relationships: []
+      }
       invitacion_tutor: {
         Row: {
           aceptada_en: string | null
@@ -2755,6 +2779,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      limpiar_intentos_publicos: { Args: never; Returns: number }
+      linea_de_tiempo: {
+        Args: { p_antes_de?: string; p_limite?: number; p_mascota_id: string }
+        Returns: {
+          detalle: string
+          fecha: string
+          momento: string
+          origen: Database["public"]["Enums"]["origen_dato"]
+          origen_id: string
+          tipo: Database["public"]["Enums"]["tipo_evento_salud"]
+          titulo: string
+        }[]
+      }
       listar_personal: {
         Args: never
         Returns: {
@@ -2888,6 +2925,10 @@ export type Database = {
         }[]
       }
       receta_para_imprimir: { Args: { p_receta_id: string }; Returns: Json }
+      registrar_intento_publico: {
+        Args: { p_acierto: boolean; p_limite?: number; p_origen: string }
+        Returns: boolean
+      }
       registrar_movimiento: {
         Args: {
           p_cantidad: number
@@ -3162,6 +3203,14 @@ export type Database = {
         | "vacuna"
         | "desparasitacion_interna"
         | "desparasitacion_externa"
+      tipo_evento_salud:
+        | "consulta"
+        | "aplicacion"
+        | "peso"
+        | "antecedente"
+        | "medicacion"
+        | "receta"
+        | "turno"
       tipo_movimiento:
         | "ingreso"
         | "venta"
@@ -3345,6 +3394,15 @@ export const Constants = {
         "vacuna",
         "desparasitacion_interna",
         "desparasitacion_externa",
+      ],
+      tipo_evento_salud: [
+        "consulta",
+        "aplicacion",
+        "peso",
+        "antecedente",
+        "medicacion",
+        "receta",
+        "turno",
       ],
       tipo_movimiento: [
         "ingreso",

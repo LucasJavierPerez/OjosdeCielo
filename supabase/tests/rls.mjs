@@ -2549,6 +2549,38 @@ console.log('\n=== 97. Las páginas públicas cortan un barrido ===');
     : fail('Saturar recetas dejó sin servicio al QR de extravío');
 }
 
+console.log('\n=== 98. Línea de tiempo unificada ===');
+{
+  const { error } = await clara.sb.rpc('linea_de_tiempo', { p_mascota_id: mascotaConReceta });
+  error
+    ? ok('Clara no puede ver la historia de una mascota ajena')
+    : fail('FUGA: Clara vio la línea de tiempo de otra mascota');
+
+  const { data, error: errAna } = await ana.sb.rpc('linea_de_tiempo', {
+    p_mascota_id: mascotaConReceta,
+  });
+
+  if (errAna) {
+    fail(`Ana no pudo ver la historia de su gato: ${errAna.message}`);
+  } else {
+    const tipos = new Set(data.map((e) => e.tipo));
+    tipos.has('receta')
+      ? ok(`La historia junta ${data.length} eventos de ${tipos.size} tipo(s) distinto(s)`)
+      : fail(`La historia no trajo la receta: ${JSON.stringify([...tipos])}`);
+
+    // Orden estrictamente descendente por fecha civil.
+    const ordenada = data.every((e, i) => i === 0 || data[i - 1].fecha >= e.fecha);
+    ordenada ? ok('Viene del más nuevo al más viejo') : fail('La historia vino desordenada');
+  }
+
+  const { data: delVet } = await vet.sb.rpc('linea_de_tiempo', {
+    p_mascota_id: mascotaConReceta,
+  });
+  delVet && delVet.length > 0
+    ? ok('El personal de la clínica también la ve')
+    : fail('El veterinario no ve la línea de tiempo');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'
