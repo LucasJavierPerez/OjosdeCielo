@@ -3028,6 +3028,7 @@ export type Database = {
       mascota_por_qr: {
         Args: { p_token: string }
         Returns: {
+          clinica_logo: string
           clinica_nombre: string
           clinica_telefono: string
           contacto_nombre: string

@@ -37,10 +37,10 @@ export function GraficoTurnos({ datos }: { datos: TurnosPorDia[] }) {
           <YAxis tick={{ fontSize: 11 }} allowDecimals={false} width={28} />
           <Tooltip />
           <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="Atendidos" stackId="t" fill="#059669" />
-          <Bar dataKey="Confirmados" stackId="t" fill="#2563eb" />
-          <Bar dataKey="Solicitados" stackId="t" fill="#93c5fd" />
-          <Bar dataKey="Ausentes" stackId="t" fill="#dc2626" />
+          <Bar dataKey="Atendidos" stackId="t" fill="#00483d" />
+          <Bar dataKey="Confirmados" stackId="t" fill="#008573" />
+          <Bar dataKey="Solicitados" stackId="t" fill="#7edac8" />
+          <Bar dataKey="Ausentes" stackId="t" fill="#ae4380" />
           <Bar dataKey="Cancelados" stackId="t" fill="#cbd5e1" />
         </BarChart>
       </ResponsiveContainer>

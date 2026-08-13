@@ -1,5 +1,5 @@
 import { formatearFechaCivil } from '@ojosdecielo/core';
-import { Cargando } from '@ojosdecielo/ui';
+import { Cargando, LogoCompleto } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -20,6 +20,7 @@ interface RecetaVerificada {
   matricula: string | null;
   clinica: string;
   clinica_telefono: string | null;
+  clinica_logo: string | null;
   items: {
     descripcion: string;
     cantidad: string;
@@ -101,6 +102,8 @@ export function VerificarReceta() {
 
   return (
     <main className="safe-top safe-bottom mx-auto min-h-dvh max-w-md px-6 py-8">
+      <LogoCompleto src={data.clinica_logo} className="mx-auto mb-8 max-w-36" />
+
       <div
         className={
           valida

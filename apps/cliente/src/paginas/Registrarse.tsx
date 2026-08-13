@@ -1,3 +1,4 @@
+import { Isotipo } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -69,7 +70,8 @@ export function Registrarse() {
 
   return (
     <main className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
-      <h1 className="text-2xl font-semibold">Crear cuenta</h1>
+      <Isotipo className="mx-auto h-16" />
+      <h1 className="mt-4 text-2xl font-semibold">Crear cuenta</h1>
 
       <form onSubmit={alEnviar} className="mt-8 space-y-4">
         <div className="grid grid-cols-2 gap-3">

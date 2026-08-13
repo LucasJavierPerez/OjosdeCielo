@@ -130,7 +130,7 @@ function FilaReceta({
             <li key={i.id}>
               <span className="font-medium">{i.descripcion}</span>
               {i.cronico && (
-                <span className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-[11px] text-blue-800">
+                <span className="ml-2 rounded bg-acento-100 px-1.5 py-0.5 text-[11px] text-acento-800">
                   Crónico
                 </span>
               )}

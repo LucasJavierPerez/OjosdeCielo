@@ -94,7 +94,7 @@ export function Mensajes() {
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="min-w-0 truncate font-medium">{c.asunto}</span>
                     {c.sin_leer > 0 && (
-                      <span className="shrink-0 rounded-full bg-blue-600 px-1.5 text-xs font-medium text-white">
+                      <span className="shrink-0 rounded-full bg-acento-600 px-1.5 text-xs font-medium text-white">
                         {c.sin_leer}
                       </span>
                     )}
@@ -162,7 +162,7 @@ function Conversacion({ conversacion }: { conversacion: ConversacionBandeja }) {
                 {' · '}
                 <Link
                   to={`/pacientes/${conversacion.mascota_id}`}
-                  className="hover:text-blue-700 hover:underline"
+                  className="hover:text-marca-700 hover:underline"
                 >
                   {conversacion.mascota}
                 </Link>

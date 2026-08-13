@@ -1,6 +1,6 @@
 import type { Especie } from '@ojosdecielo/core';
 import { ETIQUETA_ESPECIE, textoRelativo } from '@ojosdecielo/core';
-import { Boton, Cargando, MensajeError } from '@ojosdecielo/ui';
+import { Boton, Cargando, LogoCompleto, MensajeError } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -18,6 +18,7 @@ interface MascotaPublica {
   contacto_telefono: string | null;
   clinica_nombre: string;
   clinica_telefono: string | null;
+  clinica_logo: string | null;
 }
 
 /**
@@ -90,6 +91,8 @@ export function MascotaPublica() {
 
   return (
     <main className="safe-top safe-bottom mx-auto min-h-dvh max-w-md px-6 py-10">
+      <LogoCompleto src={data.clinica_logo} className="mx-auto mb-8 max-w-40" />
+
       {data.perdida ? (
         <div className="rounded-xl bg-red-50 p-4 text-center">
           <p className="text-lg font-semibold text-red-900">¡{data.nombre} está perdida!</p>

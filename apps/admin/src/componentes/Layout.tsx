@@ -1,4 +1,5 @@
 import { etiquetarRoles } from '@ojosdecielo/core';
+import { Isotipo } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
@@ -22,20 +23,23 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-3">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="font-semibold">
-              Ojos de Cielo
+        <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
+          <div className="flex min-w-0 flex-1 items-center gap-6">
+            <Link to="/" className="flex shrink-0 items-center gap-2 font-semibold">
+              <Isotipo className="h-8" />
+              <span className="hidden lg:inline">Ojos de Cielo</span>
             </Link>
-            <nav className="flex gap-4 text-sm">
+            {/* La navegación se desplaza en lugar de romperse: son nueve
+                secciones y en una notebook de 13" no entran todas. */}
+            <nav className="flex min-w-0 gap-4 overflow-x-auto text-sm">
               {SECCIONES.map((s) => (
                 <Link
                   key={s.a}
                   to={s.a}
                   className={
                     pathname.startsWith(s.a)
-                      ? 'font-medium text-marca-700'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'shrink-0 font-medium text-marca-700'
+                      : 'shrink-0 text-slate-600 hover:text-slate-900'
                   }
                 >
                   {s.texto}
@@ -44,12 +48,14 @@ export function Layout({ children }: { children: ReactNode }) {
             </nav>
           </div>
 
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-slate-600">
-              {perfil?.nombre} {perfil?.apellido}
-              <span className="ml-2 rounded bg-slate-100 px-2 py-0.5 text-xs capitalize text-slate-600">
-                {etiquetarRoles(perfil?.roles)}
+          <div className="flex shrink-0 items-center gap-4 text-sm">
+            {/* Nombre y roles apilados: con los tres roles de una clínica
+                unipersonal, en una línea se montaban sobre la navegación. */}
+            <span className="hidden text-right leading-tight md:block">
+              <span className="block text-slate-700">
+                {perfil?.nombre} {perfil?.apellido}
               </span>
+              <span className="block text-xs text-slate-500">{etiquetarRoles(perfil?.roles)}</span>
             </span>
             <button
               type="button"

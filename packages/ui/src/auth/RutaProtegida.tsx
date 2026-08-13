@@ -27,7 +27,7 @@ export function RutaProtegida({
     return (
       <div className="flex min-h-dvh items-center justify-center">
         <div
-          className="size-8 animate-spin rounded-full border-2 border-current border-t-transparent text-blue-600"
+          className="size-8 animate-spin rounded-full border-2 border-current border-t-transparent text-marca-600"
           role="status"
           aria-label="Cargando"
         />

@@ -1,3 +1,4 @@
+import { LogoCompleto } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
@@ -39,8 +40,11 @@ export function Ingresar() {
 
   return (
     <main className="safe-top safe-bottom mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
-      <h1 className="text-2xl font-semibold">Ojos de Cielo</h1>
-      <p className="mt-1 text-slate-600">La salud de tu mascota, siempre a mano</p>
+      <LogoCompleto className="mx-auto max-w-48" />
+      {/* El nombre ya está en el logo; repetirlo en un h1 lo diría dos veces.
+          El h1 queda para los lectores de pantalla, que no ven la imagen. */}
+      <h1 className="sr-only">Ojos de Cielo</h1>
+      <p className="mt-4 text-center text-slate-600">La salud de tu mascota, siempre a mano</p>
 
       <form onSubmit={alEnviar} className="mt-8 space-y-4">
         <div>

@@ -49,6 +49,7 @@ export interface RecetaImpresa {
   matricula: string | null;
   clinica: {
     nombre: string;
+    logo_url: string | null;
     direccion: string | null;
     localidad: string | null;
     telefono: string | null;

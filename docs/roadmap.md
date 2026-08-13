@@ -216,7 +216,7 @@ pero sí antes de que la clínica atienda gente de verdad.
 - [ ] Política de retención: hoy nada se borra nunca
 - [ ] Deploy real: proyecto Supabase de producción, dominios, secretos, `functions deploy`
 - [ ] Verificar el CI en GitHub (nunca se comprobó: falta `gh auth login`)
-- [ ] Íconos definitivos de la PWA — los actuales son un placeholder generado
+- [x] Íconos definitivos de la PWA — generados desde el logo de la clínica
 - [ ] Probar la instalación y el push en un iPhone y un Android reales
 
 ---

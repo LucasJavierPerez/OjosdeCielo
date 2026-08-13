@@ -146,6 +146,9 @@ Un `timestamptz` (un turno) se convierte a `America/Argentina/Buenos_Aires` para
 
 El error tiene una segunda forma, que apareció en 18 lugares a la vez: **`new Date().toISOString().slice(0, 10)` no es "hoy"**, es hoy en UTC. En zona −03, a partir de las 21 h devuelve el día siguiente; la agenda abría en el día equivocado y los formularios proponían mañana. Para eso están `hoyCivil()`, `aFechaCivil()` y `sumarDiasCiviles()`. Del lado de la base, agrupar por día es `(columna at time zone 'America/Argentina/Buenos_Aires')::date`, nunca la columna cruda. Y vale también para los tests: la suite de RLS falló una noche por esto mismo.
 
+**10 bis. Tailwind no escanea `packages/ui` por su cuenta.**
+La detección automática de Tailwind 4 parte de la raíz de Vite —la carpeta de cada app— e ignora `node_modules`, y `packages/ui` entra por un symlink de ahí adentro. Sin el `@source` que está en `estilos.css`, cualquier clase usada **sólo** dentro de `packages/ui` no se genera: no hay error, no hay advertencia, el estilo simplemente no aparece. Apareció con un `object-contain` que deformaba el logo. Si algo de `packages/ui` se ve mal y las clases parecen correctas, mirar esto antes que nada.
+
 **11. Dinero en `numeric(12,2)` en la base y en enteros de centavos o `Decimal` en el código.**
 Nunca `float` para plata.
 

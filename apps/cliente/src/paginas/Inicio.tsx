@@ -1,5 +1,5 @@
 import { calcularEdad, describirMascota } from '@ojosdecielo/core';
-import { Boton, Cargando, MensajeError, Vacio } from '@ojosdecielo/ui';
+import { Boton, Cargando, Isotipo, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -15,9 +15,12 @@ export function Inicio() {
   return (
     <main className="safe-top safe-bottom mx-auto min-h-dvh max-w-md px-6 py-8">
       <header className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-slate-500">Hola</p>
-          <h1 className="text-2xl font-semibold">{perfil?.nombre ?? ''}</h1>
+        <div className="flex items-center gap-3">
+          <Isotipo className="h-11" />
+          <div>
+            <p className="text-sm text-slate-500">Hola</p>
+            <h1 className="text-2xl font-semibold">{perfil?.nombre ?? ''}</h1>
+          </div>
         </div>
         <Boton variante="texto" onClick={() => void cerrarSesion()} className="text-slate-500">
           Salir

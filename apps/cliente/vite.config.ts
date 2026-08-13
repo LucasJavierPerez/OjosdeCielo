@@ -14,7 +14,7 @@ export default defineConfig({
         name: 'Ojos de Cielo',
         short_name: 'Ojos de Cielo',
         description: 'La salud de tu mascota, siempre a mano',
-        theme_color: '#2563eb',
+        theme_color: '#008573',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',

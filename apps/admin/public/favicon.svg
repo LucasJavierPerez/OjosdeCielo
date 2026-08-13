@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Ojos de Cielo">
   <title>Ojos de Cielo</title>
-  <rect width="32" height="32" rx="7" fill="#2563eb"/>
-  <circle cx="11" cy="12" r="3.2" fill="#fff"/>
-  <circle cx="21" cy="12" r="3.2" fill="#fff"/>
-  <circle cx="11" cy="12" r="1.5" fill="#2563eb"/>
-  <circle cx="21" cy="12" r="1.5" fill="#2563eb"/>
-  <path d="M9 21c2 3 12 3 14 0" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+  <!-- La cruz médica del logo, que es la parte que sobrevive a 16 px.
+       La silueta de perro y gato a ese tamaño se vuelve una mancha. -->
+  <rect width="32" height="32" rx="7" fill="#008573"/>
+  <path
+    d="M13 7h6a1.6 1.6 0 0 1 1.6 1.6V13h4.4A1.6 1.6 0 0 1 26.6 14.6v3.8A1.6 1.6 0 0 1 25 20h-4.4v4.4A1.6 1.6 0 0 1 19 26h-6a1.6 1.6 0 0 1-1.6-1.6V20H7a1.6 1.6 0 0 1-1.6-1.6v-3.8A1.6 1.6 0 0 1 7 13h4.4V8.6A1.6 1.6 0 0 1 13 7Z"
+    fill="#fff"/>
 </svg>

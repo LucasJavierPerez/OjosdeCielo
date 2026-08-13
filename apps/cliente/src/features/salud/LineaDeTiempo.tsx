@@ -30,7 +30,7 @@ const COLOR: Record<TipoEvento, string> = {
   aplicacion: 'bg-emerald-500',
   peso: 'bg-slate-400',
   antecedente: 'bg-amber-500',
-  medicacion: 'bg-blue-500',
+  medicacion: 'bg-acento-500',
 };
 
 const PAGINA = 20;

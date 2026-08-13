@@ -1,14 +1,56 @@
 @import "tailwindcss";
 
+/* Tailwind 4 detecta las fuentes desde la raíz de Vite —la carpeta de cada
+ * app— e ignora node_modules. `packages/ui` entra por un symlink dentro de
+ * node_modules, así que quedaba afuera del escaneo: toda clase usada
+ * únicamente acá no llegaba a generarse, y fallaba en silencio. Se descubrió
+ * con `object-contain` en el logo, que deformaba la imagen porque el
+ * object-fit nunca se aplicó.
+ *
+ * La ruta es relativa a este archivo. */
+@source "../src";
+
 /* Design tokens compartidos por las dos apps.
-   El color de marca sale de configuracion_clinica en runtime (Decisión 11);
-   este es sólo el valor por defecto hasta que carga. */
+ *
+ * Los dos colores salen del logo de la clínica, medidos sobre el archivo y no
+ * estimados a ojo: el verde agua de la silueta (#52b8a6, hue 180) y el magenta
+ * de la cruz médica (#8c1d61, hue 348).
+ *
+ * Las escalas están armadas en OKLCH y ancladas por contraste, no por gusto:
+ * el paso 600 es el más claro que sostiene texto blanco con 4.5:1 (WCAG AA), y
+ * es el que usan los botones. El verde del logo tal cual sale del archivo da
+ * 2.4:1 sobre blanco — bonito y ciego. Los pasos 50 a 500 están calculados
+ * para llevar texto oscuro encima.
+ *
+ * El color de marca definitivo sale de configuracion_clinica en runtime
+ * (Decisión 11); esto es el valor por defecto de esta instalación.
+ */
 @theme {
-  --color-marca-50: oklch(0.97 0.014 254.6);
-  --color-marca-100: oklch(0.93 0.032 255.6);
-  --color-marca-500: oklch(0.62 0.214 259.8);
-  --color-marca-600: oklch(0.55 0.238 260.8);
-  --color-marca-700: oklch(0.49 0.22 264.4);
+  /* Verde agua de la silueta del logo */
+  --color-marca-50: oklch(0.972 0.021 180);
+  --color-marca-100: oklch(0.938 0.037 180);
+  --color-marca-200: oklch(0.888 0.063 180);
+  --color-marca-300: oklch(0.826 0.092 180);
+  --color-marca-400: oklch(0.72 0.113 180);
+  --color-marca-500: oklch(0.632 0.115 180);
+  --color-marca-600: oklch(0.547 0.112 180);
+  --color-marca-700: oklch(0.472 0.101 180);
+  --color-marca-800: oklch(0.408 0.09 180);
+  --color-marca-900: oklch(0.352 0.081 180);
+  --color-marca-950: oklch(0.258 0.062 180);
+
+  /* Magenta de la cruz médica */
+  --color-acento-50: oklch(0.972 0.029 348.3);
+  --color-acento-100: oklch(0.938 0.051 348.3);
+  --color-acento-200: oklch(0.888 0.088 348.3);
+  --color-acento-300: oklch(0.826 0.128 348.3);
+  --color-acento-400: oklch(0.72 0.157 348.3);
+  --color-acento-500: oklch(0.632 0.16 348.3);
+  --color-acento-600: oklch(0.547 0.155 348.3);
+  --color-acento-700: oklch(0.472 0.141 348.3);
+  --color-acento-800: oklch(0.408 0.125 348.3);
+  --color-acento-900: oklch(0.352 0.112 348.3);
+  --color-acento-950: oklch(0.258 0.086 348.3);
 
   --color-exito: oklch(0.65 0.17 149.6);
   --color-alerta: oklch(0.75 0.16 76.5);

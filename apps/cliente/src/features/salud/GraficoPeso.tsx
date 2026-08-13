@@ -70,7 +70,7 @@ export function GraficoPeso({ pesos }: { pesos: PesoRegistro[] }) {
           <Line
             type="monotone"
             dataKey="peso"
-            stroke="var(--color-marca-600, #2563eb)"
+            stroke="var(--color-marca-600, #008573)"
             strokeWidth={2}
             dot={<PuntoOrigen />}
             activeDot={{ r: 5 }}
@@ -96,8 +96,8 @@ function PuntoOrigen({ cx, cy, payload }: PropsPunto) {
       cx={cx}
       cy={cy}
       r={4}
-      fill={esClinica ? 'var(--color-marca-600, #2563eb)' : '#ffffff'}
-      stroke="var(--color-marca-600, #2563eb)"
+      fill={esClinica ? 'var(--color-marca-600, #008573)' : '#ffffff'}
+      stroke="var(--color-marca-600, #008573)"
       strokeWidth={2}
     />
   );

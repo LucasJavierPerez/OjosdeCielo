@@ -258,7 +258,7 @@ export function Tablero() {
                     <td className="px-4 py-2.5">
                       <Link
                         to={`/pacientes/${p.mascota_id}`}
-                        className="font-medium hover:text-blue-700 hover:underline"
+                        className="font-medium hover:text-marca-700 hover:underline"
                       >
                         {p.mascota}
                       </Link>

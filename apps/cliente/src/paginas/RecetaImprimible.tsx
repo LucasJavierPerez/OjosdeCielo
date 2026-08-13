@@ -1,5 +1,5 @@
 import { calcularEdad, formatearFechaCivil } from '@ojosdecielo/core';
-import { Boton, Cargando, MensajeError } from '@ojosdecielo/ui';
+import { Boton, Cargando, Isotipo, MensajeError } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
@@ -68,17 +68,22 @@ export function RecetaImprimible() {
 
       <article className="mt-6 rounded-xl border border-slate-300 bg-white p-6 print:mt-0 print:rounded-none print:border-0 print:p-0">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-300 pb-4">
-          <div>
-            <p className="text-lg font-semibold">{receta.clinica.nombre}</p>
-            {receta.clinica.direccion && (
-              <p className="text-sm text-slate-600">
-                {receta.clinica.direccion}
-                {receta.clinica.localidad && `, ${receta.clinica.localidad}`}
-              </p>
-            )}
-            {receta.clinica.telefono && (
-              <p className="text-sm text-slate-600">{receta.clinica.telefono}</p>
-            )}
+          <div className="flex items-start gap-3">
+            {/* El membrete lleva el logo: es lo que hace que el papel se
+                reconozca como de la clínica de un vistazo. */}
+            <Isotipo src={receta.clinica.logo_url} className="h-14 print:h-12" />
+            <div>
+              <p className="text-lg font-semibold">{receta.clinica.nombre}</p>
+              {receta.clinica.direccion && (
+                <p className="text-sm text-slate-600">
+                  {receta.clinica.direccion}
+                  {receta.clinica.localidad && `, ${receta.clinica.localidad}`}
+                </p>
+              )}
+              {receta.clinica.telefono && (
+                <p className="text-sm text-slate-600">{receta.clinica.telefono}</p>
+              )}
+            </div>
           </div>
           {qr && (
             <div className="text-center">

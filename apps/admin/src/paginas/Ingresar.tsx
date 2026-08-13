@@ -1,3 +1,4 @@
+import { Isotipo } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
 import { Navigate } from 'react-router';
@@ -29,7 +30,8 @@ export function Ingresar() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6">
-      <h1 className="text-xl font-semibold">Panel · Ojos de Cielo</h1>
+      <Isotipo className="h-14" />
+      <h1 className="mt-4 text-xl font-semibold">Panel · Ojos de Cielo</h1>
       <p className="mt-1 text-sm text-slate-600">Acceso para el personal de la clínica</p>
 
       <form onSubmit={alEnviar} className="mt-8 space-y-4">

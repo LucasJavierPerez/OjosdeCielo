@@ -93,7 +93,7 @@ function Pedido({
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <Link
           to={`/pacientes/${pedido.mascota_id}`}
-          className="font-medium hover:text-blue-700 hover:underline"
+          className="font-medium hover:text-marca-700 hover:underline"
         >
           {pedido.mascota}
         </Link>
