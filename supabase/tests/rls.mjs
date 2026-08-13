@@ -1354,11 +1354,18 @@ console.log('\n=== 64. Aviso de hallazgo sin cuenta ===');
 // Turnos (fase 5)
 // ===========================================================================
 
+// La fecha se arma con las partes locales y NO con toISOString(): en zona -03,
+// después de las 21 h toISOString() devuelve el día siguiente y el test pedía
+// turno un domingo, cuando no hay atención. Es el mismo error que la regla 10
+// de AGENTS.md previene en la aplicación — acá se coló en el propio test, y
+// sólo aparecía si la suite se corría de noche.
 const proximoHabil = () => {
   const d = new Date();
   d.setDate(d.getDate() + 3);
   while (d.getDay() === 0) d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
 };
 
 // Mascota propia para esta sección: la compartida quedó a nombre de Bruno tras
