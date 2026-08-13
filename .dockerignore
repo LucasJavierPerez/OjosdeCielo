@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/dist
+.turbo
+**/.turbo
+.git
+.env
+.env.*
+!.env.example
+supabase/.branches
+supabase/.temp
+imagen

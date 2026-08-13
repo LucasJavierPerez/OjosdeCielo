@@ -214,7 +214,9 @@ pero sí antes de que la clínica atienda gente de verdad.
 - [ ] Registro de la base ante la AAIP (lo hace la clínica como responsable)
 - [ ] Contrato de tratamiento con Supabase y verificar dónde quedan alojados los datos
 - [ ] Política de retención: hoy nada se borra nunca
-- [ ] Deploy real: proyecto Supabase de producción, dominios, secretos, `functions deploy`
+- [ ] Deploy real: proyecto Supabase de producción, dominios, secretos, `functions deploy`.
+      Los pasos están en `docs/deploy-demo.md`; para producción hay que sumar
+      SMTP propio, dominio y arrancar de una base sin el seed de prueba
 - [ ] Verificar el CI en GitHub (nunca se comprobó: falta `gh auth login`)
 - [x] Íconos definitivos de la PWA — generados desde el logo de la clínica
 - [ ] Probar la instalación y el push en un iPhone y un Android reales

@@ -1,0 +1,32 @@
+# Servido de las dos SPA en Railway.
+#
+# Railway inyecta $PORT y espera que el proceso escuche ahí.
+:{$PORT:8080} {
+	root * /srv
+	encode gzip zstd
+
+	# Sin esto, recargar sobre /tienda/orden/abc devuelve 404: esas rutas no
+	# son archivos, las resuelve el router en el navegador. try_files manda
+	# cualquier ruta desconocida al index y deja que React decida.
+	try_files {path} /index.html
+	file_server
+
+	# Los assets llevan hash en el nombre: se cachean para siempre. Todo lo
+	# demás va con no-cache, y la regla se escribe al revés a propósito. Listar
+	# los archivos "volátiles" uno por uno dejaba afuera las rutas de la SPA
+	# —/inventario, /tienda/orden/x— que try_files sirve como index.html: el
+	# matcher compara la ruta pedida, no el archivo entregado. Así, entrar por
+	# un link directo dejaba la app vieja pegada.
+	@inmutables path /assets/*
+	header @inmutables Cache-Control "public, max-age=31536000, immutable"
+
+	@resto not path /assets/*
+	header @resto Cache-Control "no-cache"
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		# La app se instala como PWA y no se embebe en ningún lado.
+		X-Frame-Options DENY
+	}
+}
