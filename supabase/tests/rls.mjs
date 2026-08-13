@@ -2928,6 +2928,81 @@ console.log('\n=== 101. El veterinario controla los datos del paciente ===');
     : fail('El registro restaurado no volvió a la historia');
 }
 
+console.log('\n=== 102. Corregir un producto no reescribe lo ya vendido ===');
+{
+  const { data: prod } = await admin.sb
+    .from('producto')
+    .insert({ nombre: 'Alimentto balancado', precio: 18500, categoria: 'Alimentos' })
+    .select()
+    .single();
+
+  await admin.sb.rpc('registrar_movimiento', {
+    p_producto_id: prod.id,
+    p_tipo: 'ingreso',
+    p_cantidad: 5,
+  });
+
+  const { data: caja } = await admin.sb.rpc('resumen_caja');
+  if (!caja || caja.length === 0) await admin.sb.rpc('abrir_caja', { p_monto_inicial: 0 });
+
+  const { data: venta } = await admin.sb.rpc('vender_mostrador', {
+    p_items: [{ producto_id: prod.id, cantidad: 1 }],
+    p_medio: 'efectivo',
+  });
+
+  // El caso real: se escribió mal el nombre y el precio estaba desactualizado.
+  const { error } = await recepcion.sb
+    .from('producto')
+    .update({ nombre: 'Alimento balanceado 3kg', precio: 21500.5 })
+    .eq('id', prod.id);
+  error
+    ? fail(`Recepción no pudo corregir el producto: ${error.message}`)
+    : ok('Recepción corrige nombre y precio de un producto');
+
+  const { data: ahora } = await admin.sb
+    .from('producto')
+    .select('nombre, precio')
+    .eq('id', prod.id)
+    .single();
+  ahora?.nombre === 'Alimento balanceado 3kg' && Number(ahora.precio) === 21500.5
+    ? ok('El producto queda con el nombre y el precio corregidos')
+    : fail(`Quedó ${JSON.stringify(ahora)}`);
+
+  // Lo que no puede pasar: que se reescriba la historia de la caja.
+  const { data: items } = await admin.sb
+    .from('orden_item')
+    .select('descripcion, precio_unitario')
+    .eq('orden_id', venta.id);
+  Number(items?.[0]?.precio_unitario) === 18500
+    ? ok('La venta anterior conserva el precio con el que se cobró')
+    : fail(`La venta quedó en ${items?.[0]?.precio_unitario}`);
+  items?.[0]?.descripcion === 'Alimentto balancado'
+    ? ok('Y también el nombre que tenía el día de la venta')
+    : fail(`La descripción cambió a "${items?.[0]?.descripcion}"`);
+
+  // Quedó registro de la corrección: es lo que sirve cuando la caja no cierra.
+  const { data: auditoria } = await admin.sb
+    .from('audit_log')
+    .select('accion, datos_antes, datos_despues')
+    .eq('tabla', 'producto')
+    .eq('registro_id', prod.id)
+    .eq('accion', 'UPDATE');
+  Number(auditoria?.[0]?.datos_antes?.precio) === 18500 &&
+  Number(auditoria?.[0]?.datos_despues?.precio) === 21500.5
+    ? ok('La auditoría guarda el precio anterior y el nuevo')
+    : fail(`La auditoría no registró el cambio: ${JSON.stringify(auditoria)}`);
+
+  const { error: errAna } = await ana.sb.from('producto').update({ precio: 1 }).eq('id', prod.id);
+  const { data: intacto } = await admin.sb
+    .from('producto')
+    .select('precio')
+    .eq('id', prod.id)
+    .single();
+  errAna || Number(intacto?.precio) === 21500.5
+    ? ok('Un cliente no puede tocar los precios')
+    : fail('FUGA: un cliente cambió un precio');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

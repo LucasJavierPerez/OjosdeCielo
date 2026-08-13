@@ -139,6 +139,7 @@ function FilaProducto({
   const movimiento = useRegistrarMovimiento(supabase);
   const actualizar = useActualizarProducto(supabase);
   const [cantidad, setCantidad] = useState('');
+  const [editando, setEditando] = useState(false);
 
   const registrar = (tipo: 'ingreso' | 'ajuste') => {
     const n = Number(cantidad);
@@ -150,10 +151,20 @@ function FilaProducto({
     );
   };
 
+  if (editando) {
+    return <FilaEdicion producto={p} onCerrar={() => setEditando(false)} onError={onError} />;
+  }
+
   return (
     <tr className="border-b border-slate-100">
       <td className="py-2.5">
-        <span className="font-medium">{p.nombre}</span>
+        <button
+          type="button"
+          onClick={() => setEditando(true)}
+          className="text-left font-medium hover:text-marca-700 hover:underline"
+        >
+          {p.nombre}
+        </button>
         {p.requiere_receta && (
           <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">
             Receta
@@ -161,7 +172,15 @@ function FilaProducto({
         )}
         {p.categoria && <span className="block text-xs text-slate-500">{p.categoria}</span>}
       </td>
-      <td className="py-2.5">{pesos(Number(p.precio))}</td>
+      <td className="py-2.5">
+        <button
+          type="button"
+          onClick={() => setEditando(true)}
+          className="tabular-nums hover:text-marca-700 hover:underline"
+        >
+          {pesos(Number(p.precio))}
+        </button>
+      </td>
       <td className="py-2.5">
         <span className={p.bajo_minimo ? 'font-medium text-amber-700' : ''}>{p.cantidad}</span>
         {p.stock_minimo > 0 && (
@@ -210,7 +229,179 @@ function FilaProducto({
           >
             Ajustar
           </Boton>
+          <Boton
+            variante="texto"
+            className="text-sm text-slate-500"
+            onClick={() => setEditando(true)}
+          >
+            Editar
+          </Boton>
         </div>
+      </td>
+    </tr>
+  );
+}
+
+/**
+ * Edición de los datos del producto: nombre, categoría, precio y mínimo.
+ *
+ * El stock no se edita acá y no es un olvido: sale de la suma de movimientos,
+ * que es lo que hace que la existencia sea auditable. Para corregirlo está
+ * "Ajustar", que deja un movimiento con su motivo.
+ *
+ * Cambiar el precio es seguro para lo ya vendido: `orden_item.precio_unitario`
+ * se congela al momento de la venta (AGENTS.md, regla 12), así que una orden
+ * vieja sigue diciendo lo que se cobró. Igual queda auditado, porque un precio
+ * mal tipeado y corregido después es justo lo que hay que poder rastrear
+ * cuando la caja no cierra.
+ */
+function FilaEdicion({
+  producto: p,
+  onCerrar,
+  onError,
+}: {
+  producto: StockActual;
+  onCerrar: () => void;
+  onError: (e: string | null) => void;
+}) {
+  const { supabase } = useAuth();
+  const actualizar = useActualizarProducto(supabase);
+  const [d, setD] = useState({
+    nombre: p.nombre,
+    categoria: p.categoria ?? '',
+    // Se muestra con coma, que es como se escribe un precio acá.
+    precio: String(p.precio).replace('.', ','),
+    stock_minimo: String(p.stock_minimo),
+    requiere_receta: p.requiere_receta,
+    visible_en_tienda: p.visible_en_tienda,
+  });
+
+  const guardar = () => {
+    const precio = Number(d.precio.replace(',', '.'));
+    if (!d.nombre.trim()) {
+      onError('El nombre no puede quedar vacío');
+      return;
+    }
+    if (!Number.isFinite(precio) || precio < 0) {
+      onError('Poné un precio válido');
+      return;
+    }
+    onError(null);
+    actualizar.mutate(
+      {
+        id: p.producto_id,
+        nombre: d.nombre.trim(),
+        categoria: d.categoria.trim() || null,
+        precio,
+        stock_minimo: Number(d.stock_minimo) || 0,
+        requiere_receta: d.requiere_receta,
+        // Un producto con receta nunca va a la tienda, aunque quede tildado.
+        visible_en_tienda: d.visible_en_tienda && !d.requiere_receta,
+      },
+      { onSuccess: onCerrar, onError: (e) => onError(e.message) },
+    );
+  };
+
+  return (
+    <tr className="border-b border-slate-100 bg-slate-50">
+      <td colSpan={5} className="py-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-52 flex-1">
+            <label htmlFor={`ed-nombre-${p.producto_id}`} className="block text-xs text-slate-500">
+              Nombre
+            </label>
+            <Entrada
+              id={`ed-nombre-${p.producto_id}`}
+              autoFocus
+              value={d.nombre}
+              onChange={(e) => setD({ ...d, nombre: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+
+          <div className="min-w-36 flex-1">
+            <label
+              htmlFor={`ed-categoria-${p.producto_id}`}
+              className="block text-xs text-slate-500"
+            >
+              Categoría
+            </label>
+            <Entrada
+              id={`ed-categoria-${p.producto_id}`}
+              value={d.categoria}
+              onChange={(e) => setD({ ...d, categoria: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <label htmlFor={`ed-precio-${p.producto_id}`} className="block text-xs text-slate-500">
+              Precio
+            </label>
+            <Entrada
+              id={`ed-precio-${p.producto_id}`}
+              inputMode="decimal"
+              value={d.precio}
+              onChange={(e) => setD({ ...d, precio: e.target.value })}
+              className="mt-1 w-28"
+            />
+          </div>
+
+          <div>
+            <label htmlFor={`ed-minimo-${p.producto_id}`} className="block text-xs text-slate-500">
+              Stock mínimo
+            </label>
+            <Entrada
+              id={`ed-minimo-${p.producto_id}`}
+              type="number"
+              min="0"
+              value={d.stock_minimo}
+              onChange={(e) => setD({ ...d, stock_minimo: e.target.value })}
+              className="mt-1 w-24"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 pb-2 text-sm">
+            <input
+              type="checkbox"
+              checked={d.requiere_receta}
+              onChange={(e) =>
+                setD({
+                  ...d,
+                  requiere_receta: e.target.checked,
+                  visible_en_tienda: e.target.checked ? false : d.visible_en_tienda,
+                })
+              }
+              className="size-4 rounded border-slate-300"
+            />
+            Requiere receta
+          </label>
+
+          <label className="flex items-center gap-2 pb-2 text-sm">
+            <input
+              type="checkbox"
+              checked={d.visible_en_tienda}
+              disabled={d.requiere_receta}
+              onChange={(e) => setD({ ...d, visible_en_tienda: e.target.checked })}
+              className="size-4 rounded border-slate-300"
+            />
+            En la tienda
+          </label>
+
+          <div className="flex gap-2 pb-1">
+            <Boton className="text-sm" cargando={actualizar.isPending} onClick={guardar}>
+              Guardar
+            </Boton>
+            <Boton variante="secundario" className="text-sm" onClick={onCerrar}>
+              Cancelar
+            </Boton>
+          </div>
+        </div>
+
+        <p className="mt-2 text-xs text-slate-500">
+          El stock no se toca desde acá: sale de la suma de movimientos. Para corregirlo, usá
+          «Ajustar».
+        </p>
       </td>
     </tr>
   );
