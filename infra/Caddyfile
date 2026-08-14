@@ -1,6 +1,16 @@
 # Servido de las dos SPA en Railway.
 #
 # Railway inyecta $PORT y espera que el proceso escuche ahí.
+
+{
+	# Caddy abre por defecto una API de administración interna en :2019, además
+	# del sitio. Railway detecta los puertos abiertos del contenedor y puede
+	# terminar generando el dominio público sobre ese 2019 en vez del sitio
+	# real. No la necesitamos: es un solo archivo estático servido, sin
+	# reconfiguración en caliente.
+	admin off
+}
+
 :{$PORT:8080} {
 	root * /srv
 	encode gzip zstd
