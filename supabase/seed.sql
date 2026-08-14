@@ -30,7 +30,7 @@ begin
     'authenticated',
     'authenticated',
     u.email,
-    crypt('password123', gen_salt('bf')),
+    extensions.crypt('password123', extensions.gen_salt('bf')),
     now(), now(), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     jsonb_build_object('nombre', u.nombre, 'apellido', u.apellido),
