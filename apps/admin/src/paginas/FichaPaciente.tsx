@@ -24,6 +24,8 @@ import {
 } from '../features/pacientes/api.js';
 import {
   AccionesRegistro,
+  FormularioAplicacion,
+  FormularioMedicacion,
   FormularioPeso,
   type TablaSalud,
 } from '../features/pacientes/EdicionSalud.js';
@@ -156,36 +158,11 @@ export function FichaPaciente() {
 
           <BloquePeso mascotaId={id} pesos={salud?.pesos ?? []} puedoEditar={puedoVerificar} />
 
-          <Bloque titulo="Vacunas y desparasitaciones" vacio={!salud?.aplicaciones.length}>
-            {salud?.aplicaciones.map((a) => {
-              const estado = estadoVencimiento(a.proxima_fecha);
-              return (
-                <FilaSalud
-                  key={a.id}
-                  registro={a}
-                  mascotaId={id}
-                  tabla="aplicacion"
-                  puedoVerificar={puedoVerificar}
-                  principal={`${ETIQUETA_APLICACION[a.tipo as TipoAplicacion]}${a.producto ? ` · ${a.producto}` : ''}`}
-                  secundario={formatearFechaCivil(a.fecha)}
-                  extra={
-                    a.proxima_fecha ? (
-                      <span
-                        className={cn(
-                          'text-xs',
-                          estado === 'vencida' && 'font-medium text-red-700',
-                          estado === 'proxima' && 'font-medium text-amber-700',
-                          estado === 'al_dia' && 'text-slate-500',
-                        )}
-                      >
-                        Próxima: {formatearFechaCivil(a.proxima_fecha)}
-                      </span>
-                    ) : null
-                  }
-                />
-              );
-            })}
-          </Bloque>
+          <BloqueAplicaciones
+            mascotaId={id}
+            aplicaciones={salud?.aplicaciones ?? []}
+            puedoVerificar={puedoVerificar}
+          />
 
           <BloqueAntecedentes
             mascotaId={id}
@@ -193,19 +170,11 @@ export function FichaPaciente() {
             puedoVerificar={puedoVerificar}
           />
 
-          <Bloque titulo="Medicación" vacio={!salud?.medicacion.length}>
-            {salud?.medicacion.map((m) => (
-              <FilaSalud
-                key={m.id}
-                registro={m}
-                mascotaId={id}
-                tabla="medicacion_en_curso"
-                puedoVerificar={puedoVerificar}
-                principal={m.descripcion}
-                secundario={`${m.dosis ?? ''}${m.dosis && m.frecuencia_horas ? ' · ' : ''}${m.frecuencia_horas ? `cada ${m.frecuencia_horas} h` : ''} · desde ${formatearFechaCivil(m.desde)}`}
-              />
-            ))}
-          </Bloque>
+          <BloqueMedicacion
+            mascotaId={id}
+            medicacion={salud?.medicacion ?? []}
+            puedoVerificar={puedoVerificar}
+          />
         </div>
       </div>
     </Layout>
@@ -316,6 +285,121 @@ function FilaSalud({
         />
       </div>
     </li>
+  );
+}
+
+function BloqueAplicaciones({
+  mascotaId,
+  aplicaciones,
+  puedoVerificar,
+}: {
+  mascotaId: string;
+  aplicaciones: (RegistroSalud & {
+    tipo: string;
+    producto: string | null;
+    fecha: string;
+    proxima_fecha: string | null;
+  })[];
+  puedoVerificar: boolean;
+}) {
+  const [cargando, setCargando] = useState(false);
+
+  return (
+    <Bloque
+      titulo="Vacunas y desparasitaciones"
+      vacio={aplicaciones.length === 0}
+      accion={
+        // Aplicar es un acto clínico: lo carga el veterinario, no recepción.
+        puedoVerificar && !cargando ? (
+          <Boton variante="texto" className="text-sm" onClick={() => setCargando(true)}>
+            Agregar
+          </Boton>
+        ) : null
+      }
+      encabezado={
+        cargando ? (
+          <FormularioAplicacion mascotaId={mascotaId} onListo={() => setCargando(false)} />
+        ) : null
+      }
+    >
+      {aplicaciones.map((a) => {
+        const estado = estadoVencimiento(a.proxima_fecha);
+        return (
+          <FilaSalud
+            key={a.id}
+            registro={a}
+            mascotaId={mascotaId}
+            tabla="aplicacion"
+            puedoVerificar={puedoVerificar}
+            principal={`${ETIQUETA_APLICACION[a.tipo as TipoAplicacion]}${a.producto ? ` · ${a.producto}` : ''}`}
+            secundario={formatearFechaCivil(a.fecha)}
+            extra={
+              a.proxima_fecha ? (
+                <span
+                  className={cn(
+                    'text-xs',
+                    estado === 'vencida' && 'font-medium text-red-700',
+                    estado === 'proxima' && 'font-medium text-amber-700',
+                    estado === 'al_dia' && 'text-slate-500',
+                  )}
+                >
+                  Próxima: {formatearFechaCivil(a.proxima_fecha)}
+                </span>
+              ) : null
+            }
+          />
+        );
+      })}
+    </Bloque>
+  );
+}
+
+function BloqueMedicacion({
+  mascotaId,
+  medicacion,
+  puedoVerificar,
+}: {
+  mascotaId: string;
+  medicacion: (RegistroSalud & {
+    descripcion: string;
+    dosis: string | null;
+    frecuencia_horas: number | null;
+    desde: string;
+  })[];
+  puedoVerificar: boolean;
+}) {
+  const [cargando, setCargando] = useState(false);
+
+  return (
+    <Bloque
+      titulo="Medicación"
+      vacio={medicacion.length === 0}
+      accion={
+        // Indicar una medicación es un acto clínico: lo carga el veterinario.
+        puedoVerificar && !cargando ? (
+          <Boton variante="texto" className="text-sm" onClick={() => setCargando(true)}>
+            Agregar
+          </Boton>
+        ) : null
+      }
+      encabezado={
+        cargando ? (
+          <FormularioMedicacion mascotaId={mascotaId} onListo={() => setCargando(false)} />
+        ) : null
+      }
+    >
+      {medicacion.map((m) => (
+        <FilaSalud
+          key={m.id}
+          registro={m}
+          mascotaId={mascotaId}
+          tabla="medicacion_en_curso"
+          puedoVerificar={puedoVerificar}
+          principal={m.descripcion}
+          secundario={`${m.dosis ?? ''}${m.dosis && m.frecuencia_horas ? ' · ' : ''}${m.frecuencia_horas ? `cada ${m.frecuencia_horas} h` : ''} · desde ${formatearFechaCivil(m.desde)}`}
+        />
+      ))}
+    </Bloque>
   );
 }
 
