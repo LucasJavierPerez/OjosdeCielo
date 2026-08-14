@@ -1,6 +1,7 @@
+import { validarFoto } from '@ojosdecielo/core';
 import { Boton, Campo, Cargando, cn, Entrada, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Layout } from '../componentes/Layout.js';
 import {
   type StockActual,
@@ -9,6 +10,7 @@ import {
   useCrearProducto,
   useRegistrarMovimiento,
   useStock,
+  useSubirFotoProducto,
 } from '../features/inventario/api.js';
 
 const pesos = (n: number) =>
@@ -158,19 +160,36 @@ function FilaProducto({
   return (
     <tr className="border-b border-slate-100">
       <td className="py-2.5">
-        <button
-          type="button"
-          onClick={() => setEditando(true)}
-          className="text-left font-medium hover:text-marca-700 hover:underline"
-        >
-          {p.nombre}
-        </button>
-        {p.requiere_receta && (
-          <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">
-            Receta
-          </span>
-        )}
-        {p.categoria && <span className="block text-xs text-slate-500">{p.categoria}</span>}
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setEditando(true)}
+            className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100"
+            aria-label={`Editar ${p.nombre}`}
+          >
+            {p.imagen_url ? (
+              <img src={p.imagen_url} alt="" className="size-full object-cover" loading="lazy" />
+            ) : (
+              // Sin foto: sólo el fondo, sin texto — a 36px "Sin foto" no entra legible.
+              <span aria-hidden="true" />
+            )}
+          </button>
+          <div>
+            <button
+              type="button"
+              onClick={() => setEditando(true)}
+              className="text-left font-medium hover:text-marca-700 hover:underline"
+            >
+              {p.nombre}
+            </button>
+            {p.requiere_receta && (
+              <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">
+                Receta
+              </span>
+            )}
+            {p.categoria && <span className="block text-xs text-slate-500">{p.categoria}</span>}
+          </div>
+        </div>
       </td>
       <td className="py-2.5">
         <button
@@ -266,6 +285,8 @@ function FilaEdicion({
 }) {
   const { supabase } = useAuth();
   const actualizar = useActualizarProducto(supabase);
+  const subirFoto = useSubirFotoProducto(supabase);
+  const inputFotoRef = useRef<HTMLInputElement>(null);
   const [d, setD] = useState({
     nombre: p.nombre,
     categoria: p.categoria ?? '',
@@ -275,6 +296,29 @@ function FilaEdicion({
     requiere_receta: p.requiere_receta,
     visible_en_tienda: p.visible_en_tienda,
   });
+
+  const alElegirFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0];
+    if (!archivo) return;
+
+    const problema = validarFoto(archivo);
+    if (problema) {
+      onError(problema);
+      e.target.value = '';
+      return;
+    }
+
+    onError(null);
+    subirFoto.mutate(
+      { productoId: p.producto_id, archivo },
+      {
+        onError: (err) => onError(err.message),
+        onSettled: () => {
+          e.target.value = '';
+        },
+      },
+    );
+  };
 
   const guardar = () => {
     const precio = Number(d.precio.replace(',', '.'));
@@ -306,6 +350,33 @@ function FilaEdicion({
     <tr className="border-b border-slate-100 bg-slate-50">
       <td colSpan={5} className="py-3">
         <div className="flex flex-wrap items-end gap-3">
+          <div className="shrink-0">
+            <span className="block text-xs text-slate-500">Foto</span>
+            <div className="mt-1 flex items-center gap-2">
+              <div className="flex size-14 items-center justify-center overflow-hidden rounded-lg bg-white">
+                {p.imagen_url ? (
+                  <img src={p.imagen_url} alt="" className="size-full object-cover" />
+                ) : (
+                  <span className="text-[10px] text-slate-400">Sin foto</span>
+                )}
+              </div>
+              <input
+                ref={inputFotoRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic"
+                onChange={alElegirFoto}
+                className="sr-only"
+                id={`ed-foto-${p.producto_id}`}
+              />
+              <label
+                htmlFor={`ed-foto-${p.producto_id}`}
+                className="cursor-pointer text-sm font-medium text-marca-600 hover:underline"
+              >
+                {subirFoto.isPending ? 'Subiendo…' : p.imagen_url ? 'Cambiar' : 'Agregar'}
+              </label>
+            </div>
+          </div>
+
           <div className="min-w-52 flex-1">
             <label htmlFor={`ed-nombre-${p.producto_id}`} className="block text-xs text-slate-500">
               Nombre

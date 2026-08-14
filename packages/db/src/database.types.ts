@@ -2349,6 +2349,7 @@ export type Database = {
           cantidad: number | null
           categoria: string | null
           controla_lote: boolean | null
+          imagen_url: string | null
           nombre: string | null
           precio: number | null
           producto_id: string | null

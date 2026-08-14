@@ -3163,6 +3163,51 @@ console.log('\n=== 105. Entradas y salidas por mes ===');
   }
 }
 
+console.log('\n=== 106. Fotos de producto: bucket público, escritura sólo del personal ===');
+{
+  const { data: prod } = await admin.sb
+    .from('producto')
+    .insert({ nombre: 'Shampoo antipulgas', precio: 4200 })
+    .select()
+    .single();
+
+  const archivo = new Blob(['contenido-de-prueba'], { type: 'image/png' });
+  const ruta = `${prod.id}/foto.png`;
+
+  const { error: errAna } = await ana.sb.storage.from('productos').upload(ruta, archivo);
+  errAna
+    ? ok('Un cliente no puede subir una foto de producto')
+    : fail('FUGA: un cliente subió una foto de producto');
+
+  const { error: errVet } = await vet.sb.storage.from('productos').upload(ruta, archivo);
+  errVet
+    ? fail(`El personal no pudo subir la foto: ${errVet.message}`)
+    : ok('El personal sube la foto de un producto');
+
+  // El bucket es público a propósito: se sirve por /object/public/, sin pasar
+  // por RLS. La URL tiene que resolver sin sesión.
+  const {
+    data: { publicUrl },
+  } = admin.sb.storage.from('productos').getPublicUrl(ruta);
+  const resp = await fetch(publicUrl);
+  resp.ok
+    ? ok('La foto se sirve pública, sin necesitar sesión')
+    : fail(`La URL pública devolvió ${resp.status}`);
+
+  const { error: errReemplazo } = await recepcion.sb.storage
+    .from('productos')
+    .update(ruta, archivo);
+  errReemplazo
+    ? fail(`Recepción no pudo reemplazar la foto: ${errReemplazo.message}`)
+    : ok('Recepción reemplaza la foto de un producto');
+
+  const { error: errBorrarAna } = await ana.sb.storage.from('productos').remove([ruta]);
+  const stillThere = await fetch(publicUrl);
+  errBorrarAna || stillThere.ok
+    ? ok('Un cliente no puede borrar la foto de un producto')
+    : fail('FUGA: un cliente borró la foto de un producto');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

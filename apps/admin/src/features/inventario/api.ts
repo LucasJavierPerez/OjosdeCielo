@@ -16,6 +16,7 @@ export interface StockActual {
   visible_en_tienda: boolean;
   cantidad: number;
   bajo_minimo: boolean;
+  imagen_url: string | null;
 }
 
 export interface Alerta {
@@ -91,6 +92,52 @@ export function useActualizarProducto(supabase: ClienteSupabase) {
     mutationFn: async ({ id, ...campos }: { id: string } & Partial<Producto>): Promise<void> => {
       const { error } = await supabase.from('producto').update(campos).eq('id', id);
       if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: clavesInv.stock }),
+  });
+}
+
+const BUCKET_PRODUCTOS = 'productos';
+
+/**
+ * Foto del producto.
+ *
+ * El bucket es público: `getPublicUrl` es sincrónico y no pide nada al
+ * servidor, a diferencia de las fotos de mascota que van con URL firmada. Acá
+ * no hay nada privado, y evita renovar firmas en una grilla de treinta
+ * productos.
+ */
+export function useSubirFotoProducto(supabase: ClienteSupabase) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      productoId,
+      archivo,
+    }: {
+      productoId: string;
+      archivo: File;
+    }): Promise<string> => {
+      // El primer segmento del path tiene que ser el id del producto: es lo
+      // que separa las fotos de cada producto dentro del mismo bucket.
+      const extension = archivo.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const path = `${productoId}/foto-${Date.now()}.${extension}`;
+
+      const { error: errorSubida } = await supabase.storage
+        .from(BUCKET_PRODUCTOS)
+        .upload(path, archivo, { upsert: false });
+      if (errorSubida) throw errorSubida;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from(BUCKET_PRODUCTOS).getPublicUrl(path);
+
+      const { error: errorProducto } = await supabase
+        .from('producto')
+        .update({ imagen_url: publicUrl })
+        .eq('id', productoId);
+      if (errorProducto) throw new Error(errorProducto.message);
+
+      return publicUrl;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: clavesInv.stock }),
   });

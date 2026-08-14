@@ -93,17 +93,27 @@ export function Tienda() {
                 }
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium">{p.nombre}</p>
-                    {p.descripcion && <p className="text-sm text-slate-500">{p.descripcion}</p>}
-                    <p className="mt-1 font-medium tabular-nums">{pesos(Number(p.precio))}</p>
-                    {sinStock ? (
-                      <p className="text-xs text-slate-500">Sin stock</p>
-                    ) : (
-                      p.disponible <= 3 && (
-                        <p className="text-xs text-amber-700">Quedan {p.disponible}</p>
-                      )
+                  <div className="flex min-w-0 gap-3">
+                    {p.imagen_url && (
+                      <img
+                        src={p.imagen_url}
+                        alt=""
+                        className="size-14 shrink-0 rounded-lg object-cover"
+                        loading="lazy"
+                      />
                     )}
+                    <div className="min-w-0">
+                      <p className="font-medium">{p.nombre}</p>
+                      {p.descripcion && <p className="text-sm text-slate-500">{p.descripcion}</p>}
+                      <p className="mt-1 font-medium tabular-nums">{pesos(Number(p.precio))}</p>
+                      {sinStock ? (
+                        <p className="text-xs text-slate-500">Sin stock</p>
+                      ) : (
+                        p.disponible <= 3 && (
+                          <p className="text-xs text-amber-700">Quedan {p.disponible}</p>
+                        )
+                      )}
+                    </div>
                   </div>
 
                   {!sinStock && (
