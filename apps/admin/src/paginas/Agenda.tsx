@@ -12,6 +12,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Layout } from '../componentes/Layout.js';
+import { NuevoTurno } from '../features/agenda/NuevoTurno.js';
 import { lunesDeLaSemana, VistaSemana } from '../features/agenda/VistaSemana.js';
 
 /** El estado sale del enum de la base: agregar uno nuevo rompe acá. */
@@ -62,6 +63,7 @@ export function Agenda() {
   const [fecha, setFecha] = useState(hoyCivil);
   const [vista, setVista] = useState<'dia' | 'semana'>('dia');
   const [error, setError] = useState<string | null>(null);
+  const [cargandoTurno, setCargandoTurno] = useState(false);
 
   const {
     data: turnos,
@@ -107,6 +109,11 @@ export function Agenda() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Agenda</h1>
         <div className="flex items-center gap-2">
+          {!cargandoTurno && (
+            <Boton className="text-sm" onClick={() => setCargandoTurno(true)}>
+              Nuevo turno
+            </Boton>
+          )}
           <Boton variante="secundario" className="text-sm" onClick={() => mover(-1)}>
             ‹
           </Boton>
@@ -153,6 +160,8 @@ export function Agenda() {
           activos.length > 0 &&
           ` · ${activos.length} turno${activos.length > 1 ? 's' : ''}`}
       </p>
+
+      {cargandoTurno && <NuevoTurno onListo={() => setCargandoTurno(false)} />}
 
       {error && (
         <div className="mt-4">

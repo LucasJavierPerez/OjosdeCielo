@@ -3,6 +3,7 @@ import { Cargando, cn, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
 import { useFlujoMensual, useHistorialCajas } from './api.js';
+import { GraficoCaja } from './GraficoCaja.js';
 
 const pesos = (n: number) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
@@ -34,8 +35,6 @@ export function HistorialCaja() {
   const { data: meses } = useFlujoMensual(supabase, esAdmin);
   const [abierto, setAbierto] = useState<string | null>(null);
 
-  const maximo = Math.max(1, ...(meses ?? []).map((m) => Math.max(m.ingresos, m.egresos)));
-
   return (
     <div className="mt-10 space-y-10">
       {esAdmin && meses && meses.length > 0 && (
@@ -44,6 +43,10 @@ export function HistorialCaja() {
           <p className="mt-1 text-sm text-slate-500">
             Todo lo que pasó por la caja, incluidas las compras de la app.
           </p>
+
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+            <GraficoCaja etiquetaMes={etiquetaMes} meses={meses} />
+          </div>
 
           <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table className="w-full min-w-[620px] text-sm">
@@ -60,17 +63,7 @@ export function HistorialCaja() {
               <tbody>
                 {meses.map((m) => (
                   <tr key={m.mes} className="border-b border-slate-100 last:border-0">
-                    <td className="px-4 py-2.5">
-                      <span className="capitalize">{etiquetaMes(m.mes)}</span>
-                      {/* Una barra proporcional al mes más alto: alcanza para
-                          ver la tendencia sin cargar una librería de gráficos
-                          en una pantalla que se abre para cerrar la caja. */}
-                      <span
-                        aria-hidden="true"
-                        className="mt-1 block h-1 rounded bg-marca-500"
-                        style={{ width: `${Math.round((Number(m.ingresos) / maximo) * 100)}%` }}
-                      />
-                    </td>
+                    <td className="px-4 py-2.5 capitalize">{etiquetaMes(m.mes)}</td>
                     <td className="px-4 py-2.5 tabular-nums">{pesos(Number(m.ingresos))}</td>
                     <td className="px-4 py-2.5 tabular-nums text-slate-500">
                       {Number(m.egresos) > 0 ? `−${pesos(Number(m.egresos))}` : '—'}

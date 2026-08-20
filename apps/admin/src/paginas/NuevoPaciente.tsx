@@ -18,6 +18,7 @@ export function NuevoPaciente() {
     sexo: 'desconocido',
     raza: '',
     fecha_nacimiento: '',
+    castrado: undefined,
     microchip: '',
     tutor_nombre: '',
     tutor_apellido: '',
@@ -107,7 +108,7 @@ export function NuevoPaciente() {
             </Campo>
           </div>
 
-          <div className="mt-3">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Campo id="microchip" etiqueta="Microchip" ayuda="Opcional">
               <Entrada
                 id="microchip"
@@ -116,6 +117,28 @@ export function NuevoPaciente() {
                 onChange={(e) => set('microchip')(e.target.value)}
               />
             </Campo>
+            <fieldset>
+              <legend className="block text-sm font-medium text-slate-700">Castrado/a</legend>
+              <div className="mt-2 flex gap-4 text-sm">
+                {(
+                  [
+                    ['Sí', true],
+                    ['No', false],
+                    ['No sabe', undefined],
+                  ] as const
+                ).map(([etiqueta, valor]) => (
+                  <label key={etiqueta} className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name="castrado"
+                      checked={d.castrado === valor}
+                      onChange={() => setD({ ...d, castrado: valor })}
+                    />
+                    {etiqueta}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           </div>
         </section>
 

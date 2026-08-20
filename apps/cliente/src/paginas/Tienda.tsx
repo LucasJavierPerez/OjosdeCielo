@@ -11,6 +11,8 @@ interface ProductoTienda {
   descripcion: string | null;
   categoria: string | null;
   precio: number;
+  precio_promocional: number | null;
+  promocion_titulo: string | null;
   imagen_url: string | null;
   disponible: number;
 }
@@ -53,7 +55,8 @@ export function Tienda() {
     },
   });
 
-  const total = (productos ?? []).reduce((s, p) => s + (carrito[p.id] ?? 0) * Number(p.precio), 0);
+  const precioEfectivo = (p: ProductoTienda) => Number(p.precio_promocional ?? p.precio);
+  const total = (productos ?? []).reduce((s, p) => s + (carrito[p.id] ?? 0) * precioEfectivo(p), 0);
   const unidades = Object.values(carrito).reduce((s, c) => s + c, 0);
 
   return (
@@ -105,7 +108,23 @@ export function Tienda() {
                     <div className="min-w-0">
                       <p className="font-medium">{p.nombre}</p>
                       {p.descripcion && <p className="text-sm text-slate-500">{p.descripcion}</p>}
-                      <p className="mt-1 font-medium tabular-nums">{pesos(Number(p.precio))}</p>
+                      {p.precio_promocional !== null ? (
+                        <p className="mt-1 flex flex-wrap items-baseline gap-2">
+                          <span className="text-sm text-slate-400 line-through tabular-nums">
+                            {pesos(Number(p.precio))}
+                          </span>
+                          <span className="font-medium tabular-nums text-acento-700">
+                            {pesos(Number(p.precio_promocional))}
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="mt-1 font-medium tabular-nums">{pesos(Number(p.precio))}</p>
+                      )}
+                      {p.promocion_titulo && (
+                        <p className="mt-0.5 text-xs font-medium text-acento-700">
+                          {p.promocion_titulo}
+                        </p>
+                      )}
                       {sinStock ? (
                         <p className="text-xs text-slate-500">Sin stock</p>
                       ) : (

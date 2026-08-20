@@ -3208,6 +3208,223 @@ console.log('\n=== 106. Fotos de producto: bucket público, escritura sólo del 
     : fail('FUGA: un cliente borró la foto de un producto');
 }
 
+console.log('\n=== 107. Promociones: gestión sólo del personal, lectura de lo vigente ===');
+{
+  const { data: prod } = await admin.sb
+    .from('producto')
+    .insert({ nombre: `Antirrábica ${Date.now()}`, precio: 8000, visible_en_tienda: true })
+    .select()
+    .single();
+
+  const { error: errAnaCrea } = await ana.sb.from('promocion').insert({
+    titulo: 'Intento de cliente',
+    tipo_descuento: 'porcentaje',
+    valor: 50,
+    producto_id: prod.id,
+    desde: '2026-01-01',
+    hasta: '2026-01-31',
+  });
+  errAnaCrea
+    ? ok('Un cliente no puede crear una promoción')
+    : fail('FUGA: un cliente creó una promoción');
+
+  const { data: promo, error: errAdminCrea } = await admin.sb
+    .from('promocion')
+    .insert({
+      titulo: '20% off vacunas',
+      tipo_descuento: 'porcentaje',
+      valor: 20,
+      producto_id: prod.id,
+      desde: '2026-01-01',
+      hasta: '2099-01-01',
+    })
+    .select()
+    .single();
+  errAdminCrea
+    ? fail(`El admin no pudo crear la promoción: ${errAdminCrea.message}`)
+    : ok('El admin crea una promoción vigente sobre un producto puntual');
+
+  const { data: catalogoConPromo } = await ana.sb.rpc('catalogo_tienda');
+  const enCatalogo = (catalogoConPromo ?? []).find((p) => p.id === prod.id);
+  enCatalogo && Number(enCatalogo.precio_promocional) === 6400
+    ? ok('La tienda ya muestra el precio con el 20% aplicado')
+    : fail(`El precio promocional no llegó bien: ${JSON.stringify(enCatalogo)}`);
+
+  const { data: vistaPorAna } = await ana.sb.from('promocion').select('id').eq('id', promo.id);
+  vistaPorAna && vistaPorAna.length === 1
+    ? ok('Un cliente lee el título de una promoción vigente (para el cartel)')
+    : fail('Un cliente no pudo leer una promoción vigente');
+
+  // El carrito le muestra al tutor el precio con descuento: el pedido tiene
+  // que cobrar exactamente eso, no el precio de lista del producto.
+  await admin.sb.rpc('registrar_movimiento', {
+    p_producto_id: prod.id,
+    p_tipo: 'ingreso',
+    p_cantidad: 5,
+  });
+  const { data: pedidoConPromo, error: errPedidoConPromo } = await ana.sb.rpc(
+    'crear_orden_online',
+    {
+      p_items: [{ producto_id: prod.id, cantidad: 1 }],
+    },
+  );
+  const { data: itemPedidoConPromo } = await admin.sb
+    .from('orden_item')
+    .select('precio_unitario, subtotal')
+    .eq('orden_id', pedidoConPromo?.id ?? '00000000-0000-0000-0000-000000000000')
+    .single();
+  !errPedidoConPromo &&
+  itemPedidoConPromo &&
+  Number(itemPedidoConPromo.precio_unitario) === 6400 &&
+  Number(pedidoConPromo.total) === 6400
+    ? ok('El pedido cobra el precio con la promoción aplicada, no el de lista')
+    : fail(`El pedido no cobró el precio promocional: ${JSON.stringify(itemPedidoConPromo)}`);
+
+  const { data: vencida } = await admin.sb
+    .from('promocion')
+    .insert({
+      titulo: 'Ya pasó',
+      tipo_descuento: 'monto',
+      valor: 1000,
+      producto_id: prod.id,
+      desde: '2020-01-01',
+      hasta: '2020-01-31',
+    })
+    .select()
+    .single();
+
+  const { data: vencidaVistaPorAna } = await ana.sb
+    .from('promocion')
+    .select('id')
+    .eq('id', vencida.id);
+  !vencidaVistaPorAna || vencidaVistaPorAna.length === 0
+    ? ok('Un cliente no ve una promoción ya vencida')
+    : fail('FUGA: un cliente ve una promoción vencida');
+
+  const { error: errAnaDesactiva } = await ana.sb
+    .from('promocion')
+    .update({ activa: false })
+    .eq('id', promo.id);
+  const { data: sigueActiva } = await admin.sb
+    .from('promocion')
+    .select('activa')
+    .eq('id', promo.id)
+    .single();
+  (errAnaDesactiva || sigueActiva.activa === true) && sigueActiva.activa === true
+    ? ok('Un cliente no puede pausar una promoción')
+    : fail('FUGA: un cliente pausó una promoción');
+
+  const { error: errRecepcionPausa } = await recepcion.sb
+    .from('promocion')
+    .update({ activa: false })
+    .eq('id', promo.id);
+  errRecepcionPausa
+    ? fail(`Recepción no pudo pausar la promoción: ${errRecepcionPausa.message}`)
+    : ok('Recepción pausa una promoción');
+
+  const { data: catalogoSinPromo } = await ana.sb.rpc('catalogo_tienda');
+  const yaSinPromo = (catalogoSinPromo ?? []).find((p) => p.id === prod.id);
+  yaSinPromo && yaSinPromo.precio_promocional === null
+    ? ok('Al pausarla, la tienda vuelve a mostrar el precio normal')
+    : fail(`Seguía aplicando la promo pausada: ${JSON.stringify(yaSinPromo)}`);
+}
+
+console.log('\n=== 108. Pedidos de la app sin Mercado Pago ===');
+{
+  const { data: prod } = await recepcion.sb
+    .from('producto')
+    .insert({ nombre: `Balanceado ${Date.now()}`, precio: 5000, visible_en_tienda: true })
+    .select()
+    .single();
+  await recepcion.sb.rpc('registrar_movimiento', {
+    p_producto_id: prod.id,
+    p_tipo: 'ingreso',
+    p_cantidad: 10,
+  });
+
+  const { data: pedido, error: errCrear } = await ana.sb.rpc('crear_orden_online', {
+    p_items: [{ producto_id: prod.id, cantidad: 2 }],
+  });
+  errCrear
+    ? fail(`Ana no pudo generar el pedido: ${errCrear.message}`)
+    : ok('Un tutor genera un pedido desde la tienda, sin pasar por Mercado Pago');
+
+  const { error: errAnaConfirma } = await ana.sb.rpc('confirmar_pedido_local', {
+    p_orden_id: pedido.id,
+    p_medio: 'efectivo',
+  });
+  errAnaConfirma
+    ? ok('Un cliente no puede cobrarse su propio pedido')
+    : fail('FUGA: un cliente confirmó el pago de su propio pedido');
+
+  const { error: errMedioMP } = await recepcion.sb.rpc('confirmar_pedido_local', {
+    p_orden_id: pedido.id,
+    p_medio: 'mercadopago',
+  });
+  errMedioMP
+    ? ok('No se puede registrar un cobro en persona como "mercadopago"')
+    : fail('FUGA: se aceptó un cobro en persona con medio mercadopago');
+
+  const { error: errConfirma } = await recepcion.sb.rpc('confirmar_pedido_local', {
+    p_orden_id: pedido.id,
+    p_medio: 'efectivo',
+  });
+  errConfirma
+    ? fail(`Recepción no pudo cobrar el pedido: ${errConfirma.message}`)
+    : ok('Recepción cobra el pedido en persona y lo marca pagado');
+
+  const { data: ordenPagada } = await admin.sb
+    .from('orden')
+    .select('estado')
+    .eq('id', pedido.id)
+    .single();
+  ordenPagada?.estado === 'pagada'
+    ? ok('El pedido queda en estado "pagada"')
+    : fail(`El pedido no pasó a pagada: ${JSON.stringify(ordenPagada)}`);
+
+  const { data: movimientos } = await admin.sb
+    .from('movimiento_stock')
+    .select('cantidad')
+    .eq('orden_id', pedido.id);
+  movimientos?.some((m) => m.cantidad === -2)
+    ? ok('El stock se descuenta recién al cobrarlo, no al generarlo')
+    : fail('No se encontró el descuento de stock del pedido cobrado');
+
+  const { error: errDobleConfirma } = await recepcion.sb.rpc('confirmar_pedido_local', {
+    p_orden_id: pedido.id,
+    p_medio: 'efectivo',
+  });
+  const { data: movimientosOtraVez } = await admin.sb
+    .from('movimiento_stock')
+    .select('id')
+    .eq('orden_id', pedido.id);
+  !errDobleConfirma && movimientosOtraVez.length === 1
+    ? ok('Cobrar dos veces el mismo pedido no duplica el descuento de stock')
+    : fail('Cobrar de nuevo un pedido ya pagado no fue idempotente');
+
+  const { error: errAnaEntrega } = await ana.sb
+    .from('orden')
+    .update({ estado: 'entregada' })
+    .eq('id', pedido.id);
+  const { data: sigueSinEntregar } = await admin.sb
+    .from('orden')
+    .select('estado')
+    .eq('id', pedido.id)
+    .single();
+  (errAnaEntrega || sigueSinEntregar.estado !== 'entregada') &&
+  sigueSinEntregar.estado !== 'entregada'
+    ? ok('Un cliente no puede marcar su propio pedido como entregado')
+    : fail('FUGA: un cliente marcó su pedido como entregado');
+
+  const { error: errEntrega } = await recepcion.sb
+    .from('orden')
+    .update({ estado: 'entregada' })
+    .eq('id', pedido.id);
+  errEntrega
+    ? fail(`Recepción no pudo marcar el pedido como entregado: ${errEntrega.message}`)
+    : ok('Recepción marca el pedido como entregado al retirarlo');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

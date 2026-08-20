@@ -12,6 +12,8 @@ import { Inventario } from './paginas/Inventario.js';
 import { Mensajes } from './paginas/Mensajes.js';
 import { NuevoPaciente } from './paginas/NuevoPaciente.js';
 import { Pacientes } from './paginas/Pacientes.js';
+import { Pedidos } from './paginas/Pedidos.js';
+import { Promociones } from './paginas/Promociones.js';
 import { Reposiciones } from './paginas/Reposiciones.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
 import { Tablero } from './paginas/Tablero.js';
@@ -106,6 +108,22 @@ export function App() {
         element={
           <Interna>
             <Campanas />
+          </Interna>
+        }
+      />
+      <Route
+        path="/promociones"
+        element={
+          <Interna>
+            <Promociones />
+          </Interna>
+        }
+      />
+      <Route
+        path="/pedidos"
+        element={
+          <Interna>
+            <Pedidos />
           </Interna>
         }
       />

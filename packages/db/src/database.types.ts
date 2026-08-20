@@ -1845,6 +1845,70 @@ export type Database = {
           },
         ]
       }
+      promocion: {
+        Row: {
+          activa: boolean
+          categoria: string | null
+          creada_en: string
+          creada_por: string | null
+          desde: string
+          hasta: string
+          id: string
+          producto_id: string | null
+          tipo_descuento: string
+          titulo: string
+          valor: number
+        }
+        Insert: {
+          activa?: boolean
+          categoria?: string | null
+          creada_en?: string
+          creada_por?: string | null
+          desde: string
+          hasta: string
+          id?: string
+          producto_id?: string | null
+          tipo_descuento: string
+          titulo: string
+          valor: number
+        }
+        Update: {
+          activa?: boolean
+          categoria?: string | null
+          creada_en?: string
+          creada_por?: string | null
+          desde?: string
+          hasta?: string
+          id?: string
+          producto_id?: string | null
+          tipo_descuento?: string
+          titulo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promocion_creada_por_fkey"
+            columns: ["creada_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promocion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "producto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promocion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "stock_actual"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       push_subscription: {
         Row: {
           auth: string
@@ -2685,6 +2749,8 @@ export type Database = {
           imagen_url: string
           nombre: string
           precio: number
+          precio_promocional: number
+          promocion_titulo: string
         }[]
       }
       cerrar_caja: {
@@ -2715,6 +2781,13 @@ export type Database = {
           p_mp_payment_id: string
           p_orden_id: string
           p_payload?: Json
+        }
+        Returns: undefined
+      }
+      confirmar_pedido_local: {
+        Args: {
+          p_medio: Database["public"]["Enums"]["medio_pago"]
+          p_orden_id: string
         }
         Returns: undefined
       }
@@ -3169,6 +3242,13 @@ export type Database = {
         }[]
       }
       politica_pendiente: { Args: never; Returns: Json }
+      precio_con_promocion: {
+        Args: { p_categoria: string; p_precio: number; p_producto_id: string }
+        Returns: {
+          precio_final: number
+          titulo_promocion: string
+        }[]
+      }
       previsualizar_campana: { Args: { p_segmento: Json }; Returns: Json }
       profesionales_disponibles: {
         Args: never

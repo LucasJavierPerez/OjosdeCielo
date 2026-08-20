@@ -4,6 +4,7 @@ import {
   ETIQUETA_APLICACION,
   ETIQUETA_ESPECIE,
   ETIQUETA_SEXO,
+  esPersonalClinica,
   estadoVencimiento,
   formatearFechaCivil,
   puedeCargarHistoriaClinica,
@@ -30,6 +31,7 @@ import {
   type TablaSalud,
 } from '../features/pacientes/EdicionSalud.js';
 import { EditarContacto } from '../features/pacientes/EditarContacto.js';
+import { EditarPaciente } from '../features/pacientes/EditarPaciente.js';
 import { FormularioAntecedente } from '../features/pacientes/FormularioAntecedente.js';
 import { Recetario } from '../features/recetario/Recetario.js';
 
@@ -51,7 +53,9 @@ export function FichaPaciente() {
   const { data: tutores } = useTutoresPaciente(supabase, id);
 
   const puedoVerificar = perfil ? puedeCargarHistoriaClinica(perfil.roles) : false;
+  const puedoEditarFicha = perfil ? esPersonalClinica(perfil.roles) : false;
   const [editando, setEditando] = useState<string | null>(null);
+  const [editandoPaciente, setEditandoPaciente] = useState(false);
 
   if (isLoading) {
     return (
@@ -81,11 +85,34 @@ export function FichaPaciente() {
           {ETIQUETA_ESPECIE[mascota.especie]}
           {mascota.raza && ` · ${mascota.raza}`} · {ETIQUETA_SEXO[mascota.sexo]}
           {mascota.fecha_nacimiento && ` · ${calcularEdad(mascota.fecha_nacimiento)}`}
+          {mascota.castrado !== null && ` · Castrado: ${mascota.castrado ? 'Sí' : 'No'}`}
         </p>
         {mascota.fallecido_en && (
           <span className="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-700">Fallecido</span>
         )}
+        {puedoEditarFicha && !editandoPaciente && (
+          <Boton variante="texto" className="text-sm" onClick={() => setEditandoPaciente(true)}>
+            Editar
+          </Boton>
+        )}
       </div>
+
+      {editandoPaciente && (
+        <EditarPaciente
+          mascotaId={id}
+          datos={{
+            nombre: mascota.nombre,
+            especie: mascota.especie,
+            raza: mascota.raza ?? '',
+            sexo: mascota.sexo,
+            fecha_nacimiento: mascota.fecha_nacimiento ?? '',
+            castrado: mascota.castrado,
+            color: mascota.color ?? '',
+            microchip: mascota.microchip ?? '',
+          }}
+          onCerrar={() => setEditandoPaciente(false)}
+        />
+      )}
 
       {!puedoVerificar && (
         <p className="mt-3 rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600">

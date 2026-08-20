@@ -186,6 +186,7 @@ export interface DatosPaciente {
   raza?: string;
   sexo: SexoMascota;
   fecha_nacimiento?: string;
+  castrado?: boolean;
   microchip?: string;
   tutor_nombre: string;
   tutor_apellido?: string;
@@ -214,6 +215,7 @@ export function useCrearPaciente(supabase: ClienteSupabase) {
         p_sexo: d.sexo,
         ...opcional('p_raza', d.raza),
         ...opcional('p_fecha_nacimiento', d.fecha_nacimiento),
+        ...(d.castrado !== undefined && { p_castrado: d.castrado }),
         ...opcional('p_microchip', d.microchip),
         ...opcional('p_tutor_email', d.tutor_email),
         ...opcional('p_tutor_telefono', d.tutor_telefono),

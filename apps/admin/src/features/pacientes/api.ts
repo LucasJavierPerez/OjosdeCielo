@@ -1,4 +1,4 @@
-import type { ClienteSupabase, Especie, Fila } from '@ojosdecielo/db';
+import type { ClienteSupabase, Especie, Fila, SexoMascota } from '@ojosdecielo/db';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export interface Paciente {
@@ -50,6 +50,48 @@ export function usePaciente(supabase: ClienteSupabase, id: string) {
       if (error) throw error;
       return data;
     },
+  });
+}
+
+export interface DatosBasicosPaciente {
+  nombre: string;
+  especie: Especie;
+  raza: string;
+  sexo: SexoMascota;
+  fecha_nacimiento: string;
+  castrado: boolean | null;
+  color: string;
+  microchip: string;
+}
+
+/**
+ * Corrección de la ficha básica: nombre mal tipeado, especie equivocada al
+ * alta, o un dato que se sabe recién después (si está castrado, un microchip
+ * que se le puso más tarde).
+ *
+ * RLS ya deja editar `mascota` a cualquiera del personal (recepción incluida):
+ * es un dato administrativo, no un acto clínico como el peso o una vacuna.
+ */
+export function useActualizarPaciente(supabase: ClienteSupabase, id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: DatosBasicosPaciente): Promise<void> => {
+      const { error } = await supabase
+        .from('mascota')
+        .update({
+          nombre: d.nombre.trim(),
+          especie: d.especie,
+          raza: d.raza.trim() || null,
+          sexo: d.sexo,
+          fecha_nacimiento: d.fecha_nacimiento || null,
+          castrado: d.castrado,
+          color: d.color.trim() || null,
+          microchip: d.microchip.trim() || null,
+        })
+        .eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: claves.mascota(id) }),
   });
 }
 
