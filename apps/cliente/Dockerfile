@@ -30,6 +30,13 @@ COPY packages/db/package.json packages/db/
 COPY packages/ui/package.json packages/ui/
 RUN pnpm install --frozen-lockfile
 
+# Railway a veces reutiliza esta capa aunque el código haya cambiado —el
+# build queda "successful" pero sirve el bundle de un commit anterior—.
+# RAILWAY_GIT_COMMIT_SHA la inyecta Railway solo y cambia en cada push, así
+# que referenciarla antes del COPY obliga a rehacer el resto desde acá.
+ARG RAILWAY_GIT_COMMIT_SHA
+RUN echo "commit ${RAILWAY_GIT_COMMIT_SHA}" > /tmp/build-commit
+
 COPY . .
 RUN pnpm --filter @ojosdecielo/cliente build
 
