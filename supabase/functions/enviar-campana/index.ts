@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const autorizacion = req.headers.get('Authorization') ?? '';
-  if (!autorizacion) return json({ error: 'Falta la sesión' }, 401);
+  if (!autorizacion.startsWith('Bearer ')) return json({ error: 'Falta la sesión' }, 401);
 
   // Cliente con el token de quien llama: hereda su rol y su RLS.
   const comoUsuario = createClient(SUPABASE_URL, ANON_KEY, {
@@ -50,8 +50,20 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
-  const { data: perfil } = await comoUsuario.rpc('rol_actual');
-  if (perfil !== 'administrador') {
+  const { data: sesion } = await comoUsuario.auth.getUser();
+  if (!sesion.user) return json({ error: 'Sesión inválida' }, 401);
+
+  // roles, no rol: perfil.rol ya no existe (fase de roles múltiples). Se
+  // consulta la tabla y no rol_actual() / el claim del JWT porque esa función
+  // se eliminó junto con la columna — quedaba leyendo un claim que el hook
+  // dejó de mandar y siempre caía en 'cliente'.
+  const { data: quienLlama } = await comoUsuario
+    .from('perfil')
+    .select('roles')
+    .eq('id', sesion.user.id)
+    .single();
+
+  if (!quienLlama?.roles?.includes('administrador')) {
     return json({ error: 'Sólo el administrador envía campañas' }, 403);
   }
 
