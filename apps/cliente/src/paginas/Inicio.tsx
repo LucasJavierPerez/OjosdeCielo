@@ -1,16 +1,52 @@
 import { calcularEdad, describirMascota } from '@ojosdecielo/core';
+import type { ClienteSupabase } from '@ojosdecielo/db';
 import { Boton, Cargando, Isotipo, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useCantidadArchivadas, useMascotas } from '../features/mascotas/api.js';
 import { FotoMascota } from '../features/mascotas/FotoMascota.js';
+
+/** Sólo la primera: mostrarlas todas convertiría el inicio en una cartelera. */
+function usePrimeraPromocionVigente(supabase: ClienteSupabase) {
+  return useQuery({
+    queryKey: ['promocion-vigente'],
+    queryFn: async (): Promise<{ titulo: string } | null> => {
+      const { data, error } = await supabase
+        .from('promocion')
+        .select('titulo')
+        .order('desde', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return data[0] ?? null;
+    },
+  });
+}
+
+/** Mensajes de la clínica que el tutor todavía no abrió, en cualquier conversación. */
+function useMensajesSinLeer(supabase: ClienteSupabase) {
+  return useQuery({
+    queryKey: ['mensajes-sin-leer'],
+    queryFn: async (): Promise<number> => {
+      const { count, error } = await supabase
+        .from('mensaje')
+        .select('id', { count: 'exact', head: true })
+        .eq('de_la_clinica', true)
+        .is('leido_en', null);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
 
 export function Inicio() {
   const { perfil, cerrarSesion, supabase } = useAuth();
   const [verArchivadas, setVerArchivadas] = useState(false);
   const { data: mascotas, isLoading, isError, refetch } = useMascotas(supabase, verArchivadas);
   const { data: cantidadArchivadas = 0 } = useCantidadArchivadas(supabase);
+  const { data: promocion } = usePrimeraPromocionVigente(supabase);
+  const { data: sinLeer = 0 } = useMensajesSinLeer(supabase);
 
   return (
     <main className="safe-top safe-bottom mx-auto min-h-dvh max-w-md px-6 py-8">
@@ -108,9 +144,23 @@ export function Inicio() {
         )}
       </section>
 
+      {promocion && (
+        <Link
+          to="/tienda"
+          className="mt-6 block rounded-xl bg-acento-50 p-4 text-sm text-acento-700 hover:bg-acento-100"
+        >
+          <strong className="block">{promocion.titulo}</strong>
+          Ver en la tienda
+        </Link>
+      )}
+
       <Link
         to="/turnos"
-        className="mt-8 flex min-h-11 items-center justify-between rounded-xl border border-slate-200 px-4 hover:bg-slate-50"
+        className={
+          promocion
+            ? 'mt-2 flex min-h-11 items-center justify-between rounded-xl border border-slate-200 px-4 hover:bg-slate-50'
+            : 'mt-8 flex min-h-11 items-center justify-between rounded-xl border border-slate-200 px-4 hover:bg-slate-50'
+        }
       >
         <span className="font-medium">Turnos</span>
         <span aria-hidden="true" className="text-slate-400">
@@ -122,7 +172,15 @@ export function Inicio() {
         to="/mensajes"
         className="mt-2 flex min-h-11 items-center justify-between rounded-xl border border-slate-200 px-4 hover:bg-slate-50"
       >
-        <span className="font-medium">Mensajes</span>
+        <span className="flex items-center gap-2 font-medium">
+          Mensajes
+          {sinLeer > 0 && (
+            <span className="inline-flex items-center gap-1 text-acento-700">
+              <IconoCampana className="size-4" />
+              <span className="text-xs font-semibold tabular-nums">{sinLeer}</span>
+            </span>
+          )}
+        </span>
         <span aria-hidden="true" className="text-slate-400">
           ›
         </span>
@@ -156,5 +214,13 @@ export function Inicio() {
         Para recibir recordatorios de vacunas y desparasitaciones.
       </Link>
     </main>
+  );
+}
+
+function IconoCampana({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6.5V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v4.5L3 18v1h18v-1l-2-2.5Z" />
+    </svg>
   );
 }

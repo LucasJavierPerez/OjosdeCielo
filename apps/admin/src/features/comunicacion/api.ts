@@ -153,6 +153,17 @@ export function useCancelarCampana(supabase: ClienteSupabase) {
   });
 }
 
+export function useBorrarCampana(supabase: ClienteSupabase) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      const { error } = await supabase.rpc('borrar_campana', { p_campana_id: id });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: clavesComunicacion.campanas }),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Mensajería
 // ---------------------------------------------------------------------------

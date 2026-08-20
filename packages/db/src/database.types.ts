@@ -2663,6 +2663,7 @@ export type Database = {
           ultimo_mensaje_en: string
         }[]
       }
+      borrar_campana: { Args: { p_campana_id: string }; Returns: undefined }
       buscar_pacientes: {
         Args: { p_texto?: string }
         Returns: {

@@ -3425,6 +3425,37 @@ console.log('\n=== 108. Pedidos de la app sin Mercado Pago ===');
     : ok('Recepción marca el pedido como entregado al retirarlo');
 }
 
+console.log('\n=== 109. Borrar una campaña ===');
+{
+  const { data: nueva } = await admin.sb.rpc('crear_campana', {
+    p_titulo: 'Para borrar',
+    p_cuerpo: 'Esta se borra en el test',
+    p_segmento: {},
+  });
+
+  const { error: errAna } = await ana.sb.rpc('borrar_campana', { p_campana_id: nueva.id });
+  errAna
+    ? ok('Un cliente no puede borrar una campaña')
+    : fail('FUGA: un cliente borró una campaña');
+
+  const { error: errRecepcion } = await recepcion.sb.rpc('borrar_campana', {
+    p_campana_id: nueva.id,
+  });
+  errRecepcion
+    ? ok('Recepción no puede borrar una campaña')
+    : fail('FUGA: recepción borró una campaña');
+
+  const { error: errAdmin } = await admin.sb.rpc('borrar_campana', { p_campana_id: nueva.id });
+  errAdmin
+    ? fail(`El admin no pudo borrar la campaña: ${errAdmin.message}`)
+    : ok('El admin borra una campaña');
+
+  const { data: yaNoEsta } = await admin.sb.from('campana').select('id').eq('id', nueva.id);
+  !yaNoEsta || yaNoEsta.length === 0
+    ? ok('La campaña ya no aparece en la lista')
+    : fail('La campaña seguía existiendo después de borrarla');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

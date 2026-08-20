@@ -6,6 +6,7 @@ import { Layout } from '../componentes/Layout.js';
 import {
   type Campana,
   type Segmento,
+  useBorrarCampana,
   useCampanas,
   useCancelarCampana,
   useCrearCampana,
@@ -84,7 +85,9 @@ function FilaCampana({ campana, esAdmin }: { campana: Campana; esAdmin: boolean 
   const { supabase } = useAuth();
   const reintentar = useReintentarEnvio(supabase);
   const cancelar = useCancelarCampana(supabase);
+  const borrar = useBorrarCampana(supabase);
   const [error, setError] = useState<string | null>(null);
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
 
   const estado = ETIQUETA_ESTADO[campana.estado] ?? {
     texto: campana.estado,
@@ -146,6 +149,40 @@ function FilaCampana({ campana, esAdmin }: { campana: Campana; esAdmin: boolean 
         >
           Descartar
         </Boton>
+      )}
+
+      {esAdmin && !confirmandoBorrado && (
+        <Boton
+          variante="texto"
+          className="mt-3 ml-3 text-sm text-red-700"
+          onClick={() => setConfirmandoBorrado(true)}
+        >
+          Borrar
+        </Boton>
+      )}
+
+      {esAdmin && confirmandoBorrado && (
+        <div className="mt-3 flex items-center gap-2 text-sm">
+          <span className="text-slate-600">¿Borrar esta campaña de la lista?</span>
+          <Boton
+            variante="texto"
+            className="text-red-700"
+            cargando={borrar.isPending}
+            onClick={() => {
+              setError(null);
+              borrar.mutate(campana.id, { onError: (e) => setError(e.message) });
+            }}
+          >
+            Sí, borrar
+          </Boton>
+          <Boton
+            variante="texto"
+            className="text-slate-500"
+            onClick={() => setConfirmandoBorrado(false)}
+          >
+            Cancelar
+          </Boton>
+        </div>
       )}
     </li>
   );
