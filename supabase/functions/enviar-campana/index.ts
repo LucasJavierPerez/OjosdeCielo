@@ -16,6 +16,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
+import { corsHeaders } from '../_shared/cors.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -32,10 +33,14 @@ webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 const json = (cuerpo: unknown, status = 200) =>
   new Response(JSON.stringify(cuerpo), {
     status,
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...corsHeaders },
   });
 
 Deno.serve(async (req) => {
+  // El navegador manda esto antes del POST real; sin responder acá con las
+  // cabeceras CORS, nunca llega a ver el resto de la función.
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
   const autorizacion = req.headers.get('Authorization') ?? '';
   if (!autorizacion) return json({ error: 'Falta la sesión' }, 401);
 

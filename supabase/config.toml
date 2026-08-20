@@ -61,3 +61,13 @@ enabled = false
 [edge_runtime]
 enabled = true
 policy = "oneshot"
+
+# Estas dos las invoca el navegador directo (no el cliente de Supabase), así
+# que el preflight OPTIONS tiene que llegar a la función sin JWT — la propia
+# función verifica la sesión con su lógica, más específica que el gate
+# genérico (admin para invitar_personal, admin para enviar-campana).
+[functions.enviar-campana]
+verify_jwt = false
+
+[functions.invitar-personal]
+verify_jwt = false
