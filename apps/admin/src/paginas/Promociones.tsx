@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
 import { Layout } from '../componentes/Layout.js';
+import { useCrearCampana, useLanzarCampana, useVistaPrevia } from '../features/comunicacion/api.js';
 import { useStock } from '../features/inventario/api.js';
 import {
   type DatosPromocion,
@@ -91,13 +92,21 @@ export function Promociones() {
   );
 }
 
+function textoDescuento(promocion: Promocion): string {
+  return promocion.tipo_descuento === 'porcentaje'
+    ? `${Number(promocion.valor)}% de descuento`
+    : `${pesos(Number(promocion.valor))} de descuento`;
+}
+
 function FilaPromocion({ promocion }: { promocion: Promocion }) {
   const { supabase } = useAuth();
   const pausar = usePausarPromocion(supabase);
   const [error, setError] = useState<string | null>(null);
+  const [avisando, setAvisando] = useState(false);
 
   const estado = estadoDe(promocion);
   const badge = ETIQUETA_ESTADO[estado];
+  const puedeAvisar = estado === 'vigente' || estado === 'futura';
 
   return (
     <li className="rounded-xl border border-slate-200 bg-white p-4">
@@ -114,9 +123,7 @@ function FilaPromocion({ promocion }: { promocion: Promocion }) {
       </div>
 
       <p className="mt-2 text-sm text-slate-700">
-        {promocion.tipo_descuento === 'porcentaje'
-          ? `${Number(promocion.valor)}% de descuento`
-          : `${pesos(Number(promocion.valor))} de descuento`}
+        {textoDescuento(promocion)}
         {promocion.producto_id
           ? ' · un producto puntual'
           : promocion.categoria
@@ -130,21 +137,110 @@ function FilaPromocion({ promocion }: { promocion: Promocion }) {
         </div>
       )}
 
-      <Boton
-        variante="texto"
-        className="mt-3 text-sm text-slate-500"
-        cargando={pausar.isPending}
-        onClick={() => {
-          setError(null);
-          pausar.mutate(
-            { id: promocion.id, activa: !promocion.activa },
-            { onError: (e) => setError(e.message) },
-          );
-        }}
-      >
-        {promocion.activa ? 'Pausar' : 'Reactivar'}
-      </Boton>
+      {!avisando && (
+        <div className="mt-3 flex flex-wrap gap-3">
+          <Boton
+            variante="texto"
+            className="text-sm text-slate-500"
+            cargando={pausar.isPending}
+            onClick={() => {
+              setError(null);
+              pausar.mutate(
+                { id: promocion.id, activa: !promocion.activa },
+                { onError: (e) => setError(e.message) },
+              );
+            }}
+          >
+            {promocion.activa ? 'Pausar' : 'Reactivar'}
+          </Boton>
+
+          {puedeAvisar && (
+            <Boton variante="texto" className="text-sm" onClick={() => setAvisando(true)}>
+              Avisar a los tutores
+            </Boton>
+          )}
+        </div>
+      )}
+
+      {avisando && <AvisoPromocion promocion={promocion} onCerrar={() => setAvisando(false)} />}
     </li>
+  );
+}
+
+/**
+ * Avisa la promoción por push, reusando el mismo mecanismo de Campañas: se
+ * arma como una campaña con segmento vacío (todos los tutores activos) y se
+ * lanza igual. No es un canal nuevo — es el que ya existe, con el mensaje
+ * completado solo a partir de la promoción.
+ */
+function AvisoPromocion({ promocion, onCerrar }: { promocion: Promocion; onCerrar: () => void }) {
+  const { supabase } = useAuth();
+  const { data: previa, isFetching } = useVistaPrevia(supabase, {});
+  const crear = useCrearCampana(supabase);
+  const lanzar = useLanzarCampana(supabase);
+  const [error, setError] = useState<string | null>(null);
+  const [resultado, setResultado] = useState<string | null>(null);
+
+  const cuerpo =
+    `${textoDescuento(promocion)} en la tienda, hasta el ${formatearFechaCivil(promocion.hasta)}.`.slice(
+      0,
+      300,
+    );
+
+  return (
+    <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <p className="text-sm font-medium">Nueva promoción: {promocion.titulo}</p>
+      <p className="mt-1 text-sm text-slate-600">{cuerpo}</p>
+
+      <p className="mt-2 text-sm text-slate-500">
+        {isFetching ? 'Calculando alcance…' : `Llega a ${previa?.total ?? 0} tutores.`}
+      </p>
+
+      {error && (
+        <div className="mt-2">
+          <MensajeError detalle={error} />
+        </div>
+      )}
+
+      {resultado ? (
+        <p className="mt-2 rounded-lg bg-emerald-50 p-2 text-sm text-emerald-900">{resultado}</p>
+      ) : (
+        <div className="mt-3 flex gap-2">
+          <Boton
+            className="text-sm"
+            cargando={crear.isPending || lanzar.isPending}
+            disabled={!previa || previa.total === 0}
+            onClick={() => {
+              setError(null);
+              crear.mutate(
+                {
+                  titulo: `Nueva promoción: ${promocion.titulo}`.slice(0, 80),
+                  cuerpo,
+                  segmento: {},
+                  url: '/tienda',
+                },
+                {
+                  onSuccess: (c) =>
+                    lanzar.mutate(c.id, {
+                      onSuccess: (r) => {
+                        setResultado(`Avisado a ${r.enviados} tutores.`);
+                        setTimeout(onCerrar, 1500);
+                      },
+                      onError: (e) => setError(e.message),
+                    }),
+                  onError: (e) => setError(e.message),
+                },
+              );
+            }}
+          >
+            Confirmar envío
+          </Boton>
+          <Boton variante="secundario" className="text-sm" onClick={onCerrar}>
+            Cancelar
+          </Boton>
+        </div>
+      )}
+    </div>
   );
 }
 
