@@ -3,6 +3,7 @@
 PWA de gestión veterinaria: app para tutores de mascotas + panel interno de la clínica.
 
 Documentación de referencia — **leerla antes de decisiones de arquitectura, no re-derivarla**:
+- `docs/arquitectura.md` — foto del sistema tal como está desplegado hoy
 - `docs/stack.md` — stack y decisiones tomadas, con alternativas descartadas
 - `docs/modelo-datos.md` — esquema de base de datos y convenciones
 - `docs/roadmap.md` — fases y alcance
