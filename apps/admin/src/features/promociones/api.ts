@@ -61,3 +61,14 @@ export function usePausarPromocion(supabase: ClienteSupabase) {
     onSuccess: () => qc.invalidateQueries({ queryKey: clavesPromo.todas }),
   });
 }
+
+export function useBorrarPromocion(supabase: ClienteSupabase) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      const { error } = await supabase.from('promocion').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: clavesPromo.todas }),
+  });
+}

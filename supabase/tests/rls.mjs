@@ -3327,6 +3327,28 @@ console.log('\n=== 107. Promociones: gestión sólo del personal, lectura de lo 
   yaSinPromo && yaSinPromo.precio_promocional === null
     ? ok('Al pausarla, la tienda vuelve a mostrar el precio normal')
     : fail(`Seguía aplicando la promo pausada: ${JSON.stringify(yaSinPromo)}`);
+
+  // Un DELETE filtrado por RLS no devuelve error cuando no matchea ninguna
+  // fila — sólo borra cero filas en silencio. Hay que verificar contra la
+  // fila en sí, no confiar en la ausencia de error.
+  const { error: errAnaBorra } = await ana.sb.from('promocion').delete().eq('id', vencida.id);
+  const { data: sigueAhi } = await admin.sb
+    .from('promocion')
+    .select('id')
+    .eq('id', vencida.id);
+  (errAnaBorra || (sigueAhi && sigueAhi.length === 1)) && sigueAhi && sigueAhi.length === 1
+    ? ok('Un cliente no puede borrar una promoción')
+    : fail('FUGA: un cliente borró una promoción');
+
+  const { error: errAdminBorra } = await admin.sb.from('promocion').delete().eq('id', vencida.id);
+  errAdminBorra
+    ? fail(`El admin no pudo borrar la promoción: ${errAdminBorra.message}`)
+    : ok('El admin borra una promoción');
+
+  const { data: yaNoEsta } = await admin.sb.from('promocion').select('id').eq('id', vencida.id);
+  !yaNoEsta || yaNoEsta.length === 0
+    ? ok('La promoción borrada ya no aparece')
+    : fail('La promoción seguía existiendo después de borrarla');
 }
 
 console.log('\n=== 108. Pedidos de la app sin Mercado Pago ===');

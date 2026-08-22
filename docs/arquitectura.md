@@ -20,13 +20,13 @@ Auth + Storage + Realtime), y lo único que corre en un servidor son cuatro
 Edge Functions para lo que nunca debe resolverse en el navegador.
 
 ```
-┌─────────────────────┐        ┌─────────────────────┐
-│   PWA de tutores     │        │   Panel de la clínica│
-│   (apps/cliente)     │        │   (apps/admin)       │
-│   React + Vite       │        │   React + Vite       │
-└──────────┬───────────┘        └──────────┬───────────┘
+┌──────────────────────┐         ┌──────────────────────┐
+│   PWA de tutores     │         │   Panel de la clínica│
+│   (apps/cliente)     │         │   (apps/admin)       │
+│   React + Vite       │         │   React + Vite       │
+└──────────┬───────────┘         └──────────┬───────────┘
            │                                │
-           │        HTTPS (fetch / supabase-js)
+           │    HTTPS (fetch / supabase-js)
            └───────────────┬────────────────┘
                             ▼
                  ┌─────────────────────┐
@@ -111,9 +111,16 @@ clínica, tienda, recordatorios (Web Push), identidad/QR de extravío.
 
 ### 3.2 Panel de la clínica (`apps/admin`)
 
-15 páginas. Navegación por rol (recepcionista, veterinario, administrador,
+14 páginas. Navegación por rol (recepcionista, veterinario, administrador,
 combinables): Agenda, Tablero, Pacientes, Reposiciones, Caja, Inventario,
-Mensajes, Campañas, Promociones, Pedidos, Equipo.
+Mensajes, Promociones, Pedidos, Equipo.
+
+Promociones absorbió lo que antes era una sección aparte ("Campañas"): crear
+un descuento, avisar por push y borrar quedaron unificados en una sola
+pantalla. El envío sigue apoyándose en la tabla `campana` y las mismas RPC
+por debajo (`crear_campana`, `lanzar_campana`), pero ya no tienen una
+pantalla propia — son la plomería de "Avisar a los tutores", no un feature
+aparte.
 
 ---
 
@@ -244,8 +251,7 @@ Ejemplos representativos por dominio:
 | Inventario | `registrar_movimiento`, `vender_mostrador` | Evita stock negativo con un lock de fila |
 | Tienda | `catalogo_tienda`, `crear_orden_online`, `confirmar_pedido_local` | Calcula el precio con promoción aplicada; reserva stock; cobro en persona |
 | Caja | `abrir_caja`, `cerrar_caja`, `resumen_caja`, `flujo_caja_mensual` | Arqueo y conciliación |
-| Promociones | `precio_con_promocion` | Resuelve la promoción vigente que mejor aplica (producto > categoría > catálogo) |
-| Campañas | `crear_campana`, `lanzar_campana`, `destinatarios_campana`, `borrar_campana` | Segmentación, congelamiento del alcance al lanzar, envío idempotente |
+| Promociones | `precio_con_promocion`, `crear_campana`, `lanzar_campana` | Resuelve el precio vigente (producto > categoría > catálogo); "Avisar a los tutores" crea y lanza el push por debajo |
 | Equipo | `invitar-personal` (Edge Function), `cambiar_roles` | Alta y gestión de roles del personal |
 | Mensajería | `abrir_conversacion`, `marcar_conversacion_leida` | Conversación tutor ↔ clínica |
 

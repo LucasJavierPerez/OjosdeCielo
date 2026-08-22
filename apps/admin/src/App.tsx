@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { Agenda } from './paginas/Agenda.js';
 import { Caja } from './paginas/Caja.js';
-import { Campanas } from './paginas/Campanas.js';
 import { Equipo } from './paginas/Equipo.js';
 import { FichaPaciente } from './paginas/FichaPaciente.js';
 import { Ingresar } from './paginas/Ingresar.js';
@@ -100,14 +99,6 @@ export function App() {
         element={
           <Interna>
             <Mensajes />
-          </Interna>
-        }
-      />
-      <Route
-        path="/campanas"
-        element={
-          <Interna>
-            <Campanas />
           </Interna>
         }
       />

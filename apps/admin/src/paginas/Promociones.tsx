@@ -12,11 +12,17 @@ import {
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
 import { Layout } from '../componentes/Layout.js';
-import { useCrearCampana, useLanzarCampana, useVistaPrevia } from '../features/comunicacion/api.js';
+import {
+  useCrearCampana,
+  useLanzarCampana,
+  useReintentarEnvio,
+  useVistaPrevia,
+} from '../features/comunicacion/api.js';
 import { useStock } from '../features/inventario/api.js';
 import {
   type DatosPromocion,
   type Promocion,
+  useBorrarPromocion,
   useCrearPromocion,
   usePausarPromocion,
   usePromociones,
@@ -101,8 +107,10 @@ function textoDescuento(promocion: Promocion): string {
 function FilaPromocion({ promocion }: { promocion: Promocion }) {
   const { supabase } = useAuth();
   const pausar = usePausarPromocion(supabase);
+  const borrar = useBorrarPromocion(supabase);
   const [error, setError] = useState<string | null>(null);
   const [avisando, setAvisando] = useState(false);
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
 
   const estado = estadoDe(promocion);
   const badge = ETIQUETA_ESTADO[estado];
@@ -137,7 +145,7 @@ function FilaPromocion({ promocion }: { promocion: Promocion }) {
         </div>
       )}
 
-      {!avisando && (
+      {!avisando && !confirmandoBorrado && (
         <div className="mt-3 flex flex-wrap gap-3">
           <Boton
             variante="texto"
@@ -159,6 +167,38 @@ function FilaPromocion({ promocion }: { promocion: Promocion }) {
               Avisar a los tutores
             </Boton>
           )}
+
+          <Boton
+            variante="texto"
+            className="text-sm text-red-700"
+            onClick={() => setConfirmandoBorrado(true)}
+          >
+            Borrar
+          </Boton>
+        </div>
+      )}
+
+      {confirmandoBorrado && (
+        <div className="mt-3 flex items-center gap-2 text-sm">
+          <span className="text-slate-600">¿Borrar esta promoción?</span>
+          <Boton
+            variante="texto"
+            className="text-red-700"
+            cargando={borrar.isPending}
+            onClick={() => {
+              setError(null);
+              borrar.mutate(promocion.id, { onError: (e) => setError(e.message) });
+            }}
+          >
+            Sí, borrar
+          </Boton>
+          <Boton
+            variante="texto"
+            className="text-slate-500"
+            onClick={() => setConfirmandoBorrado(false)}
+          >
+            Cancelar
+          </Boton>
         </div>
       )}
 
@@ -178,8 +218,13 @@ function AvisoPromocion({ promocion, onCerrar }: { promocion: Promocion; onCerra
   const { data: previa, isFetching } = useVistaPrevia(supabase, {});
   const crear = useCrearCampana(supabase);
   const lanzar = useLanzarCampana(supabase);
+  const reintentar = useReintentarEnvio(supabase);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<string | null>(null);
+  // Se guarda apenas se crea la campaña: si el lanzamiento falla después,
+  // "Reintentar" opera sobre esta misma campaña en vez de crear una nueva
+  // (que mandaría el aviso duplicado a quien ya lo haya recibido).
+  const [campanaId, setCampanaId] = useState<string | null>(null);
 
   const cuerpo =
     `${textoDescuento(promocion)} en la tienda, hasta el ${formatearFechaCivil(promocion.hasta)}.`.slice(
@@ -206,35 +251,56 @@ function AvisoPromocion({ promocion, onCerrar }: { promocion: Promocion; onCerra
         <p className="mt-2 rounded-lg bg-emerald-50 p-2 text-sm text-emerald-900">{resultado}</p>
       ) : (
         <div className="mt-3 flex gap-2">
-          <Boton
-            className="text-sm"
-            cargando={crear.isPending || lanzar.isPending}
-            disabled={!previa || previa.total === 0}
-            onClick={() => {
-              setError(null);
-              crear.mutate(
-                {
-                  titulo: `Nueva promoción: ${promocion.titulo}`.slice(0, 80),
-                  cuerpo,
-                  segmento: {},
-                  url: '/tienda',
-                },
-                {
-                  onSuccess: (c) =>
-                    lanzar.mutate(c.id, {
-                      onSuccess: (r) => {
-                        setResultado(`Avisado a ${r.enviados} tutores.`);
-                        setTimeout(onCerrar, 1500);
-                      },
-                      onError: (e) => setError(e.message),
-                    }),
+          {campanaId ? (
+            <Boton
+              className="text-sm"
+              cargando={reintentar.isPending}
+              onClick={() => {
+                setError(null);
+                reintentar.mutate(campanaId, {
+                  onSuccess: (r) => {
+                    setResultado(`Avisado a ${r.enviados} tutores.`);
+                    setTimeout(onCerrar, 1500);
+                  },
                   onError: (e) => setError(e.message),
-                },
-              );
-            }}
-          >
-            Confirmar envío
-          </Boton>
+                });
+              }}
+            >
+              Reintentar
+            </Boton>
+          ) : (
+            <Boton
+              className="text-sm"
+              cargando={crear.isPending || lanzar.isPending}
+              disabled={!previa || previa.total === 0}
+              onClick={() => {
+                setError(null);
+                crear.mutate(
+                  {
+                    titulo: `Nueva promoción: ${promocion.titulo}`.slice(0, 80),
+                    cuerpo,
+                    segmento: {},
+                    url: '/tienda',
+                  },
+                  {
+                    onSuccess: (c) => {
+                      setCampanaId(c.id);
+                      lanzar.mutate(c.id, {
+                        onSuccess: (r) => {
+                          setResultado(`Avisado a ${r.enviados} tutores.`);
+                          setTimeout(onCerrar, 1500);
+                        },
+                        onError: (e) => setError(e.message),
+                      });
+                    },
+                    onError: (e) => setError(e.message),
+                  },
+                );
+              }}
+            >
+              Confirmar envío
+            </Boton>
+          )}
           <Boton variante="secundario" className="text-sm" onClick={onCerrar}>
             Cancelar
           </Boton>

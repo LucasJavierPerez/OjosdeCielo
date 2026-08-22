@@ -42,7 +42,6 @@ export interface Mensaje {
 }
 
 export const clavesComunicacion = {
-  campanas: ['campanas'] as const,
   previa: (s: Segmento) => ['previa-campana', JSON.stringify(s)] as const,
   bandeja: (cerradas: boolean) => ['bandeja', cerradas] as const,
   mensajes: (id: string) => ['mensajes', id] as const,
@@ -50,21 +49,11 @@ export const clavesComunicacion = {
 
 // ---------------------------------------------------------------------------
 // Campañas
+//
+// Ya no tienen pantalla propia (se unificó con Promociones): esto es la
+// plomería que usa "Avisar a los tutores" para crear y lanzar el push, no un
+// feature aparte.
 // ---------------------------------------------------------------------------
-
-export function useCampanas(supabase: ClienteSupabase) {
-  return useQuery({
-    queryKey: clavesComunicacion.campanas,
-    queryFn: async (): Promise<Campana[]> => {
-      const { data, error } = await supabase
-        .from('campana')
-        .select('*')
-        .order('creada_en', { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-}
 
 export function useVistaPrevia(supabase: ClienteSupabase, segmento: Segmento) {
   return useQuery({
@@ -80,7 +69,6 @@ export function useVistaPrevia(supabase: ClienteSupabase, segmento: Segmento) {
 }
 
 export function useCrearCampana(supabase: ClienteSupabase) {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: {
       titulo: string;
@@ -97,12 +85,10 @@ export function useCrearCampana(supabase: ClienteSupabase) {
       if (error) throw new Error(error.message);
       return data as Campana;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: clavesComunicacion.campanas }),
   });
 }
 
 export function useLanzarCampana(supabase: ClienteSupabase) {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string): Promise<{ enviados: number; quedan: number }> => {
       // Dos pasos: la base congela el alcance y cambia el estado, la Edge
@@ -123,12 +109,10 @@ export function useLanzarCampana(supabase: ClienteSupabase) {
       }
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: clavesComunicacion.campanas }),
   });
 }
 
 export function useReintentarEnvio(supabase: ClienteSupabase) {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string): Promise<{ enviados: number; quedan: number }> => {
       const { data, error } = await supabase.functions.invoke<{
@@ -138,29 +122,6 @@ export function useReintentarEnvio(supabase: ClienteSupabase) {
       if (error || !data) throw new Error('No pudimos retomar el envío.');
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: clavesComunicacion.campanas }),
-  });
-}
-
-export function useCancelarCampana(supabase: ClienteSupabase) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase.rpc('cancelar_campana', { p_campana_id: id });
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: clavesComunicacion.campanas }),
-  });
-}
-
-export function useBorrarCampana(supabase: ClienteSupabase) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase.rpc('borrar_campana', { p_campana_id: id });
-      if (error) throw new Error(error.message);
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: clavesComunicacion.campanas }),
   });
 }
 
