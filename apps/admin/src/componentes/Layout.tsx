@@ -9,6 +9,7 @@ const SECCIONES = [
   { a: '/tablero', texto: 'Tablero' },
   { a: '/pacientes', texto: 'Pacientes' },
   { a: '/internaciones', texto: 'Internación' },
+  { a: '/domicilios', texto: 'Domicilios' },
   { a: '/reposiciones', texto: 'Reposiciones' },
   { a: '/caja', texto: 'Caja' },
   { a: '/inventario', texto: 'Inventario' },

@@ -6,6 +6,7 @@ import { type ReactNode, useState } from 'react';
 import { Link } from 'react-router';
 import { Layout } from '../componentes/Layout.js';
 import {
+  type EpisodioTipo,
   type InternacionActiva,
   type InternacionConSaldo,
   useInternacionesActivas,
@@ -15,19 +16,49 @@ import {
 const pesos = (n: number) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
 
+const COPIA: Record<
+  EpisodioTipo,
+  { titulo: string; base: string; activasTab: string; vacioActivas: string; vacioSaldo: string }
+> = {
+  internacion: {
+    titulo: 'Internación',
+    base: '/internaciones',
+    activasTab: 'Sala',
+    vacioActivas: 'Para internar un paciente, entrá a su ficha y usá el botón «Internar».',
+    vacioSaldo: 'Las internaciones cerradas con saldo impago aparecen acá.',
+  },
+  domicilio: {
+    titulo: 'Atención a domicilio',
+    base: '/domicilios',
+    activasTab: 'En curso',
+    vacioActivas:
+      'Para abrir una visita, entrá a la ficha del paciente y usá «Atención a domicilio».',
+    vacioSaldo: 'Las visitas cerradas con saldo impago aparecen acá.',
+  },
+};
+
 export function Internaciones() {
+  return <ListaEpisodios tipo="internacion" />;
+}
+
+export function Domicilios() {
+  return <ListaEpisodios tipo="domicilio" />;
+}
+
+function ListaEpisodios({ tipo }: { tipo: EpisodioTipo }) {
   const { supabase } = useAuth();
+  const copia = COPIA[tipo];
   const [pestania, setPestania] = useState<'activas' | 'saldo'>('activas');
-  const activas = useInternacionesActivas(supabase);
-  const conSaldo = useInternacionesConSaldo(supabase);
+  const activas = useInternacionesActivas(supabase, tipo);
+  const conSaldo = useInternacionesConSaldo(supabase, tipo);
 
   return (
     <Layout>
-      <h1 className="text-xl font-semibold">Internación</h1>
+      <h1 className="text-xl font-semibold">{copia.titulo}</h1>
 
       <div className="mt-4 flex gap-4 border-b border-slate-200 text-sm">
         <Tab activa={pestania === 'activas'} onClick={() => setPestania('activas')}>
-          Sala {activas.data && `(${activas.data.length})`}
+          {copia.activasTab} {activas.data && `(${activas.data.length})`}
         </Tab>
         <Tab activa={pestania === 'saldo'} onClick={() => setPestania('saldo')}>
           Pendientes de cobro {conSaldo.data && `(${conSaldo.data.length})`}
@@ -37,24 +68,18 @@ export function Internaciones() {
       {pestania === 'activas' && (
         <Seccion
           query={activas}
-          vacio={{
-            titulo: 'No hay pacientes internados',
-            descripcion: 'Para internar un paciente, entrá a su ficha y usá el botón «Internar».',
-          }}
+          vacio={{ titulo: 'Nada por ahora', descripcion: copia.vacioActivas }}
         >
-          {(fila) => <TarjetaActiva key={fila.id} i={fila} />}
+          {(fila) => <TarjetaActiva key={fila.id} i={fila} base={copia.base} />}
         </Seccion>
       )}
 
       {pestania === 'saldo' && (
         <Seccion
           query={conSaldo}
-          vacio={{
-            titulo: 'Sin saldos pendientes',
-            descripcion: 'Las internaciones cerradas con saldo impago aparecen acá.',
-          }}
+          vacio={{ titulo: 'Sin saldos pendientes', descripcion: copia.vacioSaldo }}
         >
-          {(fila) => <TarjetaSaldo key={fila.id} i={fila} />}
+          {(fila) => <TarjetaSaldo key={fila.id} i={fila} base={copia.base} />}
         </Seccion>
       )}
     </Layout>
@@ -100,7 +125,7 @@ function Seccion<T extends { id: string }>({
   vacio: { titulo: string; descripcion: string };
   children: (fila: T) => ReactNode;
 }) {
-  if (query.isLoading) return <Cargando etiqueta="Cargando internaciones" />;
+  if (query.isLoading) return <Cargando etiqueta="Cargando" />;
   if (query.isError) {
     return (
       <div className="mt-4">
@@ -118,11 +143,11 @@ function Seccion<T extends { id: string }>({
   return <div className="mt-4 grid gap-3 sm:grid-cols-2">{query.data.map(children)}</div>;
 }
 
-function TarjetaActiva({ i }: { i: InternacionActiva }) {
+function TarjetaActiva({ i, base }: { i: InternacionActiva; base: string }) {
   const dias = diasInternado(i.ingreso_en);
   return (
     <Link
-      to={`/internaciones/${i.id}`}
+      to={`${base}/${i.id}`}
       className="block rounded-xl border border-slate-200 bg-white p-4 hover:border-marca-300"
     >
       <div className="flex items-baseline justify-between gap-3">
@@ -136,7 +161,8 @@ function TarjetaActiva({ i }: { i: InternacionActiva }) {
         <span>
           Día {dias} · desde {formatearFecha(i.ingreso_en)}
         </span>
-        {i.ubicacion && <span>· {i.ubicacion}</span>}
+        {i.tipo === 'domicilio' && i.direccion && <span>· {i.direccion}</span>}
+        {i.tipo === 'internacion' && i.ubicacion && <span>· {i.ubicacion}</span>}
         <span>· {i.profesional}</span>
       </div>
       <div className="mt-2 flex items-center justify-between text-sm">
@@ -151,10 +177,10 @@ function TarjetaActiva({ i }: { i: InternacionActiva }) {
   );
 }
 
-function TarjetaSaldo({ i }: { i: InternacionConSaldo }) {
+function TarjetaSaldo({ i, base }: { i: InternacionConSaldo; base: string }) {
   return (
     <Link
-      to={`/internaciones/${i.id}`}
+      to={`${base}/${i.id}`}
       className="block rounded-xl border border-slate-200 bg-white p-4 hover:border-marca-300"
     >
       <div className="flex items-baseline justify-between gap-3">

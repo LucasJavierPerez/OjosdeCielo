@@ -78,11 +78,15 @@ export function FichaInternacion() {
   }
 
   const activa = i.estado === 'activa';
+  const esDomicilio = i.tipo === 'domicilio';
 
   return (
     <Layout>
-      <Link to="/internaciones" className="text-sm text-slate-500 hover:text-slate-900">
-        ‹ Internación
+      <Link
+        to={esDomicilio ? '/domicilios' : '/internaciones'}
+        className="text-sm text-slate-500 hover:text-slate-900"
+      >
+        ‹ {esDomicilio ? 'Atención a domicilio' : 'Internación'}
       </Link>
 
       <div className="mt-2 flex flex-wrap items-baseline gap-3">
@@ -100,14 +104,18 @@ export function FichaInternacion() {
             activa ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700',
           )}
         >
-          {activa ? `Internado · día ${diasInternado(i.ingreso_en)}` : 'Cerrada'}
+          {activa
+            ? `${esDomicilio ? 'En seguimiento' : 'Internado'} · día ${diasInternado(i.ingreso_en)}`
+            : 'Cerrada'}
         </span>
       </div>
 
       <p className="mt-1 text-sm text-slate-500">
-        Ingreso {formatearFechaHora(i.ingreso_en)}
-        {i.egreso_en && ` · Egreso ${formatearFechaHora(i.egreso_en)}`}
+        {esDomicilio ? 'Inicio' : 'Ingreso'} {formatearFechaHora(i.ingreso_en)}
+        {i.egreso_en &&
+          ` · ${esDomicilio ? 'Cierre' : 'Egreso'} ${formatearFechaHora(i.egreso_en)}`}
         {i.motivo_egreso && ` · ${i.motivo_egreso}`}
+        {esDomicilio && i.direccion && ` · ${i.direccion}`}
       </p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -160,10 +168,12 @@ function Encabezado({
   puedoEditar: boolean;
 }) {
   const { supabase } = useAuth();
+  const esDomicilio = internacion.tipo === 'domicilio';
   const actualizar = useActualizarInternacion(supabase, internacion.id);
   const [editando, setEditando] = useState(false);
   const [diagnostico, setDiagnostico] = useState(internacion.diagnostico ?? '');
   const [ubicacion, setUbicacion] = useState(internacion.ubicacion ?? '');
+  const [direccion, setDireccion] = useState(internacion.direccion ?? '');
   const [indicaciones, setIndicaciones] = useState(internacion.indicaciones ?? '');
   const [error, setError] = useState<string | null>(null);
 
@@ -179,11 +189,18 @@ function Encabezado({
       </div>
 
       <dl className="mt-2 space-y-2 text-sm">
-        <Dato termino="Motivo de internación" valor={internacion.motivo} />
+        <Dato
+          termino={esDomicilio ? 'Motivo de la visita' : 'Motivo de internación'}
+          valor={internacion.motivo}
+        />
         {!editando && (
           <>
             <Dato termino="Diagnóstico" valor={internacion.diagnostico ?? '—'} />
-            <Dato termino="Ubicación" valor={internacion.ubicacion ?? '—'} />
+            {esDomicilio ? (
+              <Dato termino="Dirección" valor={internacion.direccion ?? '—'} />
+            ) : (
+              <Dato termino="Ubicación" valor={internacion.ubicacion ?? '—'} />
+            )}
             <Dato termino="Indicaciones" valor={internacion.indicaciones ?? '—'} />
           </>
         )}
@@ -200,9 +217,23 @@ function Encabezado({
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
           </Campo>
-          <Campo id="i-ubic" etiqueta="Ubicación" ayuda="Box, jaula, sala">
-            <Entrada id="i-ubic" value={ubicacion} onChange={(e) => setUbicacion(e.target.value)} />
-          </Campo>
+          {esDomicilio ? (
+            <Campo id="i-dir" etiqueta="Dirección">
+              <Entrada
+                id="i-dir"
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+              />
+            </Campo>
+          ) : (
+            <Campo id="i-ubic" etiqueta="Ubicación" ayuda="Box, jaula, sala">
+              <Entrada
+                id="i-ubic"
+                value={ubicacion}
+                onChange={(e) => setUbicacion(e.target.value)}
+              />
+            </Campo>
+          )}
           <Campo id="i-indic" etiqueta="Indicaciones">
             <textarea
               id="i-indic"
@@ -219,7 +250,7 @@ function Encabezado({
               onClick={() => {
                 setError(null);
                 actualizar.mutate(
-                  { diagnostico, ubicacion, indicaciones },
+                  { diagnostico, ubicacion, direccion, indicaciones },
                   { onSuccess: () => setEditando(false), onError: (e) => setError(e.message) },
                 );
               }}
@@ -945,7 +976,7 @@ function BloqueCobros({
           )}
           {puedoCerrar && activa && (
             <Boton variante="peligro" className="text-sm" onClick={() => setModo('cerrar')}>
-              Cerrar internación
+              {internacion.tipo === 'domicilio' ? 'Cerrar la visita' : 'Cerrar internación'}
             </Boton>
           )}
         </div>

@@ -105,6 +105,7 @@ export interface ContactoPaciente {
   email: string | null;
   telefono: string | null;
   dni: string | null;
+  direccion: string | null;
 }
 
 /**

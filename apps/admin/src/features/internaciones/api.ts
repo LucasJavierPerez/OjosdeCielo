@@ -9,6 +9,9 @@ export type CargoInternacion = Fila<'orden_item'>;
 export type PagoInternacion = Fila<'pago'>;
 export type AdjuntoInternacion = Fila<'adjunto'>;
 
+/** Un episodio puede ser una internación en la clínica o una atención a domicilio. */
+export type EpisodioTipo = 'internacion' | 'domicilio';
+
 export interface ResumenInternacion {
   id: string;
   mascota_id: string;
@@ -30,6 +33,8 @@ export interface ResumenInternacion {
   n_evoluciones: number;
   n_estudios: number;
   n_medicacion: number;
+  tipo: EpisodioTipo;
+  direccion: string | null;
 }
 
 export interface InternacionActiva {
@@ -44,6 +49,8 @@ export interface InternacionActiva {
   total_cargos: number;
   total_pagado: number;
   saldo: number;
+  tipo: EpisodioTipo;
+  direccion: string | null;
 }
 
 export interface InternacionConSaldo {
@@ -56,11 +63,12 @@ export interface InternacionConSaldo {
   total_cargos: number;
   total_pagado: number;
   saldo: number;
+  tipo: EpisodioTipo;
 }
 
 export const clavesInternacion = {
-  activas: ['internaciones', 'activas'] as const,
-  conSaldo: ['internaciones', 'con-saldo'] as const,
+  activas: (tipo: EpisodioTipo) => ['internaciones', 'activas', tipo] as const,
+  conSaldo: (tipo: EpisodioTipo) => ['internaciones', 'con-saldo', tipo] as const,
   detalle: (id: string) => ['internacion', id] as const,
   evoluciones: (id: string) => ['internacion', id, 'evoluciones'] as const,
   estudios: (id: string) => ['internacion', id, 'estudios'] as const,
@@ -92,22 +100,22 @@ const opcNum = (clave: string, valor: string | undefined) => {
 // Lecturas
 // ---------------------------------------------------------------------------
 
-export function useInternacionesActivas(supabase: ClienteSupabase) {
+export function useInternacionesActivas(supabase: ClienteSupabase, tipo: EpisodioTipo) {
   return useQuery({
-    queryKey: clavesInternacion.activas,
+    queryKey: clavesInternacion.activas(tipo),
     queryFn: async (): Promise<InternacionActiva[]> => {
-      const { data, error } = await supabase.rpc('internaciones_activas');
+      const { data, error } = await supabase.rpc('internaciones_activas', { p_tipo: tipo });
       if (error) throw error;
       return data as InternacionActiva[];
     },
   });
 }
 
-export function useInternacionesConSaldo(supabase: ClienteSupabase) {
+export function useInternacionesConSaldo(supabase: ClienteSupabase, tipo: EpisodioTipo) {
   return useQuery({
-    queryKey: clavesInternacion.conSaldo,
+    queryKey: clavesInternacion.conSaldo(tipo),
     queryFn: async (): Promise<InternacionConSaldo[]> => {
-      const { data, error } = await supabase.rpc('internaciones_con_saldo');
+      const { data, error } = await supabase.rpc('internaciones_con_saldo', { p_tipo: tipo });
       if (error) throw error;
       return data as InternacionConSaldo[];
     },
@@ -128,7 +136,15 @@ export function useInternacion(supabase: ClienteSupabase, id: string) {
 
 export type InternacionResumen = Pick<
   Fila<'internacion'>,
-  'id' | 'motivo' | 'diagnostico' | 'estado' | 'ingreso_en' | 'egreso_en' | 'motivo_egreso'
+  | 'id'
+  | 'tipo'
+  | 'motivo'
+  | 'diagnostico'
+  | 'direccion'
+  | 'estado'
+  | 'ingreso_en'
+  | 'egreso_en'
+  | 'motivo_egreso'
 >;
 
 /**
@@ -141,7 +157,9 @@ export function useInternacionesDePaciente(supabase: ClienteSupabase, mascotaId:
     queryFn: async (): Promise<InternacionResumen[]> => {
       const { data, error } = await supabase
         .from('internacion')
-        .select('id, motivo, diagnostico, estado, ingreso_en, egreso_en, motivo_egreso')
+        .select(
+          'id, tipo, motivo, diagnostico, direccion, estado, ingreso_en, egreso_en, motivo_egreso',
+        )
         .eq('mascota_id', mascotaId)
         .order('ingreso_en', { ascending: false });
       if (error) throw error;
@@ -253,23 +271,27 @@ export function useCrearInternacion(supabase: ClienteSupabase) {
   return useMutation({
     mutationFn: async (d: {
       mascotaId: string;
+      tipo?: EpisodioTipo;
       motivo: string;
       diagnostico?: string;
       ubicacion?: string;
+      direccion?: string;
       indicaciones?: string;
     }): Promise<{ id: string }> => {
       const { data, error } = await supabase.rpc('crear_internacion', {
         p_mascota_id: d.mascotaId,
         p_motivo: d.motivo.trim(),
+        ...(d.tipo && { p_tipo: d.tipo }),
         ...opc('p_diagnostico', d.diagnostico),
         ...opc('p_ubicacion', d.ubicacion),
+        ...opc('p_direccion', d.direccion),
         ...opc('p_indicaciones', d.indicaciones),
       });
       if (error) throw new Error(error.message);
       return data as { id: string };
     },
     onSuccess: (_r, v) => {
-      void qc.invalidateQueries({ queryKey: clavesInternacion.activas });
+      void qc.invalidateQueries({ queryKey: clavesInternacion.activas(v.tipo ?? 'internacion') });
       void qc.invalidateQueries({ queryKey: clavesInternacion.dePaciente(v.mascotaId) });
     },
   });
@@ -281,6 +303,7 @@ export function useActualizarInternacion(supabase: ClienteSupabase, id: string) 
     mutationFn: async (d: {
       diagnostico?: string;
       ubicacion?: string;
+      direccion?: string;
       indicaciones?: string;
     }): Promise<void> => {
       // Se mandan siempre como texto (vacío = borrar el campo): la RPC hace
@@ -289,6 +312,7 @@ export function useActualizarInternacion(supabase: ClienteSupabase, id: string) 
         p_id: id,
         p_diagnostico: (d.diagnostico ?? '').trim(),
         p_ubicacion: (d.ubicacion ?? '').trim(),
+        p_direccion: (d.direccion ?? '').trim(),
         p_indicaciones: (d.indicaciones ?? '').trim(),
       });
       if (error) throw new Error(error.message);
@@ -424,8 +448,8 @@ export function useRegistrarPago(supabase: ClienteSupabase, id: string, ordenId:
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: clavesInternacion.pagos(ordenId) });
       void qc.invalidateQueries({ queryKey: clavesInternacion.detalle(id) });
-      void qc.invalidateQueries({ queryKey: clavesInternacion.activas });
-      void qc.invalidateQueries({ queryKey: clavesInternacion.conSaldo });
+      void qc.invalidateQueries({ queryKey: ['internaciones', 'activas'] });
+      void qc.invalidateQueries({ queryKey: ['internaciones', 'con-saldo'] });
     },
   });
 }
@@ -446,8 +470,8 @@ export function useCerrarInternacion(supabase: ClienteSupabase, id: string) {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: clavesInternacion.detalle(id) });
-      void qc.invalidateQueries({ queryKey: clavesInternacion.activas });
-      void qc.invalidateQueries({ queryKey: clavesInternacion.conSaldo });
+      void qc.invalidateQueries({ queryKey: ['internaciones', 'activas'] });
+      void qc.invalidateQueries({ queryKey: ['internaciones', 'con-saldo'] });
       // La ficha del paciente muestra el estado de sus internaciones.
       void qc.invalidateQueries({ queryKey: ['internacion', 'de-paciente'] });
     },

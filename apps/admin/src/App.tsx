@@ -8,7 +8,7 @@ import { Equipo } from './paginas/Equipo.js';
 import { FichaInternacion } from './paginas/FichaInternacion.js';
 import { FichaPaciente } from './paginas/FichaPaciente.js';
 import { Ingresar } from './paginas/Ingresar.js';
-import { Internaciones } from './paginas/Internaciones.js';
+import { Domicilios, Internaciones } from './paginas/Internaciones.js';
 import { Inventario } from './paginas/Inventario.js';
 import { Mensajes } from './paginas/Mensajes.js';
 import { NuevoPaciente } from './paginas/NuevoPaciente.js';
@@ -74,6 +74,22 @@ export function App() {
       />
       <Route
         path="/internaciones/:id"
+        element={
+          <Interna>
+            <FichaInternacion />
+          </Interna>
+        }
+      />
+      <Route
+        path="/domicilios"
+        element={
+          <Interna>
+            <Domicilios />
+          </Interna>
+        }
+      />
+      <Route
+        path="/domicilios/:id"
         element={
           <Interna>
             <FichaInternacion />

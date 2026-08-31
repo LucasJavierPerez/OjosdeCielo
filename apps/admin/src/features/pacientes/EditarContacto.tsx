@@ -11,6 +11,7 @@ interface Datos {
   telefono: string;
   email: string;
   dni: string;
+  direccion: string;
 }
 
 /**
@@ -65,6 +66,7 @@ export function EditarContacto({
           telefono: d.telefono.trim() || null,
           email: d.email.trim() || null,
           dni: d.dni.trim() || null,
+          direccion: d.direccion.trim() || null,
         })
         .eq('id', contacto.contactoId);
       if (err) throw new Error(err.message);
@@ -129,6 +131,20 @@ export function EditarContacto({
           />
         </Campito>
       </div>
+
+      {!registrado && (
+        <div className="mt-2">
+          <Campito id="c-direccion" etiqueta="Dirección">
+            <Entrada
+              id="c-direccion"
+              value={d.direccion}
+              onChange={(e) => setD({ ...d, direccion: e.target.value })}
+              className="mt-1"
+              placeholder="Se usa para las visitas a domicilio"
+            />
+          </Campito>
+        </div>
+      )}
 
       <div className="mt-2">
         <Campito id="c-email" etiqueta="Email">

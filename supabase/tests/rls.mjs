@@ -3672,6 +3672,97 @@ console.log('\n=== 110. Internación: carga clínica del veterinario, cobros del
     : fail(`El saldo final quedó en ${resumen?.[0]?.saldo}`);
 }
 
+console.log('\n=== 111. Atención a domicilio: mismo circuito, episodio aparte ===');
+{
+  const { data: paciente } = await ana.sb.rpc('crear_mascota', {
+    p_nombre: 'Domiciliaria',
+    p_especie: 'gato',
+  });
+
+  // Un cliente no abre una atención a domicilio.
+  const { error: errAna } = await ana.sb.rpc('crear_internacion', {
+    p_mascota_id: paciente.id,
+    p_motivo: 'Prueba',
+    p_tipo: 'domicilio',
+  });
+  errAna
+    ? ok('Un cliente no abre una visita a domicilio')
+    : fail('FUGA: un cliente abrió una visita');
+
+  // El veterinario abre la visita con su dirección.
+  const { data: visita, error: errVet } = await vet.sb.rpc('crear_internacion', {
+    p_mascota_id: paciente.id,
+    p_motivo: 'Control post-operatorio en la casa',
+    p_tipo: 'domicilio',
+    p_direccion: 'Calle Falsa 123',
+  });
+  errVet
+    ? fail(`El veterinario no pudo abrir la visita: ${errVet.message}`)
+    : ok('El veterinario abre una atención a domicilio');
+
+  // Y además puede internar a la misma mascota: son episodios de distinto tipo.
+  const { error: errInt } = await vet.sb.rpc('crear_internacion', {
+    p_mascota_id: paciente.id,
+    p_motivo: 'Descompensación aguda',
+  });
+  errInt
+    ? fail(`No se pudo internar teniendo una visita abierta: ${errInt.message}`)
+    : ok('La misma mascota puede tener internación y domicilio activos a la vez');
+
+  // Pero no dos visitas a domicilio activas.
+  const { error: errDoble } = await vet.sb.rpc('crear_internacion', {
+    p_mascota_id: paciente.id,
+    p_motivo: 'Otra',
+    p_tipo: 'domicilio',
+  });
+  errDoble
+    ? ok('No se abren dos visitas a domicilio en paralelo')
+    : fail('FUGA: dos visitas activas');
+
+  // El filtro por tipo separa las listas.
+  const { data: dom } = await recepcion.sb.rpc('internaciones_activas', { p_tipo: 'domicilio' });
+  const { data: intr } = await recepcion.sb.rpc('internaciones_activas', { p_tipo: 'internacion' });
+  const enDom = dom?.some((x) => x.id === visita.id);
+  const enInt = intr?.some((x) => x.id === visita.id);
+  enDom && !enInt
+    ? ok('La visita aparece sólo en la lista de domicilios')
+    : fail(`La visita apareció mal: domicilio=${enDom} internacion=${enInt}`);
+
+  // El resumen trae el tipo y la dirección.
+  const { data: res } = await recepcion.sb.rpc('resumen_internacion', {
+    p_internacion_id: visita.id,
+  });
+  res?.[0]?.tipo === 'domicilio' && res[0].direccion === 'Calle Falsa 123'
+    ? ok('El resumen distingue el tipo y guarda la dirección')
+    : fail(`Resumen inesperado: ${JSON.stringify(res?.[0])}`);
+
+  // La maquinaria compartida (cargo, cobro, cierre) funciona igual.
+  await vet.sb.rpc('agregar_cargo_internacion', {
+    p_internacion_id: visita.id,
+    p_concepto: 'Visita a domicilio',
+    p_monto: 6000,
+  });
+  const { data: cajaAbierta } = await recepcion.sb
+    .from('turno_caja')
+    .select('id')
+    .is('cerrado_en', null);
+  if (!cajaAbierta || cajaAbierta.length === 0) {
+    await recepcion.sb.rpc('abrir_caja', { p_monto_inicial: 0 });
+  }
+  await recepcion.sb.rpc('registrar_pago_internacion', {
+    p_internacion_id: visita.id,
+    p_monto: 6000,
+    p_medio: 'efectivo',
+  });
+  const { data: cierre, error: errCierre } = await vet.sb.rpc('cerrar_internacion', {
+    p_internacion_id: visita.id,
+    p_motivo_egreso: 'Alta médica',
+  });
+  errCierre || Number(cierre?.[0]?.saldo) !== 0
+    ? fail(`El cierre de la visita falló: ${errCierre?.message ?? cierre?.[0]?.saldo}`)
+    : ok('La visita a domicilio se cobra y se cierra como una internación');
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

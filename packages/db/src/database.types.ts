@@ -678,6 +678,7 @@ export type Database = {
           actualizado_en: string | null
           apellido: string
           creado_en: string
+          direccion: string | null
           dni: string | null
           email: string | null
           id: string
@@ -692,6 +693,7 @@ export type Database = {
           actualizado_en?: string | null
           apellido?: string
           creado_en?: string
+          direccion?: string | null
           dni?: string | null
           email?: string | null
           id?: string
@@ -706,6 +708,7 @@ export type Database = {
           actualizado_en?: string | null
           apellido?: string
           creado_en?: string
+          direccion?: string | null
           dni?: string | null
           email?: string | null
           id?: string
@@ -876,6 +879,7 @@ export type Database = {
           archivado_en: string | null
           creado_en: string
           diagnostico: string | null
+          direccion: string | null
           egreso_en: string | null
           estado: Database["public"]["Enums"]["internacion_estado"]
           id: string
@@ -886,6 +890,7 @@ export type Database = {
           motivo_egreso: string | null
           orden_id: string
           profesional_id: string
+          tipo: string
           ubicacion: string | null
         }
         Insert: {
@@ -893,6 +898,7 @@ export type Database = {
           archivado_en?: string | null
           creado_en?: string
           diagnostico?: string | null
+          direccion?: string | null
           egreso_en?: string | null
           estado?: Database["public"]["Enums"]["internacion_estado"]
           id?: string
@@ -903,6 +909,7 @@ export type Database = {
           motivo_egreso?: string | null
           orden_id: string
           profesional_id?: string
+          tipo?: string
           ubicacion?: string | null
         }
         Update: {
@@ -910,6 +917,7 @@ export type Database = {
           archivado_en?: string | null
           creado_en?: string
           diagnostico?: string | null
+          direccion?: string | null
           egreso_en?: string | null
           estado?: Database["public"]["Enums"]["internacion_estado"]
           id?: string
@@ -920,6 +928,7 @@ export type Database = {
           motivo_egreso?: string | null
           orden_id?: string
           profesional_id?: string
+          tipo?: string
           ubicacion?: string | null
         }
         Relationships: [
@@ -2853,6 +2862,7 @@ export type Database = {
       actualizar_internacion: {
         Args: {
           p_diagnostico?: string
+          p_direccion?: string
           p_id: string
           p_indicaciones?: string
           p_ubicacion?: string
@@ -2862,6 +2872,7 @@ export type Database = {
           archivado_en: string | null
           creado_en: string
           diagnostico: string | null
+          direccion: string | null
           egreso_en: string | null
           estado: Database["public"]["Enums"]["internacion_estado"]
           id: string
@@ -2872,6 +2883,7 @@ export type Database = {
           motivo_egreso: string | null
           orden_id: string
           profesional_id: string
+          tipo: string
           ubicacion: string | null
         }
         SetofOptions: {
@@ -3161,6 +3173,7 @@ export type Database = {
         Args: { p_mascota_id: string }
         Returns: {
           apellido: string
+          direccion: string
           dni: string
           email: string
           id: string
@@ -3200,9 +3213,11 @@ export type Database = {
       crear_internacion: {
         Args: {
           p_diagnostico?: string
+          p_direccion?: string
           p_indicaciones?: string
           p_mascota_id: string
           p_motivo: string
+          p_tipo?: string
           p_ubicacion?: string
         }
         Returns: {
@@ -3210,6 +3225,7 @@ export type Database = {
           archivado_en: string | null
           creado_en: string
           diagnostico: string | null
+          direccion: string | null
           egreso_en: string | null
           estado: Database["public"]["Enums"]["internacion_estado"]
           id: string
@@ -3220,6 +3236,7 @@ export type Database = {
           motivo_egreso: string | null
           orden_id: string
           profesional_id: string
+          tipo: string
           ubicacion: string | null
         }
         SetofOptions: {
@@ -3464,8 +3481,9 @@ export type Database = {
         }[]
       }
       internaciones_activas: {
-        Args: never
+        Args: { p_tipo?: string }
         Returns: {
+          direccion: string
           especie: Database["public"]["Enums"]["especie"]
           id: string
           ingreso_en: string
@@ -3474,13 +3492,14 @@ export type Database = {
           motivo: string
           profesional: string
           saldo: number
+          tipo: string
           total_cargos: number
           total_pagado: number
           ubicacion: string
         }[]
       }
       internaciones_con_saldo: {
-        Args: never
+        Args: { p_tipo?: string }
         Returns: {
           egreso_en: string
           especie: Database["public"]["Enums"]["especie"]
@@ -3489,6 +3508,7 @@ export type Database = {
           mascota_id: string
           profesional: string
           saldo: number
+          tipo: string
           total_cargos: number
           total_pagado: number
         }[]
@@ -3933,6 +3953,7 @@ export type Database = {
         Args: { p_internacion_id: string }
         Returns: {
           diagnostico: string
+          direccion: string
           egreso_en: string
           especie: Database["public"]["Enums"]["especie"]
           estado: Database["public"]["Enums"]["internacion_estado"]
@@ -3949,6 +3970,7 @@ export type Database = {
           orden_id: string
           profesional: string
           saldo: number
+          tipo: string
           total_cargos: number
           total_pagado: number
           ubicacion: string

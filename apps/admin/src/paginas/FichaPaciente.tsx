@@ -19,6 +19,7 @@ import { Link, useParams } from 'react-router';
 import { Layout } from '../componentes/Layout.js';
 import { Historial } from '../features/clinica/Historial.js';
 import {
+  type EpisodioTipo,
   type InternacionResumen,
   useInternacionesDePaciente,
 } from '../features/internaciones/api.js';
@@ -58,13 +59,17 @@ export function FichaPaciente() {
   const { data: salud } = useSaludPaciente(supabase, id);
   const { data: tutores } = useTutoresPaciente(supabase, id);
   const { data: internaciones } = useInternacionesDePaciente(supabase, id);
-  const internacionActiva = internaciones?.find((x) => x.estado === 'activa') ?? null;
+  const episodioActivo = (tipo: EpisodioTipo) =>
+    internaciones?.find((x) => x.estado === 'activa' && x.tipo === tipo) ?? null;
+  const internacionActiva = episodioActivo('internacion');
+  const domicilioActivo = episodioActivo('domicilio');
+  const direccionTitular = tutores?.find((t) => t.rol_tutor === 'titular')?.direccion?.trim() ?? '';
 
   const puedoVerificar = perfil ? puedeCargarHistoriaClinica(perfil.roles) : false;
   const puedoEditarFicha = perfil ? esPersonalClinica(perfil.roles) : false;
   const [editando, setEditando] = useState<string | null>(null);
   const [editandoPaciente, setEditandoPaciente] = useState(false);
-  const [internando, setInternando] = useState(false);
+  const [nuevoEpisodio, setNuevoEpisodio] = useState<EpisodioTipo | null>(null);
 
   if (isLoading) {
     return (
@@ -112,14 +117,46 @@ export function FichaPaciente() {
             Internado — ver internación
           </Link>
         )}
-        {puedoVerificar && !internacionActiva && !internando && !mascota.fallecido_en && (
-          <Boton variante="texto" className="text-sm" onClick={() => setInternando(true)}>
-            Internar
-          </Boton>
+        {domicilioActivo && (
+          <Link
+            to={`/domicilios/${domicilioActivo.id}`}
+            className="rounded bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-200"
+          >
+            Visita a domicilio en curso
+          </Link>
+        )}
+        {puedoVerificar && !nuevoEpisodio && !mascota.fallecido_en && (
+          <>
+            {!internacionActiva && (
+              <Boton
+                variante="texto"
+                className="text-sm"
+                onClick={() => setNuevoEpisodio('internacion')}
+              >
+                Internar
+              </Boton>
+            )}
+            {!domicilioActivo && (
+              <Boton
+                variante="texto"
+                className="text-sm"
+                onClick={() => setNuevoEpisodio('domicilio')}
+              >
+                Atención a domicilio
+              </Boton>
+            )}
+          </>
         )}
       </div>
 
-      {internando && <IniciarInternacion mascotaId={id} onCancelar={() => setInternando(false)} />}
+      {nuevoEpisodio && (
+        <IniciarInternacion
+          mascotaId={id}
+          tipo={nuevoEpisodio}
+          direccionSugerida={direccionTitular}
+          onCancelar={() => setNuevoEpisodio(null)}
+        />
+      )}
 
       {editandoPaciente && (
         <EditarPaciente
@@ -264,38 +301,52 @@ function Bloque({
 }
 
 /**
- * Internaciones del paciente — parte de su historia clínica: qué le pasó y por
- * qué. La más reciente arriba, con enlace a la ficha de internación.
+ * Internaciones y visitas a domicilio del paciente — parte de su historia
+ * clínica: qué le pasó y por qué. La más reciente arriba, con enlace a la ficha.
  */
 function BloqueInternaciones({ internaciones }: { internaciones: InternacionResumen[] }) {
   return (
-    <Bloque titulo="Internaciones" vacio={internaciones.length === 0}>
-      {internaciones.map((i) => (
-        <li key={i.id} className="py-2.5 text-sm">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <Link
-              to={`/internaciones/${i.id}`}
-              className="font-medium text-slate-900 hover:text-marca-700"
-            >
-              {i.motivo}
-            </Link>
-            <span className="text-xs text-slate-400">
-              {formatearFecha(i.ingreso_en)}
-              {i.egreso_en && ` – ${formatearFecha(i.egreso_en)}`}
-            </span>
-          </div>
-          {i.diagnostico && <p className="text-slate-600">Diagnóstico: {i.diagnostico}</p>}
-          <p className="mt-0.5 text-xs">
-            {i.estado === 'activa' ? (
-              <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-medium text-emerald-800">
-                Internado ahora
+    <Bloque titulo="Internaciones y visitas a domicilio" vacio={internaciones.length === 0}>
+      {internaciones.map((i) => {
+        const dom = i.tipo === 'domicilio';
+        return (
+          <li key={i.id} className="py-2.5 text-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <span className="min-w-0">
+                <span
+                  className={cn(
+                    'mr-2 rounded px-1.5 py-0.5 text-[11px] font-medium',
+                    dom ? 'bg-sky-100 text-sky-800' : 'bg-marca-100 text-marca-700',
+                  )}
+                >
+                  {dom ? 'Domicilio' : 'Internación'}
+                </span>
+                <Link
+                  to={`${dom ? '/domicilios' : '/internaciones'}/${i.id}`}
+                  className="font-medium text-slate-900 hover:text-marca-700"
+                >
+                  {i.motivo}
+                </Link>
               </span>
-            ) : (
-              <span className="text-slate-500">Egreso: {i.motivo_egreso ?? 'no registrado'}</span>
-            )}
-          </p>
-        </li>
-      ))}
+              <span className="text-xs text-slate-400">
+                {formatearFecha(i.ingreso_en)}
+                {i.egreso_en && ` – ${formatearFecha(i.egreso_en)}`}
+              </span>
+            </div>
+            {i.diagnostico && <p className="text-slate-600">Diagnóstico: {i.diagnostico}</p>}
+            {dom && i.direccion && <p className="text-xs text-slate-500">{i.direccion}</p>}
+            <p className="mt-0.5 text-xs">
+              {i.estado === 'activa' ? (
+                <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-medium text-emerald-800">
+                  {dom ? 'Visita en curso' : 'Internado ahora'}
+                </span>
+              ) : (
+                <span className="text-slate-500">Egreso: {i.motivo_egreso ?? 'no registrado'}</span>
+              )}
+            </p>
+          </li>
+        );
+      })}
     </Bloque>
   );
 }
@@ -588,6 +639,7 @@ function datosDe(c: {
   telefono: string | null;
   email: string | null;
   dni: string | null;
+  direccion: string | null;
 }) {
   return {
     nombre: c.nombre,
@@ -595,5 +647,6 @@ function datosDe(c: {
     telefono: c.telefono ?? '',
     email: c.email ?? '',
     dni: c.dni ?? '',
+    direccion: c.direccion ?? '',
   };
 }
