@@ -8,6 +8,7 @@ const SECCIONES = [
   { a: '/agenda', texto: 'Agenda' },
   { a: '/tablero', texto: 'Tablero' },
   { a: '/pacientes', texto: 'Pacientes' },
+  { a: '/internaciones', texto: 'Internación' },
   { a: '/reposiciones', texto: 'Reposiciones' },
   { a: '/caja', texto: 'Caja' },
   { a: '/inventario', texto: 'Inventario' },

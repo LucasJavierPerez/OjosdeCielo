@@ -17,6 +17,8 @@ import { type ReactNode, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { Layout } from '../componentes/Layout.js';
 import { Historial } from '../features/clinica/Historial.js';
+import { useInternacionActivaDe } from '../features/internaciones/api.js';
+import { IniciarInternacion } from '../features/internaciones/IniciarInternacion.js';
 import {
   usePaciente,
   useSaludPaciente,
@@ -51,11 +53,13 @@ export function FichaPaciente() {
   const { data: mascota, isLoading, isError, refetch } = usePaciente(supabase, id);
   const { data: salud } = useSaludPaciente(supabase, id);
   const { data: tutores } = useTutoresPaciente(supabase, id);
+  const { data: internacionActiva } = useInternacionActivaDe(supabase, id);
 
   const puedoVerificar = perfil ? puedeCargarHistoriaClinica(perfil.roles) : false;
   const puedoEditarFicha = perfil ? esPersonalClinica(perfil.roles) : false;
   const [editando, setEditando] = useState<string | null>(null);
   const [editandoPaciente, setEditandoPaciente] = useState(false);
+  const [internando, setInternando] = useState(false);
 
   if (isLoading) {
     return (
@@ -95,7 +99,22 @@ export function FichaPaciente() {
             Editar
           </Boton>
         )}
+        {internacionActiva && (
+          <Link
+            to={`/internaciones/${internacionActiva.id}`}
+            className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 hover:bg-emerald-200"
+          >
+            Internado — ver internación
+          </Link>
+        )}
+        {puedoVerificar && !internacionActiva && !internando && !mascota.fallecido_en && (
+          <Boton variante="texto" className="text-sm" onClick={() => setInternando(true)}>
+            Internar
+          </Boton>
+        )}
       </div>
+
+      {internando && <IniciarInternacion mascotaId={id} onCancelar={() => setInternando(false)} />}
 
       {editandoPaciente && (
         <EditarPaciente

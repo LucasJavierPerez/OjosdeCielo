@@ -5,8 +5,10 @@ import { Navigate, Route, Routes } from 'react-router';
 import { Agenda } from './paginas/Agenda.js';
 import { Caja } from './paginas/Caja.js';
 import { Equipo } from './paginas/Equipo.js';
+import { FichaInternacion } from './paginas/FichaInternacion.js';
 import { FichaPaciente } from './paginas/FichaPaciente.js';
 import { Ingresar } from './paginas/Ingresar.js';
+import { Internaciones } from './paginas/Internaciones.js';
 import { Inventario } from './paginas/Inventario.js';
 import { Mensajes } from './paginas/Mensajes.js';
 import { NuevoPaciente } from './paginas/NuevoPaciente.js';
@@ -58,6 +60,23 @@ export function App() {
         element={
           <Interna>
             <FichaPaciente />
+          </Interna>
+        }
+      />
+
+      <Route
+        path="/internaciones"
+        element={
+          <Interna>
+            <Internaciones />
+          </Interna>
+        }
+      />
+      <Route
+        path="/internaciones/:id"
+        element={
+          <Interna>
+            <FichaInternacion />
           </Interna>
         }
       />

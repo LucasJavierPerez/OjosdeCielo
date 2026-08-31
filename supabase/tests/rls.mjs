@@ -3332,10 +3332,7 @@ console.log('\n=== 107. Promociones: gestión sólo del personal, lectura de lo 
   // fila — sólo borra cero filas en silencio. Hay que verificar contra la
   // fila en sí, no confiar en la ausencia de error.
   const { error: errAnaBorra } = await ana.sb.from('promocion').delete().eq('id', vencida.id);
-  const { data: sigueAhi } = await admin.sb
-    .from('promocion')
-    .select('id')
-    .eq('id', vencida.id);
+  const { data: sigueAhi } = await admin.sb.from('promocion').select('id').eq('id', vencida.id);
   (errAnaBorra || (sigueAhi && sigueAhi.length === 1)) && sigueAhi && sigueAhi.length === 1
     ? ok('Un cliente no puede borrar una promoción')
     : fail('FUGA: un cliente borró una promoción');
@@ -3476,6 +3473,203 @@ console.log('\n=== 109. Borrar una campaña ===');
   !yaNoEsta || yaNoEsta.length === 0
     ? ok('La campaña ya no aparece en la lista')
     : fail('La campaña seguía existiendo después de borrarla');
+}
+
+console.log('\n=== 110. Internación: carga clínica del veterinario, cobros del personal ===');
+{
+  const { data: paciente } = await ana.sb.rpc('crear_mascota', {
+    p_nombre: 'Internadita',
+    p_especie: 'perro',
+  });
+
+  // 1. Internar es un acto clínico: cliente y recepción no pueden.
+  const { error: errAnaInt } = await ana.sb.rpc('crear_internacion', {
+    p_mascota_id: paciente.id,
+    p_motivo: 'Prueba',
+  });
+  errAnaInt ? ok('Un cliente no interna') : fail('FUGA: un cliente creó una internación');
+
+  const { error: errRecInt } = await recepcion.sb.rpc('crear_internacion', {
+    p_mascota_id: paciente.id,
+    p_motivo: 'Prueba',
+  });
+  errRecInt ? ok('Recepción tampoco interna') : fail('FUGA: recepción creó una internación');
+
+  // 2. El veterinario sí.
+  const { data: internacion, error: errVetInt } = await vet.sb.rpc('crear_internacion', {
+    p_mascota_id: paciente.id,
+    p_motivo: 'Deshidratación, observación 24 h',
+    p_diagnostico: 'Gastroenteritis',
+  });
+  errVetInt
+    ? fail(`El veterinario no pudo internar: ${errVetInt.message}`)
+    : ok('El veterinario interna al paciente');
+  const ordenId = internacion?.orden_id;
+
+  // 3. Una sola internación activa por mascota.
+  const { error: errDoble } = await vet.sb.rpc('crear_internacion', {
+    p_mascota_id: paciente.id,
+    p_motivo: 'Otra',
+  });
+  errDoble ? ok('No se interna dos veces en paralelo') : fail('FUGA: dos internaciones activas');
+
+  // 4. La lectura es sólo del personal.
+  const { data: anaVe } = await ana.sb.from('internacion').select('id').eq('id', internacion.id);
+  !anaVe || anaVe.length === 0
+    ? ok('El cliente no ve la internación')
+    : fail('FUGA: el cliente ve la internación');
+
+  const { data: recVe } = await recepcion.sb
+    .from('internacion')
+    .select('id')
+    .eq('id', internacion.id);
+  recVe?.length === 1 ? ok('Recepción ve la internación') : fail('Recepción no ve la internación');
+
+  const { error: errAnaLista } = await ana.sb.rpc('internaciones_activas');
+  errAnaLista
+    ? ok('El cliente no lista internaciones')
+    : fail('FUGA: el cliente listó internaciones activas');
+
+  // 5. La carga clínica es del veterinario.
+  const { error: errRecEvo } = await recepcion.sb.rpc('registrar_evolucion_internacion', {
+    p_internacion_id: internacion.id,
+    p_nota: 'Estable',
+  });
+  errRecEvo ? ok('Recepción no carga evolución') : fail('FUGA: recepción cargó un parte');
+
+  const { error: errVetEvo } = await vet.sb.rpc('registrar_evolucion_internacion', {
+    p_internacion_id: internacion.id,
+    p_nota: 'Ingreso: mucosas secas, 6% deshidratación',
+    p_temperatura: 39.2,
+  });
+  errVetEvo
+    ? fail(`El veterinario no pudo cargar evolución: ${errVetEvo.message}`)
+    : ok('El veterinario carga el parte de evolución');
+
+  // 6. Un estudio con cargo suma al total de la orden.
+  const { data: estudio, error: errEstudio } = await vet.sb.rpc('registrar_estudio_internacion', {
+    p_internacion_id: internacion.id,
+    p_tipo: 'Hemograma',
+    p_cargo_monto: 5000,
+  });
+  errEstudio
+    ? fail(`No se pudo registrar el estudio: ${errEstudio.message}`)
+    : ok('El veterinario pide un estudio con su cargo');
+
+  const { data: orden1 } = await recepcion.sb
+    .from('orden')
+    .select('total')
+    .eq('id', ordenId)
+    .single();
+  Number(orden1?.total) === 5000
+    ? ok('El cargo del estudio se sumó a la orden')
+    : fail(`El total quedó en ${orden1?.total}, esperaba 5000`);
+
+  // 7. Cargo manual del personal.
+  const { error: errAnaCargo } = await ana.sb.rpc('agregar_cargo_internacion', {
+    p_internacion_id: internacion.id,
+    p_concepto: 'Día de internación',
+    p_monto: 3000,
+  });
+  errAnaCargo ? ok('El cliente no agrega cargos') : fail('FUGA: el cliente agregó un cargo');
+
+  const { error: errCargo } = await recepcion.sb.rpc('agregar_cargo_internacion', {
+    p_internacion_id: internacion.id,
+    p_concepto: 'Día de internación',
+    p_monto: 3000,
+  });
+  errCargo
+    ? fail(`Recepción no pudo agregar el cargo: ${errCargo.message}`)
+    : ok('Recepción agrega un cargo manual');
+
+  // 8. Cobro parcial: exige caja abierta.
+  const { data: cajaAbierta } = await recepcion.sb
+    .from('turno_caja')
+    .select('id')
+    .is('cerrado_en', null);
+  if (!cajaAbierta || cajaAbierta.length === 0) {
+    await recepcion.sb.rpc('abrir_caja', { p_monto_inicial: 0 });
+  }
+
+  const { error: errPagoDeMas } = await recepcion.sb.rpc('registrar_pago_internacion', {
+    p_internacion_id: internacion.id,
+    p_monto: 999999,
+    p_medio: 'efectivo',
+  });
+  errPagoDeMas
+    ? ok('Un pago mayor al saldo se rechaza')
+    : fail('FUGA: se cobró más que el saldo pendiente');
+
+  const { error: errPago } = await recepcion.sb.rpc('registrar_pago_internacion', {
+    p_internacion_id: internacion.id,
+    p_monto: 3000,
+    p_medio: 'efectivo',
+  });
+  errPago
+    ? fail(`No se pudo registrar el pago parcial: ${errPago.message}`)
+    : ok('Recepción registra un cobro parcial');
+
+  // 9. Alta: cierra, deja saldo y numera comprobante.
+  const { data: cierre, error: errCierre } = await vet.sb.rpc('cerrar_internacion', {
+    p_internacion_id: internacion.id,
+    p_motivo_egreso: 'Alta médica',
+  });
+  errCierre
+    ? fail(`El veterinario no pudo dar el alta: ${errCierre.message}`)
+    : ok('El veterinario cierra la internación');
+  Number(cierre?.[0]?.saldo) === 5000
+    ? ok('El alta informa el saldo pendiente (8000 − 3000)')
+    : fail(`El alta informó saldo ${cierre?.[0]?.saldo}, esperaba 5000`);
+
+  const { data: intCerrada } = await recepcion.sb
+    .from('internacion')
+    .select('estado, egreso_en')
+    .eq('id', internacion.id)
+    .single();
+  intCerrada?.estado === 'cerrada' && intCerrada.egreso_en
+    ? ok('La internación queda cerrada con fecha de egreso')
+    : fail('La internación no quedó cerrada');
+
+  const { data: comprobante } = await recepcion.sb
+    .from('comprobante')
+    .select('numero, total')
+    .eq('orden_id', ordenId);
+  comprobante?.length === 1 && Number(comprobante[0].total) === 8000
+    ? ok('Se numeró un comprobante interno por el total')
+    : fail(`Comprobante inesperado: ${JSON.stringify(comprobante)}`);
+
+  // 10. Cerrada: no se cargan más actos ni cargos, pero sí se sigue cobrando.
+  const { error: errEstudioCerrada } = await vet.sb.rpc('registrar_estudio_internacion', {
+    p_internacion_id: internacion.id,
+    p_tipo: 'Otro',
+  });
+  errEstudioCerrada
+    ? ok('Cerrada, no admite nuevos estudios')
+    : fail('FUGA: se cargó un estudio sobre una internación cerrada');
+
+  const { error: errResultadoCerrada } = await vet.sb.rpc('actualizar_resultado_estudio', {
+    p_estudio_id: estudio.id,
+    p_resultado: 'Anemia leve',
+  });
+  errResultadoCerrada
+    ? ok('Cerrada, no se editan resultados')
+    : fail('FUGA: se editó un resultado sobre una internación cerrada');
+
+  const { error: errSaldoFinal } = await recepcion.sb.rpc('registrar_pago_internacion', {
+    p_internacion_id: internacion.id,
+    p_monto: 5000,
+    p_medio: 'efectivo',
+  });
+  errSaldoFinal
+    ? fail(`No se pudo cobrar el saldo tras el alta: ${errSaldoFinal.message}`)
+    : ok('El saldo se cobra después del alta');
+
+  const { data: resumen } = await recepcion.sb.rpc('resumen_internacion', {
+    p_internacion_id: internacion.id,
+  });
+  Number(resumen?.[0]?.saldo) === 0
+    ? ok('Saldada la internación, el saldo queda en cero')
+    : fail(`El saldo final quedó en ${resumen?.[0]?.saldo}`);
 }
 
 console.log(

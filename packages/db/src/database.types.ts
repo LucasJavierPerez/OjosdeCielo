@@ -36,10 +36,11 @@ export type Database = {
     Tables: {
       adjunto: {
         Row: {
-          consulta_id: string
+          consulta_id: string | null
           creado_en: string
           descripcion: string | null
           id: string
+          internacion_id: string | null
           mascota_id: string
           mime: string
           nombre_archivo: string
@@ -49,10 +50,11 @@ export type Database = {
           tipo: Database["public"]["Enums"]["tipo_adjunto"]
         }
         Insert: {
-          consulta_id: string
+          consulta_id?: string | null
           creado_en?: string
           descripcion?: string | null
           id?: string
+          internacion_id?: string | null
           mascota_id: string
           mime: string
           nombre_archivo: string
@@ -62,10 +64,11 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["tipo_adjunto"]
         }
         Update: {
-          consulta_id?: string
+          consulta_id?: string | null
           creado_en?: string
           descripcion?: string | null
           id?: string
+          internacion_id?: string | null
           mascota_id?: string
           mime?: string
           nombre_archivo?: string
@@ -80,6 +83,13 @@ export type Database = {
             columns: ["consulta_id"]
             isOneToOne: false
             referencedRelation: "consulta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adjunto_internacion_id_fkey"
+            columns: ["internacion_id"]
+            isOneToOne: false
+            referencedRelation: "internacion"
             referencedColumns: ["id"]
           },
           {
@@ -860,6 +870,270 @@ export type Database = {
         }
         Relationships: []
       }
+      internacion: {
+        Row: {
+          actualizado_en: string | null
+          archivado_en: string | null
+          creado_en: string
+          diagnostico: string | null
+          egreso_en: string | null
+          estado: Database["public"]["Enums"]["internacion_estado"]
+          id: string
+          indicaciones: string | null
+          ingreso_en: string
+          mascota_id: string
+          motivo: string
+          motivo_egreso: string | null
+          orden_id: string
+          profesional_id: string
+          ubicacion: string | null
+        }
+        Insert: {
+          actualizado_en?: string | null
+          archivado_en?: string | null
+          creado_en?: string
+          diagnostico?: string | null
+          egreso_en?: string | null
+          estado?: Database["public"]["Enums"]["internacion_estado"]
+          id?: string
+          indicaciones?: string | null
+          ingreso_en?: string
+          mascota_id: string
+          motivo: string
+          motivo_egreso?: string | null
+          orden_id: string
+          profesional_id?: string
+          ubicacion?: string | null
+        }
+        Update: {
+          actualizado_en?: string | null
+          archivado_en?: string | null
+          creado_en?: string
+          diagnostico?: string | null
+          egreso_en?: string | null
+          estado?: Database["public"]["Enums"]["internacion_estado"]
+          id?: string
+          indicaciones?: string | null
+          ingreso_en?: string
+          mascota_id?: string
+          motivo?: string
+          motivo_egreso?: string | null
+          orden_id?: string
+          profesional_id?: string
+          ubicacion?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internacion_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internacion_orden_id_fkey"
+            columns: ["orden_id"]
+            isOneToOne: false
+            referencedRelation: "orden"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internacion_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internacion_estudio: {
+        Row: {
+          creado_en: string
+          fecha: string
+          id: string
+          internacion_id: string
+          mascota_id: string
+          orden_item_id: string | null
+          resultado: string | null
+          solicitado_por: string
+          tipo: string
+        }
+        Insert: {
+          creado_en?: string
+          fecha?: string
+          id?: string
+          internacion_id: string
+          mascota_id: string
+          orden_item_id?: string | null
+          resultado?: string | null
+          solicitado_por?: string
+          tipo: string
+        }
+        Update: {
+          creado_en?: string
+          fecha?: string
+          id?: string
+          internacion_id?: string
+          mascota_id?: string
+          orden_item_id?: string | null
+          resultado?: string | null
+          solicitado_por?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internacion_estudio_internacion_id_fkey"
+            columns: ["internacion_id"]
+            isOneToOne: false
+            referencedRelation: "internacion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internacion_estudio_mascota_id_fkey"
+            columns: ["mascota_id"]
+            isOneToOne: false
+            referencedRelation: "mascota"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internacion_estudio_orden_item_id_fkey"
+            columns: ["orden_item_id"]
+            isOneToOne: false
+            referencedRelation: "orden_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internacion_estudio_solicitado_por_fkey"
+            columns: ["solicitado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internacion_evolucion: {
+        Row: {
+          creado_en: string
+          fecha: string
+          id: string
+          internacion_id: string
+          nota: string
+          profesional_id: string
+          temperatura: number | null
+        }
+        Insert: {
+          creado_en?: string
+          fecha?: string
+          id?: string
+          internacion_id: string
+          nota: string
+          profesional_id?: string
+          temperatura?: number | null
+        }
+        Update: {
+          creado_en?: string
+          fecha?: string
+          id?: string
+          internacion_id?: string
+          nota?: string
+          profesional_id?: string
+          temperatura?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internacion_evolucion_internacion_id_fkey"
+            columns: ["internacion_id"]
+            isOneToOne: false
+            referencedRelation: "internacion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internacion_evolucion_profesional_id_fkey"
+            columns: ["profesional_id"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internacion_medicacion: {
+        Row: {
+          administrado_por: string
+          cantidad: number | null
+          creado_en: string
+          descripcion: string
+          dosis: string | null
+          fecha: string
+          id: string
+          internacion_id: string
+          orden_item_id: string | null
+          producto_id: string | null
+          via: string | null
+        }
+        Insert: {
+          administrado_por?: string
+          cantidad?: number | null
+          creado_en?: string
+          descripcion: string
+          dosis?: string | null
+          fecha?: string
+          id?: string
+          internacion_id: string
+          orden_item_id?: string | null
+          producto_id?: string | null
+          via?: string | null
+        }
+        Update: {
+          administrado_por?: string
+          cantidad?: number | null
+          creado_en?: string
+          descripcion?: string
+          dosis?: string | null
+          fecha?: string
+          id?: string
+          internacion_id?: string
+          orden_item_id?: string | null
+          producto_id?: string | null
+          via?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internacion_medicacion_administrado_por_fkey"
+            columns: ["administrado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internacion_medicacion_internacion_id_fkey"
+            columns: ["internacion_id"]
+            isOneToOne: false
+            referencedRelation: "internacion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internacion_medicacion_orden_item_id_fkey"
+            columns: ["orden_item_id"]
+            isOneToOne: false
+            referencedRelation: "orden_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internacion_medicacion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "producto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internacion_medicacion_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "stock_actual"
+            referencedColumns: ["producto_id"]
+          },
+        ]
+      }
       invitacion_tutor: {
         Row: {
           aceptada_en: string | null
@@ -1481,7 +1755,7 @@ export type Database = {
           id: string
           orden_id: string
           precio_unitario: number
-          producto_id: string
+          producto_id: string | null
           subtotal: number
         }
         Insert: {
@@ -1490,7 +1764,7 @@ export type Database = {
           id?: string
           orden_id: string
           precio_unitario: number
-          producto_id: string
+          producto_id?: string | null
           subtotal: number
         }
         Update: {
@@ -1499,7 +1773,7 @@ export type Database = {
           id?: string
           orden_id?: string
           precio_unitario?: number
-          producto_id?: string
+          producto_id?: string | null
           subtotal?: number
         }
         Relationships: [
@@ -2453,6 +2727,15 @@ export type Database = {
       }
     }
     Functions: {
+      _internacion_agregar_item: {
+        Args: {
+          p_cantidad?: number
+          p_concepto: string
+          p_monto: number
+          p_orden_id: string
+        }
+        Returns: string
+      }
       abrir_caja: {
         Args: { p_monto_inicial?: number }
         Returns: {
@@ -2567,6 +2850,57 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      actualizar_internacion: {
+        Args: {
+          p_diagnostico?: string
+          p_id: string
+          p_indicaciones?: string
+          p_ubicacion?: string
+        }
+        Returns: {
+          actualizado_en: string | null
+          archivado_en: string | null
+          creado_en: string
+          diagnostico: string | null
+          egreso_en: string | null
+          estado: Database["public"]["Enums"]["internacion_estado"]
+          id: string
+          indicaciones: string | null
+          ingreso_en: string
+          mascota_id: string
+          motivo: string
+          motivo_egreso: string | null
+          orden_id: string
+          profesional_id: string
+          ubicacion: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "internacion"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      actualizar_resultado_estudio: {
+        Args: { p_estudio_id: string; p_resultado: string }
+        Returns: {
+          creado_en: string
+          fecha: string
+          id: string
+          internacion_id: string
+          mascota_id: string
+          orden_item_id: string | null
+          resultado: string | null
+          solicitado_por: string
+          tipo: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "internacion_estudio"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       agenda_dia: {
         Args: { p_fecha: string; p_profesional_id?: string }
         Returns: {
@@ -2605,6 +2939,29 @@ export type Database = {
           tutor_nombre: string
           tutor_telefono: string
         }[]
+      }
+      agregar_cargo_internacion: {
+        Args: {
+          p_cantidad?: number
+          p_concepto: string
+          p_internacion_id: string
+          p_monto: number
+        }
+        Returns: {
+          cantidad: number
+          descripcion: string
+          id: string
+          orden_id: string
+          precio_unitario: number
+          producto_id: string | null
+          subtotal: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orden_item"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       alertas_inventario: {
         Args: never
@@ -2776,6 +3133,14 @@ export type Database = {
         }
       }
       cerrar_campana: { Args: { p_campana_id: string }; Returns: undefined }
+      cerrar_internacion: {
+        Args: { p_internacion_id: string; p_motivo_egreso?: string }
+        Returns: {
+          pagado: number
+          saldo: number
+          total: number
+        }[]
+      }
       confirmar_pago_online: {
         Args: {
           p_monto: number
@@ -2828,6 +3193,38 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "campana"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      crear_internacion: {
+        Args: {
+          p_diagnostico?: string
+          p_indicaciones?: string
+          p_mascota_id: string
+          p_motivo: string
+          p_ubicacion?: string
+        }
+        Returns: {
+          actualizado_en: string | null
+          archivado_en: string | null
+          creado_en: string
+          diagnostico: string | null
+          egreso_en: string | null
+          estado: Database["public"]["Enums"]["internacion_estado"]
+          id: string
+          indicaciones: string | null
+          ingreso_en: string
+          mascota_id: string
+          motivo: string
+          motivo_egreso: string | null
+          orden_id: string
+          profesional_id: string
+          ubicacion: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "internacion"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3066,6 +3463,36 @@ export type Database = {
           tratamiento: string
         }[]
       }
+      internaciones_activas: {
+        Args: never
+        Returns: {
+          especie: Database["public"]["Enums"]["especie"]
+          id: string
+          ingreso_en: string
+          mascota: string
+          mascota_id: string
+          motivo: string
+          profesional: string
+          saldo: number
+          total_cargos: number
+          total_pagado: number
+          ubicacion: string
+        }[]
+      }
+      internaciones_con_saldo: {
+        Args: never
+        Returns: {
+          egreso_en: string
+          especie: Database["public"]["Enums"]["especie"]
+          id: string
+          mascota: string
+          mascota_id: string
+          profesional: string
+          saldo: number
+          total_cargos: number
+          total_pagado: number
+        }[]
+      }
       invitar_tutor: {
         Args: { p_mascota_id: string }
         Returns: {
@@ -3277,9 +3704,88 @@ export type Database = {
         }
       }
       receta_para_imprimir: { Args: { p_receta_id: string }; Returns: Json }
+      registrar_estudio_internacion: {
+        Args: {
+          p_cargo_concepto?: string
+          p_cargo_monto?: number
+          p_internacion_id: string
+          p_resultado?: string
+          p_tipo: string
+        }
+        Returns: {
+          creado_en: string
+          fecha: string
+          id: string
+          internacion_id: string
+          mascota_id: string
+          orden_item_id: string | null
+          resultado: string | null
+          solicitado_por: string
+          tipo: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "internacion_estudio"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      registrar_evolucion_internacion: {
+        Args: {
+          p_internacion_id: string
+          p_nota: string
+          p_temperatura?: number
+        }
+        Returns: {
+          creado_en: string
+          fecha: string
+          id: string
+          internacion_id: string
+          nota: string
+          profesional_id: string
+          temperatura: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "internacion_evolucion"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       registrar_intento_publico: {
         Args: { p_acierto: boolean; p_limite?: number; p_origen: string }
         Returns: boolean
+      }
+      registrar_medicacion_internacion: {
+        Args: {
+          p_cargo_concepto?: string
+          p_cargo_monto?: number
+          p_descripcion: string
+          p_dosis?: string
+          p_internacion_id: string
+          p_producto_id?: string
+          p_unidades?: number
+          p_via?: string
+        }
+        Returns: {
+          administrado_por: string
+          cantidad: number | null
+          creado_en: string
+          descripcion: string
+          dosis: string | null
+          fecha: string
+          id: string
+          internacion_id: string
+          orden_item_id: string | null
+          producto_id: string | null
+          via: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "internacion_medicacion"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       registrar_movimiento: {
         Args: {
@@ -3331,6 +3837,33 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "movimiento_caja"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      registrar_pago_internacion: {
+        Args: {
+          p_internacion_id: string
+          p_medio: Database["public"]["Enums"]["medio_pago"]
+          p_monto: number
+        }
+        Returns: {
+          confirmado_en: string | null
+          creado_en: string
+          estado: Database["public"]["Enums"]["estado_pago"]
+          id: string
+          medio: Database["public"]["Enums"]["medio_pago"]
+          monto: number
+          mp_payment_id: string | null
+          mp_preference_id: string | null
+          orden_id: string | null
+          payload_webhook: Json | null
+          registrado_por: string | null
+          turno_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "pago"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -3394,6 +3927,31 @@ export type Database = {
           monto_inicial: number
           otros_medios: number
           ventas: number
+        }[]
+      }
+      resumen_internacion: {
+        Args: { p_internacion_id: string }
+        Returns: {
+          diagnostico: string
+          egreso_en: string
+          especie: Database["public"]["Enums"]["especie"]
+          estado: Database["public"]["Enums"]["internacion_estado"]
+          id: string
+          indicaciones: string
+          ingreso_en: string
+          mascota: string
+          mascota_id: string
+          motivo: string
+          motivo_egreso: string
+          n_estudios: number
+          n_evoluciones: number
+          n_medicacion: number
+          orden_id: string
+          profesional: string
+          saldo: number
+          total_cargos: number
+          total_pagado: number
+          ubicacion: string
         }[]
       }
       revocar_invitacion: {
@@ -3549,6 +4107,7 @@ export type Database = {
         | "atendido"
         | "cancelado"
         | "ausente"
+      internacion_estado: "activa" | "cerrada"
       medio_pago:
         | "efectivo"
         | "debito"
@@ -3739,6 +4298,7 @@ export const Constants = {
         "cancelado",
         "ausente",
       ],
+      internacion_estado: ["activa", "cerrada"],
       medio_pago: [
         "efectivo",
         "debito",
