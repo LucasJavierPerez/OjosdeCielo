@@ -655,7 +655,32 @@ function BloqueMedicacion({
   const [productoId, setProductoId] = useState('');
   const [unidades, setUnidades] = useState('');
   const [cargoMonto, setCargoMonto] = useState('');
+  // Mientras no lo toquen a mano, el cargo lo propone el precio del inventario.
+  const [cargoTocado, setCargoTocado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const productoSel = stock?.find((p) => p.producto_id === productoId);
+  const sugerirCargo = (prod: typeof productoSel, unids: string) => {
+    const precio = Number(prod?.precio ?? 0);
+    if (!prod || precio <= 0) return '';
+    return String(precio * Math.max(1, Number(unids) || 1));
+  };
+
+  const elegirProducto = (nuevoId: string) => {
+    setProductoId(nuevoId);
+    const prod = stock?.find((p) => p.producto_id === nuevoId);
+    if (prod) {
+      if (!descripcion.trim()) setDescripcion(prod.nombre);
+      const unids = unidades.trim() || '1';
+      setUnidades(unids);
+      if (!cargoTocado) setCargoMonto(sugerirCargo(prod, unids));
+    }
+  };
+
+  const cambiarUnidades = (v: string) => {
+    setUnidades(v);
+    if (productoSel && !cargoTocado) setCargoMonto(sugerirCargo(productoSel, v));
+  };
 
   const reset = () => {
     setAbierto(false);
@@ -665,6 +690,7 @@ function BloqueMedicacion({
     setProductoId('');
     setUnidades('');
     setCargoMonto('');
+    setCargoTocado(false);
   };
 
   return (
@@ -744,12 +770,12 @@ function BloqueMedicacion({
               <Seleccion
                 id="me-prod"
                 value={productoId}
-                onChange={(e) => setProductoId(e.target.value)}
+                onChange={(e) => elegirProducto(e.target.value)}
               >
                 <option value="">— No sale del stock —</option>
                 {stock?.map((p) => (
                   <option key={p.producto_id} value={p.producto_id}>
-                    {p.nombre} ({p.cantidad})
+                    {p.nombre} ({p.cantidad}) · {pesos(Number(p.precio))}
                   </option>
                 ))}
               </Seleccion>
@@ -762,7 +788,7 @@ function BloqueMedicacion({
                 step="1"
                 inputMode="numeric"
                 value={unidades}
-                onChange={(e) => setUnidades(e.target.value)}
+                onChange={(e) => cambiarUnidades(e.target.value)}
                 disabled={!productoId}
               />
             </Campo>
@@ -770,7 +796,11 @@ function BloqueMedicacion({
           <Campo
             id="me-cargo"
             etiqueta="Cargo ($)"
-            ayuda="Opcional. Suma al total de la internación."
+            ayuda={
+              productoSel
+                ? 'Tomado del precio de inventario. Editable.'
+                : 'Opcional. Suma al total de la internación.'
+            }
           >
             <Entrada
               id="me-cargo"
@@ -778,7 +808,10 @@ function BloqueMedicacion({
               step="0.01"
               inputMode="decimal"
               value={cargoMonto}
-              onChange={(e) => setCargoMonto(e.target.value)}
+              onChange={(e) => {
+                setCargoMonto(e.target.value);
+                setCargoTocado(true);
+              }}
             />
           </Campo>
           {error && <MensajeError detalle={error} />}

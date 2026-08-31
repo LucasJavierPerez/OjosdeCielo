@@ -6,6 +6,7 @@ import {
   ETIQUETA_SEXO,
   esPersonalClinica,
   estadoVencimiento,
+  formatearFecha,
   formatearFechaCivil,
   puedeCargarHistoriaClinica,
   type TipoAntecedente,
@@ -17,7 +18,10 @@ import { type ReactNode, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { Layout } from '../componentes/Layout.js';
 import { Historial } from '../features/clinica/Historial.js';
-import { useInternacionActivaDe } from '../features/internaciones/api.js';
+import {
+  type InternacionResumen,
+  useInternacionesDePaciente,
+} from '../features/internaciones/api.js';
 import { IniciarInternacion } from '../features/internaciones/IniciarInternacion.js';
 import {
   usePaciente,
@@ -53,7 +57,8 @@ export function FichaPaciente() {
   const { data: mascota, isLoading, isError, refetch } = usePaciente(supabase, id);
   const { data: salud } = useSaludPaciente(supabase, id);
   const { data: tutores } = useTutoresPaciente(supabase, id);
-  const { data: internacionActiva } = useInternacionActivaDe(supabase, id);
+  const { data: internaciones } = useInternacionesDePaciente(supabase, id);
+  const internacionActiva = internaciones?.find((x) => x.estado === 'activa') ?? null;
 
   const puedoVerificar = perfil ? puedeCargarHistoriaClinica(perfil.roles) : false;
   const puedoEditarFicha = perfil ? esPersonalClinica(perfil.roles) : false;
@@ -200,6 +205,8 @@ export function FichaPaciente() {
         <div className="space-y-6 lg:col-span-2">
           <Historial mascotaId={id} />
 
+          <BloqueInternaciones internaciones={internaciones ?? []} />
+
           <Recetario mascotaId={id} />
 
           <BloquePeso mascotaId={id} pesos={salud?.pesos ?? []} puedoEditar={puedoVerificar} />
@@ -253,6 +260,43 @@ function Bloque({
         <ul className="mt-2 divide-y divide-slate-100">{children}</ul>
       )}
     </section>
+  );
+}
+
+/**
+ * Internaciones del paciente — parte de su historia clínica: qué le pasó y por
+ * qué. La más reciente arriba, con enlace a la ficha de internación.
+ */
+function BloqueInternaciones({ internaciones }: { internaciones: InternacionResumen[] }) {
+  return (
+    <Bloque titulo="Internaciones" vacio={internaciones.length === 0}>
+      {internaciones.map((i) => (
+        <li key={i.id} className="py-2.5 text-sm">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <Link
+              to={`/internaciones/${i.id}`}
+              className="font-medium text-slate-900 hover:text-marca-700"
+            >
+              {i.motivo}
+            </Link>
+            <span className="text-xs text-slate-400">
+              {formatearFecha(i.ingreso_en)}
+              {i.egreso_en && ` – ${formatearFecha(i.egreso_en)}`}
+            </span>
+          </div>
+          {i.diagnostico && <p className="text-slate-600">Diagnóstico: {i.diagnostico}</p>}
+          <p className="mt-0.5 text-xs">
+            {i.estado === 'activa' ? (
+              <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-medium text-emerald-800">
+                Internado ahora
+              </span>
+            ) : (
+              <span className="text-slate-500">Egreso: {i.motivo_egreso ?? 'no registrado'}</span>
+            )}
+          </p>
+        </li>
+      ))}
+    </Bloque>
   );
 }
 

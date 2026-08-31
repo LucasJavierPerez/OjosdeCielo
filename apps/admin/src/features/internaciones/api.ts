@@ -68,8 +68,8 @@ export const clavesInternacion = {
   adjuntos: (id: string) => ['internacion', id, 'adjuntos'] as const,
   cargos: (ordenId: string) => ['internacion', 'orden', ordenId, 'cargos'] as const,
   pagos: (ordenId: string) => ['internacion', 'orden', ordenId, 'pagos'] as const,
-  // La internación activa de un paciente, para el badge en la ficha.
-  activaDe: (mascotaId: string) => ['internacion', 'activa-de', mascotaId] as const,
+  // Todas las internaciones de un paciente, para su historia clínica.
+  dePaciente: (mascotaId: string) => ['internacion', 'de-paciente', mascotaId] as const,
 };
 
 const num = (v: string | undefined) => (v && v.trim() !== '' ? Number(v) : undefined);
@@ -126,17 +126,24 @@ export function useInternacion(supabase: ClienteSupabase, id: string) {
   });
 }
 
-/** La internación activa de un paciente, si tiene una. Para el badge en la ficha. */
-export function useInternacionActivaDe(supabase: ClienteSupabase, mascotaId: string) {
+export type InternacionResumen = Pick<
+  Fila<'internacion'>,
+  'id' | 'motivo' | 'diagnostico' | 'estado' | 'ingreso_en' | 'egreso_en' | 'motivo_egreso'
+>;
+
+/**
+ * Todas las internaciones de un paciente, la más reciente primero. Para la
+ * historia clínica en la ficha del paciente (qué le pasó y por qué).
+ */
+export function useInternacionesDePaciente(supabase: ClienteSupabase, mascotaId: string) {
   return useQuery({
-    queryKey: clavesInternacion.activaDe(mascotaId),
-    queryFn: async (): Promise<{ id: string } | null> => {
+    queryKey: clavesInternacion.dePaciente(mascotaId),
+    queryFn: async (): Promise<InternacionResumen[]> => {
       const { data, error } = await supabase
         .from('internacion')
-        .select('id')
+        .select('id, motivo, diagnostico, estado, ingreso_en, egreso_en, motivo_egreso')
         .eq('mascota_id', mascotaId)
-        .eq('estado', 'activa')
-        .maybeSingle();
+        .order('ingreso_en', { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -263,7 +270,7 @@ export function useCrearInternacion(supabase: ClienteSupabase) {
     },
     onSuccess: (_r, v) => {
       void qc.invalidateQueries({ queryKey: clavesInternacion.activas });
-      void qc.invalidateQueries({ queryKey: clavesInternacion.activaDe(v.mascotaId) });
+      void qc.invalidateQueries({ queryKey: clavesInternacion.dePaciente(v.mascotaId) });
     },
   });
 }
@@ -441,6 +448,8 @@ export function useCerrarInternacion(supabase: ClienteSupabase, id: string) {
       void qc.invalidateQueries({ queryKey: clavesInternacion.detalle(id) });
       void qc.invalidateQueries({ queryKey: clavesInternacion.activas });
       void qc.invalidateQueries({ queryKey: clavesInternacion.conSaldo });
+      // La ficha del paciente muestra el estado de sus internaciones.
+      void qc.invalidateQueries({ queryKey: ['internacion', 'de-paciente'] });
     },
   });
 }
