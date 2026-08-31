@@ -3033,6 +3033,7 @@ export type Database = {
         }[]
       }
       borrar_campana: { Args: { p_campana_id: string }; Returns: undefined }
+      borrar_turno: { Args: { p_turno_id: string }; Returns: undefined }
       buscar_pacientes: {
         Args: { p_texto?: string }
         Returns: {

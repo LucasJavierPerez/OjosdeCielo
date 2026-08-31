@@ -1,4 +1,4 @@
-import { Boton, Cargando } from '@ojosdecielo/ui';
+import { Cargando } from '@ojosdecielo/ui';
 import type { ReactNode } from 'react';
 
 /**
@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
  *
  * Unifica los tres estados que toda vista con datos tiene que resolver —
  * cargando, vacío y con contenido — para que ninguna sección se olvide de
- * alguno.
+ * alguno. Es solo lectura: la carga de datos de salud la hace la clínica.
  */
 export function Seccion({
   titulo,
@@ -14,7 +14,6 @@ export function Seccion({
   cargando,
   vacio,
   textoVacio,
-  onAgregar,
   children,
 }: {
   titulo: string;
@@ -22,7 +21,6 @@ export function Seccion({
   cargando?: boolean;
   vacio?: boolean;
   textoVacio: string;
-  onAgregar: () => void;
   children?: ReactNode;
 }) {
   return (
@@ -32,9 +30,6 @@ export function Seccion({
           {titulo}
           {resumen && <span className="ml-2 text-sm font-normal text-slate-500">{resumen}</span>}
         </h2>
-        <Boton variante="texto" className="text-sm" onClick={onAgregar}>
-          Agregar
-        </Boton>
       </div>
 
       {cargando && <Cargando etiqueta={`Cargando ${titulo.toLowerCase()}`} />}

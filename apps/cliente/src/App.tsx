@@ -16,7 +16,6 @@ import { MisTurnos } from './paginas/MisTurnos.js';
 import { NoEncontrado } from './paginas/NoEncontrado.js';
 import { Notificaciones } from './paginas/Notificaciones.js';
 import { NuevaMascota } from './paginas/NuevaMascota.js';
-import { NuevoTurno } from './paginas/NuevoTurno.js';
 import { OrdenCompra } from './paginas/OrdenCompra.js';
 import { Politica } from './paginas/Politica.js';
 import { RecetaImprimible } from './paginas/RecetaImprimible.js';
@@ -139,14 +138,6 @@ export function App() {
           element={
             <Privada>
               <MisTurnos />
-            </Privada>
-          }
-        />
-        <Route
-          path="/turnos/nuevo"
-          element={
-            <Privada>
-              <NuevoTurno />
             </Privada>
           }
         />

@@ -12,7 +12,7 @@ export interface Paciente {
   titular_nombre: string;
   titular_apellido: string;
   titular_telefono: string | null;
-  titular_email: string;
+  titular_email: string | null;
   cantidad_tutores: number;
 }
 

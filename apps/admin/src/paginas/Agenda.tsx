@@ -64,6 +64,7 @@ export function Agenda() {
   const [vista, setVista] = useState<'dia' | 'semana'>('dia');
   const [error, setError] = useState<string | null>(null);
   const [cargandoTurno, setCargandoTurno] = useState(false);
+  const [borrandoId, setBorrandoId] = useState<string | null>(null);
 
   const {
     data: turnos,
@@ -97,6 +98,19 @@ export function Agenda() {
       if (err) throw new Error(err.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['agenda', fecha] }),
+  });
+
+  // Cancelar deja el turno con estado 'cancelado' para el registro; borrar lo
+  // elimina. Para el turno cargado por error, en el día o el horario equivocado.
+  const borrar = useMutation({
+    mutationFn: async (id: string) => {
+      const { error: err } = await supabase.rpc('borrar_turno', { p_turno_id: id });
+      if (err) throw new Error(err.message);
+    },
+    onSuccess: () => {
+      setBorrandoId(null);
+      void qc.invalidateQueries({ queryKey: ['agenda', fecha] });
+    },
   });
 
   const mover = (dias: number) =>
@@ -273,6 +287,38 @@ export function Agenda() {
                       }}
                     >
                       Cancelar
+                    </Boton>
+                  )}
+
+                  {borrandoId === t.id ? (
+                    <span className="flex items-center gap-2 text-sm">
+                      <span className="text-slate-500">¿Borrar?</span>
+                      <Boton
+                        variante="texto"
+                        className="text-sm text-red-700"
+                        cargando={borrar.isPending}
+                        onClick={() => {
+                          setError(null);
+                          borrar.mutate(t.id, { onError: (e) => setError(e.message) });
+                        }}
+                      >
+                        Sí
+                      </Boton>
+                      <Boton
+                        variante="texto"
+                        className="text-sm text-slate-400"
+                        onClick={() => setBorrandoId(null)}
+                      >
+                        No
+                      </Boton>
+                    </span>
+                  ) : (
+                    <Boton
+                      variante="texto"
+                      className="text-sm text-slate-400"
+                      onClick={() => setBorrandoId(t.id)}
+                    >
+                      Borrar
                     </Boton>
                   )}
                 </div>

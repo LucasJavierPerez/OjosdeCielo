@@ -462,27 +462,17 @@ console.log('\n=== 26. Storage: las fotos son privadas ===');
 const vet = sesiones['vet@ojosdecielo.test'];
 const recepcion = sesiones['recepcion@ojosdecielo.test'];
 
-console.log('\n=== 27. El origen lo fija el servidor, no el cliente ===');
-let pesoTutorId;
+console.log('\n=== 27. El tutor ya no carga datos de salud ===');
 {
-  // Ana intenta hacer pasar su registro por uno de la clínica.
-  const { data, error } = await ana.sb
-    .from('peso_registro')
-    .insert({ mascota_id: mascotaId, peso_kg: 12.5, origen: 'clinica' })
-    .select()
-    .single();
-
-  if (error) {
-    fail(`Ana no pudo cargar un peso: ${error.message}`);
-  } else {
-    pesoTutorId = data.id;
-    data.origen === 'tutor'
-      ? ok('El origen quedó en "tutor" aunque mandó "clinica"')
-      : fail(`FALSIFICACIÓN: el registro quedó con origen "${data.origen}"`);
-    data.cargado_por === ana.userId
-      ? ok('cargado_por apunta a quien realmente lo cargó')
-      : fail('cargado_por no coincide con el usuario');
-    data.verificado_por === null ? ok('Nace sin verificar') : fail('El registro nació verificado');
+  // Las cuatro tablas de salud: el tutor no puede insertar en ninguna.
+  for (const [tabla, campos] of [
+    ['peso_registro', { peso_kg: 12.5 }],
+    ['aplicacion', { tipo: 'vacuna', producto: 'Antirrábica' }],
+    ['antecedente', { tipo: 'alergia', descripcion: 'Polen' }],
+    ['medicacion_en_curso', { descripcion: 'Meloxicam', dosis: '0.5 mg' }],
+  ]) {
+    const { error } = await ana.sb.from(tabla).insert({ mascota_id: mascotaId, ...campos });
+    error ? ok(`${tabla}: el tutor no puede cargar`) : fail(`FUGA: el tutor cargó en ${tabla}`);
   }
 }
 
@@ -491,16 +481,29 @@ let pesoClinicaId;
 {
   const { data, error } = await vet.sb
     .from('peso_registro')
-    .insert({ mascota_id: mascotaId, peso_kg: 12.8 })
+    .insert({ mascota_id: mascotaId, peso_kg: 12.8, nota: 'Balanza de consultorio' })
     .select()
     .single();
   pesoClinicaId = data?.id;
   data?.origen === 'clinica'
     ? ok('El veterinario cargó con origen "clinica"')
     : fail(`Origen inesperado: ${data?.origen ?? error?.message}`);
+  data?.cargado_por === vet.userId
+    ? ok('cargado_por apunta a quien lo cargó')
+    : fail('cargado_por no coincide con el veterinario');
 }
 
-console.log('\n=== 29. El tutor no toca lo que cargó la clínica ===');
+console.log('\n=== 29. Recepción tampoco carga datos de salud ===');
+{
+  const { error } = await recepcion.sb
+    .from('peso_registro')
+    .insert({ mascota_id: mascotaId, peso_kg: 10 });
+  error
+    ? ok('Recepción no carga peso: es acto del veterinario')
+    : fail('FUGA: recepción cargó un peso');
+}
+
+console.log('\n=== 30. El tutor no toca lo que cargó la clínica ===');
 {
   await ana.sb.from('peso_registro').update({ peso_kg: 99 }).eq('id', pesoClinicaId);
   const { data } = await ana.sb
@@ -509,7 +512,7 @@ console.log('\n=== 29. El tutor no toca lo que cargó la clínica ===');
     .eq('id', pesoClinicaId)
     .single();
   Number(data?.peso_kg) === 12.8
-    ? ok('Ana no pudo modificar el peso registrado por la clínica')
+    ? ok('Ana no pudo modificar el peso de la clínica')
     : fail(`FUGA: Ana cambió un dato de la clínica a ${data?.peso_kg}`);
 
   await ana.sb.from('peso_registro').delete().eq('id', pesoClinicaId);
@@ -519,81 +522,59 @@ console.log('\n=== 29. El tutor no toca lo que cargó la clínica ===');
     : fail('FUGA: Ana borró un registro de la clínica');
 }
 
-console.log('\n=== 30. El tutor sí edita lo suyo ===');
+console.log('\n=== 31. El tutor sí lee la salud de su mascota ===');
 {
-  const { error } = await ana.sb
-    .from('peso_registro')
-    .update({ peso_kg: 13.1 })
-    .eq('id', pesoTutorId);
   const { data } = await ana.sb
     .from('peso_registro')
-    .select('peso_kg')
-    .eq('id', pesoTutorId)
+    .select('peso_kg, origen')
+    .eq('id', pesoClinicaId)
     .single();
-  !error && Number(data?.peso_kg) === 13.1
-    ? ok('Ana corrigió su propio registro')
-    : fail(`No pudo editar lo suyo: ${error?.message}`);
+  data?.origen === 'clinica' && Number(data?.peso_kg) === 12.8
+    ? ok('Ana ve el peso que cargó la clínica')
+    : fail(`Ana no ve bien el peso de la clínica: ${JSON.stringify(data)}`);
 }
 
-console.log('\n=== 31. El origen es inmutable ===');
+console.log('\n=== 32. Verificar y descartar son exclusivos del veterinario ===');
 {
-  const { error } = await ana.sb
-    .from('peso_registro')
-    .update({ origen: 'clinica' })
-    .eq('id', pesoTutorId);
-  const { data } = await ana.sb
-    .from('peso_registro')
-    .select('origen')
-    .eq('id', pesoTutorId)
-    .single();
-  data?.origen === 'tutor'
-    ? ok(`No se puede cambiar el origen (${error ? 'con error' : 'sin efecto'})`)
-    : fail('FALSIFICACIÓN: un registro del tutor pasó a ser de la clínica');
-}
+  for (const [rol, sb] of [
+    ['un cliente', ana.sb],
+    ['recepción', recepcion.sb],
+  ]) {
+    const { error: errVer } = await sb.rpc('verificar_registro', {
+      p_tabla: 'peso_registro',
+      p_id: pesoClinicaId,
+    });
+    errVer ? ok(`Verificar: ${rol} no puede`) : fail(`ESCALADA: ${rol} verificó un dato clínico`);
 
-console.log('\n=== 32. Verificar es exclusivo del veterinario ===');
-{
-  const { error: errDirecto } = await ana.sb
+    const { error: errDesc } = await sb.rpc('descartar_registro', {
+      p_tabla: 'peso_registro',
+      p_id: pesoClinicaId,
+      p_motivo: 'no corresponde',
+    });
+    errDesc ? ok(`Descartar: ${rol} no puede`) : fail(`ESCALADA: ${rol} descartó un dato clínico`);
+  }
+
+  // El intento directo de auto-verificarse con un UPDATE no tiene efecto: el
+  // tutor ya no tiene política de escritura sobre la tabla.
+  await ana.sb.from('peso_registro').update({ verificado_por: ana.userId }).eq('id', pesoClinicaId);
+  const { data: trasIntento } = await ana.sb
     .from('peso_registro')
-    .update({ verificado_por: ana.userId })
-    .eq('id', pesoTutorId);
-  errDirecto
+    .select('verificado_por')
+    .eq('id', pesoClinicaId)
+    .single();
+  trasIntento?.verificado_por == null
     ? ok('Nadie se auto-verifica con un UPDATE directo')
     : fail('FUGA: se pudo escribir verificado_por a mano');
-
-  const { error: errRecepcion } = await recepcion.sb.rpc('verificar_registro', {
-    p_tabla: 'peso_registro',
-    p_id: pesoTutorId,
-  });
-  errRecepcion
-    ? ok('Recepción no puede verificar')
-    : fail('ESCALADA: recepción verificó un dato clínico');
-
-  const { error: errVet } = await vet.sb.rpc('verificar_registro', {
-    p_tabla: 'peso_registro',
-    p_id: pesoTutorId,
-  });
-  errVet
-    ? fail(`El veterinario no pudo verificar: ${errVet.message}`)
-    : ok('El veterinario verificó');
-
-  const { data } = await ana.sb
-    .from('peso_registro')
-    .select('origen, verificado_por')
-    .eq('id', pesoTutorId)
-    .single();
-  data?.verificado_por === vet.userId && data?.origen === 'tutor'
-    ? ok('Queda verificado y el origen sigue siendo "tutor"')
-    : fail(`Estado inesperado tras verificar: ${JSON.stringify(data)}`);
 }
 
 console.log('\n=== 33. verificar_registro no acepta tablas arbitrarias ===');
 {
   for (const tabla of ['perfil', 'audit_log', 'mascota_tutor']) {
-    const { error } = await vet.sb.rpc('verificar_registro', { p_tabla: tabla, p_id: pesoTutorId });
-    if (!error) {
-      fail(`INYECCIÓN: aceptó la tabla ${tabla}`);
-    }
+    const { error } = await vet.sb.rpc('verificar_registro', {
+      p_tabla: tabla,
+      p_id: pesoClinicaId,
+    });
+    if (!error) fail(`INYECCIÓN: aceptó la tabla ${tabla}`);
   }
   ok('Rechaza tablas fuera de la lista blanca');
 }
@@ -611,9 +592,7 @@ console.log('\n=== 34. Los datos de salud siguen el acceso a la mascota ===');
   const { error } = await clara.sb
     .from('peso_registro')
     .insert({ mascota_id: mascotaId, peso_kg: 1 });
-  error
-    ? ok('Clara tampoco puede cargar datos en una mascota ajena')
-    : fail('FUGA: Clara cargó un peso en la mascota de otro');
+  error ? ok('Clara tampoco puede cargar (no es veterinaria)') : fail('FUGA: Clara cargó un peso');
 }
 
 console.log('\n=== 35. Las cuatro tablas de salud tienen las mismas garantías ===');
@@ -625,19 +604,23 @@ console.log('\n=== 35. Las cuatro tablas de salud tienen las mismas garantías =
   ];
 
   for (const [tabla, campos] of casos) {
-    const { data, error } = await ana.sb
+    const { data, error } = await vet.sb
       .from(tabla)
-      .insert({ mascota_id: mascotaId, origen: 'clinica', ...campos })
+      .insert({ mascota_id: mascotaId, ...campos })
       .select()
       .single();
-
     if (error) {
-      fail(`${tabla}: Ana no pudo cargar (${error.message})`);
+      fail(`${tabla}: el veterinario no pudo cargar (${error.message})`);
       continue;
     }
-    data.origen === 'tutor'
-      ? ok(`${tabla}: origen forzado a "tutor"`)
+    data.origen === 'clinica'
+      ? ok(`${tabla}: el veterinario carga con origen "clinica"`)
       : fail(`${tabla}: origen "${data.origen}"`);
+
+    const { error: errTutor } = await ana.sb
+      .from(tabla)
+      .insert({ mascota_id: mascotaId, ...campos });
+    errTutor ? ok(`${tabla}: el tutor no puede cargar`) : fail(`FUGA: el tutor cargó en ${tabla}`);
 
     const { data: deClara } = await clara.sb.from(tabla).select('id').eq('mascota_id', mascotaId);
     deClara?.length === 0 ? ok(`${tabla}: Clara no ve nada`) : fail(`FUGA en ${tabla}`);
@@ -845,7 +828,9 @@ console.log('\n=== 46. Marcar fallecida conserva la ficha ===');
     p_nombre: 'Despedida',
     p_especie: 'perro',
   });
-  await clara.sb.from('aplicacion').insert({
+  // La carga de salud es del veterinario; acá sólo hace falta que exista un
+  // registro para verificar que sobrevive al marcar la ficha como fallecida.
+  await vet.sb.from('aplicacion').insert({
     mascota_id: m.id,
     tipo: 'vacuna',
     proxima_fecha: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
@@ -1466,84 +1451,69 @@ const mascotaConTurnos = mascotaTurnos.id;
   await bruno.sb.rpc('aceptar_invitacion', { p_token: inv.token });
 }
 
-console.log('\n=== 65. Slots y reserva ===');
+console.log('\n=== 65. Los turnos los agenda el personal, no el tutor ===');
 let turnoId;
-let slotTomado;
 {
-  const { data: esp } = await ana.sb.from('especialidad').select('id, nombre');
+  const { data: esp } = await recepcion.sb.from('especialidad').select('id, nombre');
   const especialidad = esp?.find((e) => e.nombre === 'Consulta general')?.id;
-  const { data: profs } = await ana.sb.rpc('profesionales_disponibles');
+  const { data: profs } = await recepcion.sb.rpc('profesionales_disponibles');
   const prof = profs?.[0]?.id;
-  const fecha = proximoHabil();
+  const inicio = `${proximoHabil()}T03:00:00-03:00`;
 
   profs && profs.length > 0 && profs[0].nombre
-    ? ok(`Un cliente puede listar profesionales con nombre (${profs[0].nombre})`)
+    ? ok(`Recepción lista profesionales con nombre (${profs[0].nombre})`)
     : fail('profesionales_disponibles no devuelve nombres');
 
-  const { data: slots } = await ana.sb.rpc('slots_disponibles', {
-    p_profesional_id: prof,
-    p_fecha: fecha,
-    p_especialidad_id: especialidad,
-  });
-  (slots?.length ?? 0) > 0 ? ok(`${slots.length} slots disponibles`) : fail('No hay slots');
-  slotTomado = slots?.[0]?.inicio;
-
-  const { data: turno, error } = await ana.sb.rpc('solicitar_turno', {
+  // El tutor ya no puede pedir turno.
+  const { error: errTutor } = await ana.sb.rpc('solicitar_turno', {
     p_mascota_id: mascotaConTurnos,
     p_profesional_id: prof,
     p_especialidad_id: especialidad,
-    p_inicio: slotTomado,
+    p_inicio: inicio,
+  });
+  errTutor ? ok('Un cliente no puede agendar un turno') : fail('FUGA: el cliente agendó un turno');
+
+  // El personal sí, y queda confirmado.
+  const { data: turno, error } = await recepcion.sb.rpc('solicitar_turno', {
+    p_mascota_id: mascotaConTurnos,
+    p_profesional_id: prof,
+    p_especialidad_id: especialidad,
+    p_inicio: inicio,
+    p_motivo: 'Control',
   });
   turnoId = turno?.id;
-  turno?.estado === 'solicitado'
-    ? ok('El cliente reserva y queda "solicitado"')
+  turno?.estado === 'confirmado'
+    ? ok('Recepción agenda y el turno queda "confirmado"')
     : fail(`Estado inesperado: ${turno?.estado ?? error?.message}`);
-
-  const { data: despues } = await ana.sb.rpc('slots_disponibles', {
-    p_profesional_id: prof,
-    p_fecha: fecha,
-    p_especialidad_id: especialidad,
-  });
-  despues?.length === slots.length - 1
-    ? ok('El horario reservado deja de ofrecerse')
-    : fail(`Slots antes ${slots.length}, después ${despues?.length}`);
-
-  const { error: errDoble } = await clara.sb.rpc('solicitar_turno', {
-    p_mascota_id: mascotaConTurnos,
-    p_profesional_id: prof,
-    p_especialidad_id: especialidad,
-    p_inicio: slotTomado,
-  });
-  errDoble ? ok('Otro usuario no puede tomar el mismo horario') : fail('SOBRETURNO');
 }
 
-console.log('\n=== 66. Un turno no se crea por fuera de la agenda ===');
+console.log('\n=== 66. Un turno no se inserta a mano ===');
 {
-  const { data: esp } = await ana.sb.from('especialidad').select('id').limit(1);
-  const { data: profs } = await ana.sb.rpc('profesionales_disponibles');
+  const { data: esp } = await recepcion.sb.from('especialidad').select('id').limit(1);
+  const { data: profs } = await recepcion.sb.rpc('profesionales_disponibles');
+  const cuando = `${proximoHabil()}T04:00:00-03:00`;
 
-  // Las 4 de la mañana, fuera de todo horario de atención.
-  const madrugada = new Date();
-  madrugada.setDate(madrugada.getDate() + 3);
-  madrugada.setUTCHours(7, 0, 0, 0);
-
-  const { error } = await ana.sb.rpc('solicitar_turno', {
-    p_mascota_id: mascotaConTurnos,
-    p_profesional_id: profs[0].id,
-    p_especialidad_id: esp[0].id,
-    p_inicio: madrugada.toISOString(),
-  });
-  error ? ok('Rechaza un horario fuera de la grilla') : fail('Aceptó un turno a las 4 AM');
-
-  // El INSERT directo tampoco: la tabla no otorga insert a authenticated.
   const { error: errInsert } = await ana.sb.from('turno').insert({
     mascota_id: mascotaConTurnos,
     profesional_id: profs[0].id,
     especialidad_id: esp[0].id,
-    inicio: madrugada.toISOString(),
-    fin: madrugada.toISOString(),
+    inicio: cuando,
+    fin: cuando,
   });
-  errInsert ? ok('Tampoco se puede insertar un turno a mano') : fail('FUGA: INSERT directo');
+  errInsert
+    ? ok('El tutor no puede insertar un turno a mano')
+    : fail('FUGA: INSERT directo del tutor');
+
+  const { error: errRecep } = await recepcion.sb.from('turno').insert({
+    mascota_id: mascotaConTurnos,
+    profesional_id: profs[0].id,
+    especialidad_id: esp[0].id,
+    inicio: cuando,
+    fin: cuando,
+  });
+  errRecep
+    ? ok('Ni recepción con un INSERT directo: el alta va por solicitar_turno()')
+    : fail('FUGA: recepción insertó un turno a mano');
 }
 
 console.log('\n=== 67. Los turnos siguen el acceso a la mascota ===');
@@ -1580,33 +1550,11 @@ console.log('\n=== 68. La agenda es sólo para el personal ===');
     : fail('FUGA: cliente cambió el estado');
 }
 
-console.log('\n=== 69. Cancelar libera el horario y cancela el recordatorio ===');
+console.log('\n=== 69. El tutor cancela; el personal borra ===');
 {
-  const { data: esp } = await ana.sb.from('especialidad').select('id, nombre');
-  const especialidad = esp?.find((e) => e.nombre === 'Consulta general')?.id;
-  const { data: profs } = await ana.sb.rpc('profesionales_disponibles');
-  const fecha = proximoHabil();
-
-  const antes = (
-    await ana.sb.rpc('slots_disponibles', {
-      p_profesional_id: profs[0].id,
-      p_fecha: fecha,
-      p_especialidad_id: especialidad,
-    })
-  ).data.length;
-
   // Cualquier tutor puede cancelar, no sólo quien lo pidió.
   const { error } = await bruno.sb.rpc('cancelar_turno', { p_turno_id: turnoId });
   error ? fail(`El otro tutor no pudo cancelar: ${error.message}`) : ok('El otro tutor canceló');
-
-  const despues = (
-    await ana.sb.rpc('slots_disponibles', {
-      p_profesional_id: profs[0].id,
-      p_fecha: fecha,
-      p_especialidad_id: especialidad,
-    })
-  ).data.length;
-  despues === antes + 1 ? ok('El horario vuelve a ofrecerse') : fail('El horario no se liberó');
 
   const { data: t } = await recepcion.sb
     .from('turno')
@@ -1624,6 +1572,30 @@ console.log('\n=== 69. Cancelar libera el horario y cancela el recordatorio ==='
   rec?.every((r) => r.estado === 'cancelado')
     ? ok('El recordatorio de 24 h también se cancela')
     : fail('Quedó un recordatorio activo de un turno cancelado');
+
+  // Borrar es del personal y elimina el turno de verdad.
+  const { error: errClienteBorra } = await ana.sb.rpc('borrar_turno', { p_turno_id: turnoId });
+  errClienteBorra
+    ? ok('Un cliente no puede borrar un turno')
+    : fail('FUGA: cliente borró un turno');
+
+  const { error: errBorra } = await recepcion.sb.rpc('borrar_turno', { p_turno_id: turnoId });
+  errBorra
+    ? fail(`Recepción no pudo borrar el turno: ${errBorra.message}`)
+    : ok('Recepción borra el turno');
+
+  const { data: sigue } = await recepcion.sb.from('turno').select('id').eq('id', turnoId);
+  (sigue?.length ?? 0) === 0
+    ? ok('El turno ya no existe')
+    : fail('El turno borrado seguía en la tabla');
+
+  const { data: recTras } = await recepcion.sb
+    .from('recordatorio')
+    .select('id')
+    .eq('origen_id', turnoId);
+  (recTras?.length ?? 0) === 0
+    ? ok('Sus recordatorios se fueron con él')
+    : fail('Quedaron recordatorios de un turno borrado');
 }
 
 // ===========================================================================
@@ -2808,135 +2780,88 @@ console.log('\n=== 100. Consentimiento de la política de privacidad ===');
     : fail('Se perdió la versión anterior');
 }
 
-console.log('\n=== 101. El veterinario controla los datos del paciente ===');
+console.log('\n=== 101. Descartar y restaurar un dato de salud ===');
 {
   const { data: paciente } = await ana.sb.rpc('crear_mascota', {
     p_nombre: 'Controlada',
     p_especie: 'gato',
   });
 
-  // El tutor reporta un peso equivocado: 13,1 kg en un gato.
-  const { data: pesoTutor } = await ana.sb
+  const { data: peso1 } = await vet.sb
     .from('peso_registro')
-    .insert({ mascota_id: paciente.id, peso_kg: 13.1 })
+    .insert({ mascota_id: paciente.id, peso_kg: 4.2, nota: 'Ingreso' })
+    .select()
+    .single();
+  const { data: peso2 } = await vet.sb
+    .from('peso_registro')
+    .insert({ mascota_id: paciente.id, peso_kg: 13.1, nota: 'Tipeo errado' })
     .select()
     .single();
 
-  // 1. El veterinario carga el suyo. Esto ya funcionaba; se verifica que
-  //    quede como dato de la clínica y no del tutor.
-  const { data: pesoVet, error: errVet } = await vet.sb
-    .from('peso_registro')
-    .insert({ mascota_id: paciente.id, peso_kg: 4.2, nota: 'Balanza de consultorio' })
-    .select()
-    .single();
-  errVet
-    ? fail(`El veterinario no pudo cargar un peso: ${errVet.message}`)
-    : ok('El veterinario carga peso desde el panel');
-  pesoVet?.origen === 'clinica'
-    ? ok('Queda con origen clínica, puesto por el trigger')
-    : fail(`El peso del veterinario quedó con origen ${pesoVet?.origen}`);
+  peso1?.origen === 'clinica'
+    ? ok('El veterinario carga con origen "clinica"')
+    : fail(`Origen inesperado: ${peso1?.origen}`);
 
-  // 2. Corrige el suyo.
-  const { error: errEditar } = await vet.sb
-    .from('peso_registro')
-    .update({ peso_kg: 4.35 })
-    .eq('id', pesoVet.id);
-  errEditar
-    ? fail(`El veterinario no pudo corregir su propio registro: ${errEditar.message}`)
-    : ok('Y lo corrige si se equivocó al tipear');
-
-  // 3. Lo que NO puede: reescribir lo que dijo el tutor.
-  await vet.sb.from('peso_registro').update({ peso_kg: 4.2 }).eq('id', pesoTutor.id);
-  const { data: sinTocar } = await vet.sb
-    .from('peso_registro')
-    .select('peso_kg')
-    .eq('id', pesoTutor.id)
-    .single();
-  Number(sinTocar?.peso_kg) === 13.1
-    ? ok('No reescribe lo que reportó el tutor: la etiqueta seguiría diciendo que lo dijo él')
-    : fail('El veterinario reescribió un dato del tutor');
-
-  // 4. Lo que sí: descartarlo, con motivo.
   const { error: errSinMotivo } = await vet.sb.rpc('descartar_registro', {
     p_tabla: 'peso_registro',
-    p_id: pesoTutor.id,
+    p_id: peso2.id,
     p_motivo: '  ',
   });
   errSinMotivo ? ok('Descartar sin motivo se rechaza') : fail('Se descartó sin motivo');
 
   const { error: errAna } = await ana.sb.rpc('descartar_registro', {
     p_tabla: 'peso_registro',
-    p_id: pesoTutor.id,
-    p_motivo: 'me equivoqué',
+    p_id: peso2.id,
+    p_motivo: 'no corresponde',
   });
-  errAna
-    ? ok('El tutor no descarta: es una decisión profesional')
-    : fail('FUGA: el tutor descartó un registro');
+  errAna ? ok('El tutor no descarta') : fail('FUGA: el tutor descartó un registro');
 
   const { error: errRecep } = await recepcion.sb.rpc('descartar_registro', {
     p_tabla: 'peso_registro',
-    p_id: pesoTutor.id,
+    p_id: peso2.id,
     p_motivo: 'no corresponde',
   });
   errRecep ? ok('Recepción tampoco') : fail('FUGA: recepción descartó un dato clínico');
 
   const { error: errDescartar } = await vet.sb.rpc('descartar_registro', {
     p_tabla: 'peso_registro',
-    p_id: pesoTutor.id,
+    p_id: peso2.id,
     p_motivo: 'Error de tipeo: el gato pesa 4,2 kg, no 13,1',
   });
   errDescartar
     ? fail(`El veterinario no pudo descartar: ${errDescartar.message}`)
-    : ok('El veterinario lo descarta con motivo');
+    : ok('El veterinario descarta con motivo');
 
-  // 5. El registro sigue existiendo y el tutor lee la explicación.
   const { data: visto } = await ana.sb
     .from('peso_registro')
     .select('peso_kg, descartado_en, motivo_descarte')
-    .eq('id', pesoTutor.id)
+    .eq('id', peso2.id)
     .single();
   visto?.descartado_en && visto.motivo_descarte?.includes('4,2')
-    ? ok('El registro no se borra y el tutor ve por qué se descartó')
-    : fail(`El descarte no quedó visible para el tutor: ${JSON.stringify(visto)}`);
+    ? ok('El registro queda, con el motivo visible para el tutor')
+    : fail(`El descarte no quedó visible: ${JSON.stringify(visto)}`);
 
-  // 6. Sale de la línea de tiempo, que es el efecto clínico buscado.
   const { data: linea } = await ana.sb.rpc('linea_de_tiempo', { p_mascota_id: paciente.id });
-  const pesos = linea?.filter((e) => e.tipo === 'peso') ?? [];
-  pesos.length === 1 && pesos[0].detalle.startsWith('4.35')
+  (linea?.filter((e) => e.tipo === 'peso') ?? []).length === 1
     ? ok('La historia muestra sólo el peso válido')
-    : fail(`La historia muestra ${JSON.stringify(pesos.map((p) => p.detalle))}`);
+    : fail(`La historia muestra ${JSON.stringify(linea?.filter((e) => e.tipo === 'peso'))}`);
 
-  // 7. Nadie toca el descarte por la puerta de atrás.
-  const { error: errDirecto } = await ana.sb
+  await ana.sb
     .from('peso_registro')
     .update({ descartado_en: null, motivo_descarte: null })
-    .eq('id', pesoTutor.id);
+    .eq('id', peso2.id);
   const { data: sigueDescartado } = await ana.sb
     .from('peso_registro')
     .select('descartado_en')
-    .eq('id', pesoTutor.id)
+    .eq('id', peso2.id)
     .single();
-  errDirecto || sigueDescartado?.descartado_en
-    ? ok('El tutor no puede levantar el descarte editando la fila')
+  sigueDescartado?.descartado_en
+    ? ok('El tutor no deshace el descarte editando la fila')
     : fail('FUGA: el tutor deshizo el descarte del profesional');
 
-  const { error: errAutoDescarte } = await ana.sb
-    .from('peso_registro')
-    .update({ descartado_en: new Date().toISOString() })
-    .eq('id', pesoVet.id);
-  const { data: vetIntacto } = await ana.sb
-    .from('peso_registro')
-    .select('descartado_en')
-    .eq('id', pesoVet.id)
-    .single();
-  errAutoDescarte || vetIntacto?.descartado_en === null
-    ? ok('Ni descartar el registro de la clínica')
-    : fail('FUGA: el tutor descartó un dato de la clínica');
-
-  // 8. Se puede deshacer.
   const { error: errRestaurar } = await vet.sb.rpc('restaurar_registro', {
     p_tabla: 'peso_registro',
-    p_id: pesoTutor.id,
+    p_id: peso2.id,
   });
   errRestaurar
     ? fail(`No se pudo restaurar: ${errRestaurar.message}`)

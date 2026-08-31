@@ -2,7 +2,6 @@ import { formatearFechaLarga, formatearHora, textoRelativo } from '@ojosdecielo/
 import { Boton, Cargando, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { Encabezado } from '../componentes/Encabezado.js';
 import { type TurnoConDatos, useCancelarTurno, useMisTurnos } from '../features/turnos/api.js';
 
@@ -27,15 +26,7 @@ export function MisTurnos() {
 
   return (
     <main className="safe-top safe-bottom mx-auto min-h-dvh max-w-md px-6 py-6">
-      <Encabezado
-        titulo="Turnos"
-        volverA="/"
-        accion={
-          <Link to="/turnos/nuevo" className="text-sm font-medium text-marca-600">
-            Pedir
-          </Link>
-        }
-      />
+      <Encabezado titulo="Turnos" volverA="/" />
 
       {isLoading && <Cargando etiqueta="Cargando turnos" />}
 
@@ -49,15 +40,7 @@ export function MisTurnos() {
         <div className="mt-6">
           <Vacio
             titulo="No tenés turnos pendientes"
-            descripcion="Sacá uno cuando lo necesites; te avisamos el día antes."
-            accion={
-              <Link
-                to="/turnos/nuevo"
-                className="inline-flex min-h-11 items-center rounded-lg bg-marca-600 px-4 font-medium text-white"
-              >
-                Pedir turno
-              </Link>
-            }
+            descripcion="Los turnos los agenda la clínica; acá vas a ver los que te confirmen, y te avisamos el día antes."
           />
         </div>
       )}

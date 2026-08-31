@@ -110,6 +110,11 @@ export function Pacientes() {
                   </td>
                   <td className="py-2.5">
                     {p.titular_nombre} {p.titular_apellido}
+                    {p.cantidad_tutores === 0 && (
+                      <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] text-amber-800">
+                        sin cuenta
+                      </span>
+                    )}
                     {p.cantidad_tutores > 1 && (
                       <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">
                         +{p.cantidad_tutores - 1} tutor{p.cantidad_tutores > 2 ? 'es' : ''}
@@ -118,7 +123,7 @@ export function Pacientes() {
                   </td>
                   <td className="py-2.5 text-slate-600">
                     {p.titular_telefono ?? '—'}
-                    <span className="block text-xs text-slate-400">{p.titular_email}</span>
+                    <span className="block text-xs text-slate-400">{p.titular_email ?? ''}</span>
                   </td>
                 </tr>
               ))}

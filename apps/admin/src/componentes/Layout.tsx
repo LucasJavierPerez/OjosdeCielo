@@ -59,10 +59,13 @@ export function Layout({ children }: { children: ReactNode }) {
             )}
           </button>
 
+          {/* Logo centrado en el encabezado: el botón Menú queda a la izquierda
+              y los datos de sesión a la derecha. Posición absoluta para que el
+              centro sea el de la página, no el del espacio que sobra. */}
           <Link
             to="/"
             onClick={cerrarMenu}
-            className="flex shrink-0 items-center gap-2 font-semibold"
+            className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 flex shrink-0 items-center gap-2 font-semibold"
           >
             <Isotipo className="h-8" />
             <span className="hidden lg:inline">Ojos de Cielo</span>

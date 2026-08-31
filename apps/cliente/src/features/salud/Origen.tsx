@@ -44,11 +44,19 @@ export function EtiquetaOrigen({ registro }: { registro: ConOrigen }) {
   );
 }
 
-/** Si el tutor actual puede editar o borrar este registro. */
-export function puedeEditar(registro: ConOrigen & { cargado_por: string }, perfilId: string) {
-  // Espeja la política RLS. La UI usa esto sólo para no ofrecer una acción que
-  // el servidor va a rechazar; quien decide es la base de datos.
-  return registro.origen === 'tutor' && registro.cargado_por === perfilId;
+/**
+ * Si el tutor actual puede editar o borrar este registro.
+ *
+ * Siempre `false`: los datos de salud los carga y corrige la clínica, no el
+ * tutor. La política RLS lo hace cumplir; esto sólo evita mostrar un botón que
+ * el servidor rechazaría. Se mantienen los parámetros por compatibilidad con
+ * los llamados existentes.
+ */
+export function puedeEditar(
+  _registro: ConOrigen & { cargado_por: string },
+  _perfilId: string,
+): boolean {
+  return false;
 }
 
 /**

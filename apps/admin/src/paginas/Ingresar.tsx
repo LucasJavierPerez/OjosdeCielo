@@ -30,9 +30,11 @@ export function Ingresar() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-6">
-      <Isotipo className="h-14" />
-      <h1 className="mt-4 text-xl font-semibold">Panel · Ojos de Cielo</h1>
-      <p className="mt-1 text-sm text-slate-600">Acceso para el personal de la clínica</p>
+      <div className="text-center">
+        <Isotipo className="mx-auto h-14" />
+        <h1 className="mt-4 text-xl font-semibold">Panel · Ojos de Cielo</h1>
+        <p className="mt-1 text-sm text-slate-600">Acceso para el personal de la clínica</p>
+      </div>
 
       <form onSubmit={alEnviar} className="mt-8 space-y-4">
         <div>
