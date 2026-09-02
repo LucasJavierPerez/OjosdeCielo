@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.invitar-personal]
 verify_jwt = false
+
+[functions.crear-tutor]
+verify_jwt = false

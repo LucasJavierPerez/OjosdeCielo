@@ -1,4 +1,4 @@
-import { LogoCompleto } from '@ojosdecielo/ui';
+import { EntradaClave, LogoCompleto } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router';
@@ -66,15 +66,18 @@ export function Ingresar() {
           <label htmlFor="password" className="block text-sm font-medium text-slate-700">
             Contraseña
           </label>
-          <input
+          <EntradaClave
             id="password"
-            type="password"
             autoComplete="current-password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5"
           />
+          <p className="mt-2 text-right text-sm">
+            <Link to="/recuperar" className="text-marca-600 hover:underline">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </p>
         </div>
 
         {error && (

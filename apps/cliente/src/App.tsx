@@ -15,11 +15,13 @@ import { Mensajes } from './paginas/Mensajes.js';
 import { MisTurnos } from './paginas/MisTurnos.js';
 import { NoEncontrado } from './paginas/NoEncontrado.js';
 import { Notificaciones } from './paginas/Notificaciones.js';
+import { NuevaClave } from './paginas/NuevaClave.js';
 import { NuevaMascota } from './paginas/NuevaMascota.js';
 import { OrdenCompra } from './paginas/OrdenCompra.js';
 import { Politica } from './paginas/Politica.js';
 import { RecetaImprimible } from './paginas/RecetaImprimible.js';
 import { RecetasMascota } from './paginas/RecetasMascota.js';
+import { RecuperarClave } from './paginas/RecuperarClave.js';
 import { Registrarse } from './paginas/Registrarse.js';
 import { SaludMascota } from './paginas/SaludMascota.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
@@ -43,6 +45,8 @@ export function App() {
       <Routes>
         <Route path="/ingresar" element={<Ingresar />} />
         <Route path="/registrarse" element={<Registrarse />} />
+        <Route path="/recuperar" element={<RecuperarClave />} />
+        <Route path="/nueva-clave" element={<NuevaClave />} />
         <Route path="/instalar" element={<Instalar />} />
         <Route path="/politica" element={<Politica />} />
         <Route path="/sin-acceso" element={<SinAcceso />} />

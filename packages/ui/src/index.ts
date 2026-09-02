@@ -3,6 +3,7 @@ export {
   Campo,
   Cargando,
   Entrada,
+  EntradaClave,
   MensajeError,
   Seleccion,
   Vacio,

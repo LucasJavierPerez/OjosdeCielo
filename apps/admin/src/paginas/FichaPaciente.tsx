@@ -30,6 +30,7 @@ import {
   useTutoresPaciente,
   useVerificarRegistro,
 } from '../features/pacientes/api.js';
+import { CrearCuentaTutor } from '../features/pacientes/CrearCuentaTutor.js';
 import {
   AccionesRegistro,
   FormularioAplicacion,
@@ -68,6 +69,7 @@ export function FichaPaciente() {
   const puedoVerificar = perfil ? puedeCargarHistoriaClinica(perfil.roles) : false;
   const puedoEditarFicha = perfil ? esPersonalClinica(perfil.roles) : false;
   const [editando, setEditando] = useState<string | null>(null);
+  const [creandoCuenta, setCreandoCuenta] = useState<string | null>(null);
   const [editandoPaciente, setEditandoPaciente] = useState(false);
   const [nuevoEpisodio, setNuevoEpisodio] = useState<EpisodioTipo | null>(null);
 
@@ -201,6 +203,18 @@ export function FichaPaciente() {
                         : { tipo: 'sin_cuenta', contactoId: t.id, datos: datosDe(t) }
                     }
                   />
+                ) : creandoCuenta === t.id ? (
+                  <CrearCuentaTutor
+                    mascotaId={id}
+                    onCerrar={() => setCreandoCuenta(null)}
+                    prefill={{
+                      nombre: t.nombre,
+                      apellido: t.apellido ?? '',
+                      email: t.email ?? '',
+                      telefono: t.telefono ?? '',
+                      dni: t.dni ?? '',
+                    }}
+                  />
                 ) : (
                   <>
                     <p className="font-medium">
@@ -210,20 +224,31 @@ export function FichaPaciente() {
                     {t.telefono && <p className="text-slate-500">{t.telefono}</p>}
                     {!t.registrado && (
                       <p className="mt-1 text-xs text-amber-700">
-                        Todavía no usa la app. Si se registra con ese email, va a ver la historia.
+                        Todavía no tiene cuenta en la app.
                       </p>
                     )}
-                    <div className="mt-1 flex items-center justify-between gap-2">
+                    <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
                       <span className="text-xs text-slate-400">
                         {t.rol_tutor === 'titular' ? 'Titular' : 'Tutor'}
                       </span>
-                      <Boton
-                        variante="texto"
-                        className="text-xs text-slate-500"
-                        onClick={() => setEditando(t.id)}
-                      >
-                        Corregir datos
-                      </Boton>
+                      <span className="flex gap-3">
+                        {puedoEditarFicha && !t.registrado && (
+                          <Boton
+                            variante="texto"
+                            className="text-xs text-marca-600"
+                            onClick={() => setCreandoCuenta(t.id)}
+                          >
+                            Crear cuenta
+                          </Boton>
+                        )}
+                        <Boton
+                          variante="texto"
+                          className="text-xs text-slate-500"
+                          onClick={() => setEditando(t.id)}
+                        >
+                          Corregir datos
+                        </Boton>
+                      </span>
                     </div>
                   </>
                 )}

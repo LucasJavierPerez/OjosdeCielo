@@ -11,10 +11,12 @@ import { Ingresar } from './paginas/Ingresar.js';
 import { Domicilios, Internaciones } from './paginas/Internaciones.js';
 import { Inventario } from './paginas/Inventario.js';
 import { Mensajes } from './paginas/Mensajes.js';
+import { NuevaClave } from './paginas/NuevaClave.js';
 import { NuevoPaciente } from './paginas/NuevoPaciente.js';
 import { Pacientes } from './paginas/Pacientes.js';
 import { Pedidos } from './paginas/Pedidos.js';
 import { Promociones } from './paginas/Promociones.js';
+import { RecuperarClave } from './paginas/RecuperarClave.js';
 import { Reposiciones } from './paginas/Reposiciones.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
 import { Tablero } from './paginas/Tablero.js';
@@ -27,6 +29,8 @@ export function App() {
   return (
     <Routes>
       <Route path="/ingresar" element={<Ingresar />} />
+      <Route path="/recuperar" element={<RecuperarClave />} />
+      <Route path="/nueva-clave" element={<NuevaClave />} />
       <Route path="/sin-acceso" element={<SinAcceso />} />
 
       {/* La agenda del día es lo primero que mira el personal al llegar. */}

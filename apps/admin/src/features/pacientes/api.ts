@@ -176,3 +176,51 @@ export function useVerificarRegistro(supabase: ClienteSupabase, mascotaId: strin
     onSuccess: () => qc.invalidateQueries({ queryKey: claves.salud(mascotaId) }),
   });
 }
+
+export interface DatosCuentaTutor {
+  email: string;
+  password: string;
+  nombre: string;
+  apellido: string;
+  telefono?: string;
+  dni?: string;
+  mascota_id: string;
+}
+
+/**
+ * Crea la cuenta (email + contraseña) de un tutor desde el panel.
+ *
+ * Va por Edge Function y no por RPC: el alta del usuario de auth necesita
+ * `service_role`, que nunca sale del navegador.
+ */
+export function useCrearCuentaTutor(supabase: ClienteSupabase, mascotaId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (d: DatosCuentaTutor): Promise<string> => {
+      const { data, error } = await supabase.functions.invoke<{
+        resultado: string;
+        error?: string;
+        aviso?: string;
+      }>('crear-tutor', { body: d });
+
+      if (error) {
+        const contexto = (error as { context?: unknown }).context;
+        let detalle: string | null = null;
+        if (contexto instanceof Response) {
+          try {
+            detalle = ((await contexto.json()) as { error?: string }).error ?? null;
+          } catch {
+            detalle = null;
+          }
+        }
+        throw new Error(detalle ?? 'No pudimos crear la cuenta');
+      }
+      if (!data) throw new Error('No pudimos crear la cuenta');
+      return data.aviso ?? data.resultado;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: claves.tutores(mascotaId) });
+      void qc.invalidateQueries({ queryKey: ['contacto', mascotaId] });
+    },
+  });
+}

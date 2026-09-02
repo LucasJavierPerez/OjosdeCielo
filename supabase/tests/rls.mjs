@@ -3688,6 +3688,75 @@ console.log('\n=== 111. Atención a domicilio: mismo circuito, episodio aparte =
     : ok('La visita a domicilio se cobra y se cierra como una internación');
 }
 
+console.log('\n=== 112. Vincular un tutor a un paciente (crear-tutor) ===');
+{
+  const { data: paciente } = await ana.sb.rpc('crear_mascota', {
+    p_nombre: 'Vinculada',
+    p_especie: 'perro',
+  });
+
+  // Un cliente no vincula tutores.
+  const { error: errCliente } = await ana.sb.rpc('vincular_tutor_a_mascota', {
+    p_perfil_id: bruno.userId,
+    p_mascota_id: paciente.id,
+  });
+  errCliente ? ok('Un cliente no vincula tutores') : fail('FUGA: un cliente vinculó un tutor');
+
+  // El personal sí. Ana ya es titular, así que Bruno entra como 'tutor'.
+  const { error: errRecep } = await recepcion.sb.rpc('vincular_tutor_a_mascota', {
+    p_perfil_id: bruno.userId,
+    p_mascota_id: paciente.id,
+  });
+  errRecep
+    ? fail(`Recepción no pudo vincular: ${errRecep.message}`)
+    : ok('Recepción vincula un tutor al paciente');
+
+  const { data: vinculo } = await recepcion.sb
+    .from('mascota_tutor')
+    .select('rol')
+    .eq('mascota_id', paciente.id)
+    .eq('perfil_id', bruno.userId)
+    .is('revocado_en', null);
+  vinculo?.length === 1 && vinculo[0].rol === 'tutor'
+    ? ok('Queda como "tutor" porque ya había titular')
+    : fail(`Vínculo inesperado: ${JSON.stringify(vinculo)}`);
+
+  // Idempotente: llamar de nuevo no duplica.
+  await recepcion.sb.rpc('vincular_tutor_a_mascota', {
+    p_perfil_id: bruno.userId,
+    p_mascota_id: paciente.id,
+  });
+  const { data: repetido } = await recepcion.sb
+    .from('mascota_tutor')
+    .select('id')
+    .eq('mascota_id', paciente.id)
+    .eq('perfil_id', bruno.userId)
+    .is('revocado_en', null);
+  repetido?.length === 1
+    ? ok('Vincular dos veces no duplica el acceso')
+    : fail('Se duplicó el vínculo');
+
+  // Sobre un paciente sin titular (alta de la clínica), el primero entra como titular.
+  const { data: sinTitular } = await recepcion.sb.rpc('crear_paciente', {
+    p_nombre: 'SinTitular',
+    p_especie: 'gato',
+    p_tutor_nombre: 'Alguien',
+  });
+  await recepcion.sb.rpc('vincular_tutor_a_mascota', {
+    p_perfil_id: bruno.userId,
+    p_mascota_id: sinTitular.id,
+  });
+  const { data: comoTitular } = await recepcion.sb
+    .from('mascota_tutor')
+    .select('rol')
+    .eq('mascota_id', sinTitular.id)
+    .eq('perfil_id', bruno.userId)
+    .is('revocado_en', null);
+  comoTitular?.[0]?.rol === 'titular'
+    ? ok('Si no había titular, el tutor vinculado queda como titular')
+    : fail(`Rol inesperado en paciente sin titular: ${JSON.stringify(comoTitular)}`);
+}
+
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

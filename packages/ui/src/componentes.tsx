@@ -1,8 +1,9 @@
-import type {
-  ButtonHTMLAttributes,
-  InputHTMLAttributes,
-  ReactNode,
-  SelectHTMLAttributes,
+import {
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  useState,
 } from 'react';
 import { cn } from './utils.js';
 
@@ -149,6 +150,35 @@ const ESTILO_ENTRADA =
 
 export function Entrada({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cn(ESTILO_ENTRADA, className)} />;
+}
+
+/**
+ * Campo de contraseña con un botón para verla mientras se escribe. Es la queja
+ * número uno de cualquier login desde el celular: no saber qué se tipeó.
+ */
+export function EntradaClave({
+  className,
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <div className="relative">
+      <input
+        {...props}
+        type={visible ? 'text' : 'password'}
+        className={cn(ESTILO_ENTRADA, 'pr-20', className)}
+      />
+      <button
+        type="button"
+        onClick={() => setVisible((v) => !v)}
+        aria-pressed={visible}
+        className="absolute inset-y-0 right-0 mt-1 flex items-center px-3 text-sm font-medium text-marca-600 hover:text-marca-700"
+      >
+        {visible ? 'Ocultar' : 'Ver'}
+      </button>
+    </div>
+  );
 }
 
 export function Seleccion({

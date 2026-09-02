@@ -1,4 +1,4 @@
-import { Isotipo } from '@ojosdecielo/ui';
+import { EntradaClave, Isotipo } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useState } from 'react';
 import { Link } from 'react-router';
@@ -122,15 +122,13 @@ export function Registrarse() {
           <label htmlFor="password" className="block text-sm font-medium text-slate-700">
             Contraseña
           </label>
-          <input
+          <EntradaClave
             id="password"
-            type="password"
             autoComplete="new-password"
             required
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5"
             aria-describedby="ayuda-password"
           />
           <p id="ayuda-password" className="mt-1 text-xs text-slate-500">
