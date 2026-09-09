@@ -423,20 +423,29 @@ console.log('\n=== 24. Revocar una invitación sin usar ===');
     : fail('FUGA: se aceptó una invitación anulada');
 }
 
-console.log('\n=== 25. Las invitaciones sólo las ven los tutores ===');
+console.log('\n=== 25. Las invitaciones sólo las ve el titular ===');
 {
   const { data: deClara } = await clara.sb.from('invitacion_tutor').select('token');
   deClara?.length === 0
     ? ok('Clara no ve ninguna invitación')
     : fail(`FUGA: Clara ve ${deClara?.length} invitaciones con su token`);
 
+  // Ana es tutora NO titular de mascotaId (Bruno es el titular tras el test 19).
   const { data: deAna } = await ana.sb
+    .from('invitacion_tutor')
+    .select('id, token')
+    .eq('mascota_id', mascotaId);
+  (deAna?.length ?? 0) === 0
+    ? ok('Una tutora no titular no ve las invitaciones (ni el token en claro)')
+    : fail(`FUGA: una tutora no titular ve ${deAna?.length} invitaciones`);
+
+  const { data: deBruno } = await bruno.sb
     .from('invitacion_tutor')
     .select('id')
     .eq('mascota_id', mascotaId);
-  (deAna?.length ?? 0) > 0
-    ? ok('Una tutora sí ve las invitaciones de su mascota')
-    : fail('Ana no ve las invitaciones de una mascota que comparte');
+  (deBruno?.length ?? 0) > 0
+    ? ok('El titular sí ve las invitaciones de su mascota')
+    : fail('El titular no ve las invitaciones de su mascota');
 }
 
 console.log('\n=== 26. Storage: las fotos son privadas ===');
@@ -3690,9 +3699,16 @@ console.log('\n=== 111. Atención a domicilio: mismo circuito, episodio aparte =
 
 console.log('\n=== 112. Vincular un tutor a un paciente (crear-tutor) ===');
 {
+  // Paciente con titular (Ana). Bruno figura como contacto sin cuenta de él.
   const { data: paciente } = await ana.sb.rpc('crear_mascota', {
     p_nombre: 'Vinculada',
     p_especie: 'perro',
+  });
+  await recepcion.sb.from('contacto_tutor').insert({
+    mascota_id: paciente.id,
+    nombre: 'Bruno',
+    apellido: 'Molina',
+    email: 'bruno@ejemplo.test',
   });
 
   // Un cliente no vincula tutores.
@@ -3702,14 +3718,33 @@ console.log('\n=== 112. Vincular un tutor a un paciente (crear-tutor) ===');
   });
   errCliente ? ok('Un cliente no vincula tutores') : fail('FUGA: un cliente vinculó un tutor');
 
-  // El personal sí. Ana ya es titular, así que Bruno entra como 'tutor'.
+  // El personal no puede vincular a alguien que NO es contacto de ese paciente.
+  const { error: errSinContacto } = await recepcion.sb.rpc('vincular_tutor_a_mascota', {
+    p_perfil_id: clara.userId,
+    p_mascota_id: paciente.id,
+  });
+  errSinContacto
+    ? ok('Sin un contacto previo de ese paciente, no se vincula (cierra CRÍTICO 2a)')
+    : fail('FUGA: se dio acceso a una cuenta ajena sin registrarla como contacto');
+
+  // Verificación directa de la fuga que encontró la auditoría: Clara no debe
+  // haber quedado con acceso a la salud del paciente ajeno.
+  const { data: claraSalud } = await clara.sb
+    .from('peso_registro')
+    .select('id')
+    .eq('mascota_id', paciente.id);
+  (claraSalud?.length ?? 0) === 0
+    ? ok('Clara no ve la salud del paciente ajeno')
+    : fail('FUGA: Clara accede a datos de salud de un paciente ajeno');
+
+  // Con el contacto cargado, el personal sí vincula. Ana es titular → Bruno entra como "tutor".
   const { error: errRecep } = await recepcion.sb.rpc('vincular_tutor_a_mascota', {
     p_perfil_id: bruno.userId,
     p_mascota_id: paciente.id,
   });
   errRecep
-    ? fail(`Recepción no pudo vincular: ${errRecep.message}`)
-    : ok('Recepción vincula un tutor al paciente');
+    ? fail(`Recepción no pudo vincular a un contacto real: ${errRecep.message}`)
+    : ok('Recepción vincula a quien ya es contacto del paciente');
 
   const { data: vinculo } = await recepcion.sb
     .from('mascota_tutor')
@@ -3721,8 +3756,16 @@ console.log('\n=== 112. Vincular un tutor a un paciente (crear-tutor) ===');
     ? ok('Queda como "tutor" porque ya había titular')
     : fail(`Vínculo inesperado: ${JSON.stringify(vinculo)}`);
 
-  // Idempotente: llamar de nuevo no duplica.
-  await recepcion.sb.rpc('vincular_tutor_a_mascota', {
+  const { data: contacto } = await recepcion.sb
+    .from('contacto_tutor')
+    .select('vinculado_en')
+    .eq('mascota_id', paciente.id)
+    .eq('email', 'bruno@ejemplo.test')
+    .single();
+  contacto?.vinculado_en ? ok('El contacto queda cerrado') : fail('El contacto no se cerró');
+
+  // Llamar de nuevo ya no encuentra contacto pendiente y no duplica el acceso.
+  const { error: errDeNuevo } = await recepcion.sb.rpc('vincular_tutor_a_mascota', {
     p_perfil_id: bruno.userId,
     p_mascota_id: paciente.id,
   });
@@ -3732,31 +3775,74 @@ console.log('\n=== 112. Vincular un tutor a un paciente (crear-tutor) ===');
     .eq('mascota_id', paciente.id)
     .eq('perfil_id', bruno.userId)
     .is('revocado_en', null);
-  repetido?.length === 1
+  errDeNuevo && repetido?.length === 1
     ? ok('Vincular dos veces no duplica el acceso')
-    : fail('Se duplicó el vínculo');
+    : fail(`Segunda llamada inesperada: err=${!!errDeNuevo} filas=${repetido?.length}`);
 
-  // Sobre un paciente sin titular (alta de la clínica), el primero entra como titular.
+  // Paciente sin titular (alta de la clínica): el contacto vinculado entra como titular.
   const { data: sinTitular } = await recepcion.sb.rpc('crear_paciente', {
     p_nombre: 'SinTitular',
     p_especie: 'gato',
     p_tutor_nombre: 'Alguien',
   });
+  await recepcion.sb.from('contacto_tutor').insert({
+    mascota_id: sinTitular.id,
+    nombre: 'Clara',
+    apellido: 'Sosa',
+    email: 'clara@ejemplo.test',
+  });
   await recepcion.sb.rpc('vincular_tutor_a_mascota', {
-    p_perfil_id: bruno.userId,
+    p_perfil_id: clara.userId,
     p_mascota_id: sinTitular.id,
   });
   const { data: comoTitular } = await recepcion.sb
     .from('mascota_tutor')
     .select('rol')
     .eq('mascota_id', sinTitular.id)
-    .eq('perfil_id', bruno.userId)
+    .eq('perfil_id', clara.userId)
     .is('revocado_en', null);
   comoTitular?.[0]?.rol === 'titular'
-    ? ok('Si no había titular, el tutor vinculado queda como titular')
+    ? ok('Si no había titular, el contacto vinculado queda como titular')
     : fail(`Rol inesperado en paciente sin titular: ${JSON.stringify(comoTitular)}`);
 }
 
+console.log('\n=== 113. Hallazgos de la auditoría RLS ===');
+{
+  // CRÍTICO 1 — perfiles_del_segmento no se puede invocar directo.
+  const { error: errSeg } = await ana.sb.rpc('perfiles_del_segmento', { p_segmento: {} });
+  errSeg
+    ? ok('Un cliente no puede invocar perfiles_del_segmento (padrón de clientes)')
+    : fail('FUGA: un cliente se bajó el padrón por perfiles_del_segmento');
+
+  const { error: errSegRec } = await recepcion.sb.rpc('perfiles_del_segmento', { p_segmento: {} });
+  errSegRec
+    ? ok('Ni recepción directo: sólo por previsualizar_campana/crear_campana')
+    : fail('perfiles_del_segmento sigue accesible directo');
+
+  // Las campañas siguen andando (el wrapper la llama como su dueño).
+  const { error: errPrev } = await admin.sb.rpc('previsualizar_campana', { p_segmento: {} });
+  errPrev
+    ? fail(`El admin no pudo previsualizar una campaña: ${errPrev.message}`)
+    : ok('previsualizar_campana sigue funcionando para el admin');
+
+  // ALTO 3 — borrar una mascota es sólo por eliminar_mascota().
+  const { data: m } = await ana.sb.rpc('crear_mascota', {
+    p_nombre: 'NoBorrable',
+    p_especie: 'perro',
+  });
+  await vet.sb.from('peso_registro').insert({ mascota_id: m.id, peso_kg: 5 });
+
+  await ana.sb.from('mascota').delete().eq('id', m.id);
+  const { data: sigue } = await ana.sb.from('mascota').select('id').eq('id', m.id);
+  sigue?.length === 1
+    ? ok('El titular no puede DELETE directo sobre mascota')
+    : fail('FUGA: DELETE directo borró la mascota y su historia por CASCADE');
+
+  const { error: errRpc } = await ana.sb.rpc('eliminar_mascota', { p_mascota_id: m.id });
+  errRpc
+    ? ok('eliminar_mascota() sigue frenando lo que tiene datos de la clínica')
+    : fail('eliminar_mascota() dejó borrar una mascota con datos clínicos');
+}
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

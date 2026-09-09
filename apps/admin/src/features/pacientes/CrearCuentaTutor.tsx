@@ -7,14 +7,16 @@ interface Prefill {
   nombre: string;
   apellido: string;
   email: string;
-  telefono: string;
-  dni: string;
 }
 
 /**
  * Alta de la cuenta de un tutor desde el panel: email + contraseña que le
- * pasás a la persona. Si el email coincide con el del contacto, la cuenta
- * queda vinculada al paciente automáticamente.
+ * pasás a la persona.
+ *
+ * El servidor sólo la deja crear/vincular si esa persona ya figura como
+ * contacto de este paciente (por eso el email arranca precargado y conviene no
+ * cambiarlo). El teléfono y el DNI viven en el contacto; se corrigen desde
+ * «Corregir datos», no acá.
  */
 export function CrearCuentaTutor({
   mascotaId,
@@ -30,8 +32,6 @@ export function CrearCuentaTutor({
   const [nombre, setNombre] = useState(prefill.nombre);
   const [apellido, setApellido] = useState(prefill.apellido);
   const [email, setEmail] = useState(prefill.email);
-  const [telefono, setTelefono] = useState(prefill.telefono);
-  const [dni, setDni] = useState(prefill.dni);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -61,8 +61,6 @@ export function CrearCuentaTutor({
             password,
             nombre: nombre.trim(),
             apellido: apellido.trim(),
-            ...(telefono.trim() && { telefono: telefono.trim() }),
-            ...(dni.trim() && { dni: dni.trim() }),
           },
           { onSuccess: onCerrar, onError: (err) => setError(err.message) },
         );
@@ -70,7 +68,7 @@ export function CrearCuentaTutor({
     >
       <p className="text-xs text-slate-500">
         Le creás la cuenta y le pasás el email y la contraseña. Después la puede cambiar desde
-        «¿Olvidaste tu contraseña?».
+        «¿Olvidaste tu contraseña?». El email tiene que ser el mismo que cargaste en el contacto.
       </p>
 
       <div className="grid gap-2 sm:grid-cols-2">
@@ -101,26 +99,6 @@ export function CrearCuentaTutor({
           className="mt-1"
         />
       </Campo>
-
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Campo id="ct-tel" etiqueta="Teléfono">
-          <Entrada
-            id="ct-tel"
-            type="tel"
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            className="mt-1"
-          />
-        </Campo>
-        <Campo id="ct-dni" etiqueta="DNI">
-          <Entrada
-            id="ct-dni"
-            value={dni}
-            onChange={(e) => setDni(e.target.value)}
-            className="mt-1"
-          />
-        </Campo>
-      </div>
 
       <Campo id="ct-pass" etiqueta="Contraseña" ayuda="Al menos 8 caracteres">
         <EntradaClave

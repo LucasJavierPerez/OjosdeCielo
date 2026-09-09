@@ -211,8 +211,6 @@ export function FichaPaciente() {
                       nombre: t.nombre,
                       apellido: t.apellido ?? '',
                       email: t.email ?? '',
-                      telefono: t.telefono ?? '',
-                      dni: t.dni ?? '',
                     }}
                   />
                 ) : (

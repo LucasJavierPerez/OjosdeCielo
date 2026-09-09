@@ -52,8 +52,6 @@ Deno.serve(async (req) => {
     password?: string;
     nombre?: string;
     apellido?: string;
-    telefono?: string;
-    dni?: string;
     mascota_id?: string;
   };
   try {
@@ -66,8 +64,6 @@ Deno.serve(async (req) => {
   const password = cuerpo.password ?? '';
   const nombre = cuerpo.nombre?.trim() ?? '';
   const apellido = cuerpo.apellido?.trim() ?? '';
-  const telefono = cuerpo.telefono?.trim() || null;
-  const dni = cuerpo.dni?.trim() || null;
   const mascotaId = cuerpo.mascota_id?.trim() || null;
 
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
@@ -84,12 +80,11 @@ Deno.serve(async (req) => {
   if (existente) {
     if (!mascotaId) return json({ error: 'Ya existe una cuenta con ese email' }, 409);
     // La cuenta ya existe: sólo se la vincula al paciente, con el token del
-    // personal para que la RPC vuelva a verificar el permiso.
+    // personal para que la RPC vuelva a verificar el permiso. La RPC exige que
+    // esa persona ya figure como contacto de ese paciente.
     const { error } = await comoUsuario.rpc('vincular_tutor_a_mascota', {
       p_perfil_id: existente.id,
       p_mascota_id: mascotaId,
-      p_telefono: telefono,
-      p_dni: dni,
     });
     if (error) return json({ error: error.message }, 400);
     return json({ resultado: 'vinculado', email });
@@ -107,13 +102,12 @@ Deno.serve(async (req) => {
 
   // El trigger de auth.users ya creó el perfil (rol 'cliente') y vinculó los
   // contactos sin cuenta que compartían este email. Si además se indicó un
-  // paciente, se asegura el vínculo y se completan teléfono/DNI.
+  // paciente, se asegura el vínculo (la RPC exige que la persona ya sea
+  // contacto de ese paciente).
   if (mascotaId) {
     const { error } = await comoUsuario.rpc('vincular_tutor_a_mascota', {
       p_perfil_id: creado.user.id,
       p_mascota_id: mascotaId,
-      p_telefono: telefono,
-      p_dni: dni,
     });
     if (error) return json({ resultado: 'creado', email, aviso: error.message });
   }

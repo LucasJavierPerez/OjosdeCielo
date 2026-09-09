@@ -41,9 +41,10 @@ export function RutaProtegida({
   }
 
   // Basta con tener alguno de los roles permitidos: quien atiende y además
-  // administra entra por las dos puertas.
+  // administra entra por las dos puertas. Falla cerrado: si la ruta pide roles
+  // y el perfil no cargó (o no existe), no se pasa.
   const permitido =
-    !rolesPermitidos || !perfil || rolesPermitidos.some((r) => perfil.roles.includes(r));
+    !rolesPermitidos || (perfil != null && rolesPermitidos.some((r) => perfil.roles.includes(r)));
 
   if (!permitido) {
     return <Navigate to="/sin-acceso" replace />;

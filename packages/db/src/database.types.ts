@@ -4110,12 +4110,7 @@ export type Database = {
         Returns: undefined
       }
       vincular_tutor_a_mascota: {
-        Args: {
-          p_dni?: string
-          p_mascota_id: string
-          p_perfil_id: string
-          p_telefono?: string
-        }
+        Args: { p_mascota_id: string; p_perfil_id: string }
         Returns: undefined
       }
     }

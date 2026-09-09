@@ -182,8 +182,6 @@ export interface DatosCuentaTutor {
   password: string;
   nombre: string;
   apellido: string;
-  telefono?: string;
-  dni?: string;
   mascota_id: string;
 }
 
