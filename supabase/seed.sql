@@ -16,6 +16,15 @@ declare
   v_cliente_c_id   uuid := '00000000-0000-0000-0000-000000000006';
 begin
 
+  -- Salvaguarda: este seed sólo tiene sentido en una base vacía de desarrollo.
+  -- Si ya hay usuarios (una demo con datos, o —peor— producción), no hace nada.
+  -- `supabase db push` no corre el seed, pero un `db reset` contra el proyecto
+  -- equivocado sí, y estas son cuentas con contraseña conocida.
+  if (select count(*) from auth.users) > 0 then
+    raise notice 'seed.sql omitido: la base ya tiene usuarios';
+    return;
+  end if;
+
   -- Los usuarios se insertan directamente en auth.users porque no hay forma de
   -- llamar al endpoint de registro desde SQL. El trigger crea el perfil.
   insert into auth.users (

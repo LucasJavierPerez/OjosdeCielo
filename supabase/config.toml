@@ -30,12 +30,22 @@ file_size_limit = "50MiB"
 [auth]
 enabled = true
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173", "http://localhost:5174"]
+# Los `/**` son necesarios: el enlace de "recuperar contraseña" redirige a
+# `/nueva-clave`, y Supabase rechaza cualquier redirect que no matchee la lista
+# (cae al site_url). En producción hay que cargar acá los dominios reales de las
+# dos apps, también con `/**` (Authentication → URL Configuration).
+additional_redirect_urls = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5173/**",
+  "http://localhost:5174/**",
+]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 enable_signup = true
 enable_anonymous_sign_ins = false
+minimum_password_length = 8
 
 [auth.email]
 enable_signup = true

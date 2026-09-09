@@ -199,7 +199,8 @@ Va última porque las métricas necesitan volumen de datos cargado para signific
 ## Antes de operar con clientes reales
 
 Independiente de las fases: nada de esto es necesario para seguir desarrollando,
-pero sí antes de que la clínica atienda gente de verdad.
+pero sí antes de que la clínica atienda gente de verdad. El runbook paso a paso
+está en **`docs/produccion.md`**; abajo el estado de cada punto.
 
 - [x] **Mecanismo de consentimiento** — casilla obligatoria en el registro, página
       pública `/politica`, y una puerta que bloquea la app si falta aceptar (hace

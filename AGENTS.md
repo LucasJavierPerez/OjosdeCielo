@@ -7,6 +7,7 @@ Documentación de referencia — **leerla antes de decisiones de arquitectura, n
 - `docs/stack.md` — stack y decisiones tomadas, con alternativas descartadas
 - `docs/modelo-datos.md` — esquema de base de datos y convenciones
 - `docs/roadmap.md` — fases y alcance
+- `docs/produccion.md` — runbook y checklist para pasar a producción
 - `plan.md` — plan original del producto (documento del dueño, no editar)
 
 ---

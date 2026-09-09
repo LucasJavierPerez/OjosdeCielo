@@ -38,5 +38,22 @@
 		Referrer-Policy strict-origin-when-cross-origin
 		# La app se instala como PWA y no se embebe en ningún lado.
 		X-Frame-Options DENY
+
+		# Railway termina TLS por delante: forzamos HTTPS por un año. Sin
+		# `preload` a propósito — eso es un compromiso que se envía a la lista
+		# del navegador y no se revierte rápido.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+		# Nada de esto usa la app; apagarlo reduce la superficie.
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+
+		# CSP de línea de base. `script-src` deja `'unsafe-inline'` porque el
+		# registro del service worker y el preload de módulos de Vite inyectan
+		# scripts inline; endurecerlo (hashes, quitar unsafe-inline) es un
+		# pendiente para después de verificar en el navegador. Lo que sí acota
+		# ya: a dónde puede conectarse y embeberse la app, y de dónde carga
+		# imágenes. `*.supabase.co` cubre REST, Realtime (wss), Storage y las
+		# Edge Functions sin tener que hornear el ref del proyecto acá.
+		Content-Security-Policy "default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: blob: https://*.supabase.co; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; worker-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; upgrade-insecure-requests"
 	}
 }
