@@ -1,5 +1,14 @@
 import { validarFoto } from '@ojosdecielo/core';
-import { Boton, Campo, Cargando, cn, Entrada, MensajeError, Vacio } from '@ojosdecielo/ui';
+import {
+  Boton,
+  Campo,
+  Cargando,
+  cn,
+  Entrada,
+  MensajeError,
+  Seleccion,
+  Vacio,
+} from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useRef, useState } from 'react';
 import { Layout } from '../componentes/Layout.js';
@@ -21,11 +30,20 @@ export function Inventario() {
   const { data: stock, isLoading, isError, refetch } = useStock(supabase);
   const { data: alertas } = useAlertas(supabase);
   const [busqueda, setBusqueda] = useState('');
+  const [categoria, setCategoria] = useState('');
   const [creando, setCreando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const filtrado = (stock ?? []).filter((p) =>
-    p.nombre.toLowerCase().includes(busqueda.toLowerCase()),
+  // Categoría es texto libre, no un enum: la lista de opciones sale de lo que
+  // hay cargado, no de un catálogo fijo.
+  const categorias = Array.from(
+    new Set((stock ?? []).map((p) => p.categoria).filter((c): c is string => !!c)),
+  ).sort((a, b) => a.localeCompare(b));
+
+  const filtrado = (stock ?? []).filter(
+    (p) =>
+      p.nombre.toLowerCase().includes(busqueda.toLowerCase()) &&
+      (!categoria || p.categoria === categoria),
   );
 
   return (
@@ -66,18 +84,40 @@ export function Inventario() {
 
       {creando && <FormularioProducto onCerrar={() => setCreando(false)} />}
 
-      <div className="mt-4">
-        <label htmlFor="buscar-prod" className="sr-only">
-          Buscar producto
-        </label>
-        <Entrada
-          id="buscar-prod"
-          type="search"
-          placeholder="Buscar producto"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="mt-0"
-        />
+      <div className="mt-4 flex flex-wrap gap-3">
+        <div className="min-w-48 flex-1">
+          <label htmlFor="buscar-prod" className="sr-only">
+            Buscar producto
+          </label>
+          <Entrada
+            id="buscar-prod"
+            type="search"
+            placeholder="Buscar producto"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="mt-0"
+          />
+        </div>
+        {categorias.length > 0 && (
+          <div>
+            <label htmlFor="filtro-categoria" className="sr-only">
+              Filtrar por categoría
+            </label>
+            <Seleccion
+              id="filtro-categoria"
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              className="mt-0 w-44"
+            >
+              <option value="">Todas las categorías</option>
+              {categorias.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Seleccion>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -100,8 +140,12 @@ export function Inventario() {
       {stock && filtrado.length === 0 && (
         <div className="mt-6">
           <Vacio
-            titulo={busqueda ? 'Sin resultados' : 'Todavía no cargaste productos'}
-            descripcion={busqueda ? undefined : 'Agregá el primero para empezar a controlar stock.'}
+            titulo={busqueda || categoria ? 'Sin resultados' : 'Todavía no cargaste productos'}
+            descripcion={
+              busqueda || categoria
+                ? undefined
+                : 'Agregá el primero para empezar a controlar stock.'
+            }
           />
         </div>
       )}
@@ -142,6 +186,7 @@ function FilaProducto({
   const actualizar = useActualizarProducto(supabase);
   const [cantidad, setCantidad] = useState('');
   const [editando, setEditando] = useState(false);
+  const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
 
   const registrar = (tipo: 'ingreso' | 'ajuste') => {
     const n = Number(cantidad);
@@ -150,6 +195,16 @@ function FilaProducto({
     movimiento.mutate(
       { productoId: p.producto_id, tipo, cantidad: tipo === 'ingreso' ? Math.abs(n) : n },
       { onSuccess: () => setCantidad(''), onError: (e) => onError(e.message) },
+    );
+  };
+
+  const borrar = () => {
+    onError(null);
+    // No hay DELETE sobre producto: se archiva (mismo criterio que mascota),
+    // para no perder las ventas/movimientos de stock que ya lo referencian.
+    actualizar.mutate(
+      { id: p.producto_id, archivado_en: new Date().toISOString() },
+      { onError: (e) => onError(e.message) },
     );
   };
 
@@ -255,6 +310,34 @@ function FilaProducto({
           >
             Editar
           </Boton>
+          {confirmandoBorrado ? (
+            <span className="flex items-center gap-1.5 text-sm">
+              <span className="text-slate-500">¿Borrar?</span>
+              <button
+                type="button"
+                onClick={borrar}
+                disabled={actualizar.isPending}
+                className="font-medium text-red-600 hover:underline disabled:opacity-50"
+              >
+                Sí
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmandoBorrado(false)}
+                className="text-slate-500 hover:underline"
+              >
+                No
+              </button>
+            </span>
+          ) : (
+            <Boton
+              variante="texto"
+              className="text-sm text-red-600"
+              onClick={() => setConfirmandoBorrado(true)}
+            >
+              Borrar
+            </Boton>
+          )}
         </div>
       </td>
     </tr>

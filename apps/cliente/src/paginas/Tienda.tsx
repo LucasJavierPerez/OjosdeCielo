@@ -1,7 +1,7 @@
-import { Boton, Cargando, MensajeError, Vacio } from '@ojosdecielo/ui';
+import { Boton, Cargando, cn, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Encabezado } from '../componentes/Encabezado.js';
 
@@ -25,6 +25,7 @@ export function Tienda() {
   const navigate = useNavigate();
   const [carrito, setCarrito] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
+  const [categoria, setCategoria] = useState<string | null>(null);
 
   const {
     data: productos,
@@ -59,6 +60,19 @@ export function Tienda() {
   const total = (productos ?? []).reduce((s, p) => s + (carrito[p.id] ?? 0) * precioEfectivo(p), 0);
   const unidades = Object.values(carrito).reduce((s, c) => s + c, 0);
 
+  // Categoría es texto libre, no un enum: la lista de opciones sale de lo que
+  // la clínica publicó, no de un catálogo fijo.
+  const categorias = useMemo(
+    () =>
+      Array.from(
+        new Set((productos ?? []).map((p) => p.categoria).filter((c): c is string => !!c)),
+      ).sort((a, b) => a.localeCompare(b)),
+    [productos],
+  );
+  const productosFiltrados = (productos ?? []).filter(
+    (p) => !categoria || p.categoria === categoria,
+  );
+
   return (
     <main className="safe-top safe-bottom mx-auto min-h-dvh max-w-md px-6 py-6">
       <Encabezado titulo="Tienda" volverA="/" />
@@ -80,9 +94,47 @@ export function Tienda() {
         </div>
       )}
 
-      {productos && productos.length > 0 && (
+      {productos && productos.length > 0 && categorias.length > 0 && (
+        <div className="-mx-6 mt-4 flex gap-2 overflow-x-auto px-6 pb-1">
+          <button
+            type="button"
+            onClick={() => setCategoria(null)}
+            className={cn(
+              'shrink-0 rounded-full border px-3 py-1.5 text-sm',
+              categoria === null
+                ? 'border-marca-600 bg-marca-50 font-medium text-marca-700'
+                : 'border-slate-300 text-slate-600',
+            )}
+          >
+            Todas
+          </button>
+          {categorias.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCategoria(c)}
+              className={cn(
+                'shrink-0 rounded-full border px-3 py-1.5 text-sm',
+                categoria === c
+                  ? 'border-marca-600 bg-marca-50 font-medium text-marca-700'
+                  : 'border-slate-300 text-slate-600',
+              )}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {productos && productos.length > 0 && productosFiltrados.length === 0 && (
+        <div className="mt-6">
+          <Vacio titulo="Sin resultados" descripcion="No hay productos en esta categoría." />
+        </div>
+      )}
+
+      {productosFiltrados.length > 0 && (
         <ul className="mt-4 space-y-2 pb-28">
-          {productos.map((p) => {
+          {productosFiltrados.map((p) => {
             const cantidad = carrito[p.id] ?? 0;
             const sinStock = p.disponible <= 0;
 
