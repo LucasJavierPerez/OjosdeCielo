@@ -849,6 +849,87 @@ export type Database = {
         }
         Relationships: []
       }
+      gasto_fijo: {
+        Row: {
+          activo: boolean
+          actualizado_en: string | null
+          archivado_en: string | null
+          categoria: string | null
+          concepto: string
+          creado_en: string
+          id: string
+          notas: string | null
+        }
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string | null
+          archivado_en?: string | null
+          categoria?: string | null
+          concepto: string
+          creado_en?: string
+          id?: string
+          notas?: string | null
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string | null
+          archivado_en?: string | null
+          categoria?: string | null
+          concepto?: string
+          creado_en?: string
+          id?: string
+          notas?: string | null
+        }
+        Relationships: []
+      }
+      gasto_fijo_registro: {
+        Row: {
+          actualizado_en: string | null
+          creado_en: string
+          gasto_fijo_id: string
+          id: string
+          monto: number
+          notas: string | null
+          periodo: string
+          registrado_por: string
+        }
+        Insert: {
+          actualizado_en?: string | null
+          creado_en?: string
+          gasto_fijo_id: string
+          id?: string
+          monto: number
+          notas?: string | null
+          periodo: string
+          registrado_por?: string
+        }
+        Update: {
+          actualizado_en?: string | null
+          creado_en?: string
+          gasto_fijo_id?: string
+          id?: string
+          monto?: number
+          notas?: string | null
+          periodo?: string
+          registrado_por?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gasto_fijo_registro_gasto_fijo_id_fkey"
+            columns: ["gasto_fijo_id"]
+            isOneToOne: false
+            referencedRelation: "gasto_fijo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gasto_fijo_registro_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "perfil"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       intento_publico: {
         Row: {
           acierto: boolean
@@ -2469,6 +2550,42 @@ export type Database = {
           },
         ]
       }
+      servicio: {
+        Row: {
+          activo: boolean
+          actualizado_en: string | null
+          archivado_en: string | null
+          categoria: string | null
+          creado_en: string
+          id: string
+          nombre: string
+          notas: string | null
+          precio: number
+        }
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string | null
+          archivado_en?: string | null
+          categoria?: string | null
+          creado_en?: string
+          id?: string
+          nombre: string
+          notas?: string | null
+          precio: number
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string | null
+          archivado_en?: string | null
+          categoria?: string | null
+          creado_en?: string
+          id?: string
+          nombre?: string
+          notas?: string | null
+          precio?: number
+        }
+        Relationships: []
+      }
       solicitud_reposicion: {
         Row: {
           estado: Database["public"]["Enums"]["estado_solicitud_receta"]
@@ -3422,6 +3539,16 @@ export type Database = {
           movimientos: number
           neto: number
           otros_medios: number
+        }[]
+      }
+      gastos_fijos_resumen: {
+        Args: never
+        Returns: {
+          categoria: string
+          concepto: string
+          gasto_fijo_id: string
+          ultimo_monto: number
+          ultimo_periodo: string
         }[]
       }
       generar_qr: {

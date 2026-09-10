@@ -37,6 +37,7 @@ import {
   useSubirAdjuntoInternacion,
 } from '../features/internaciones/api.js';
 import { useStock } from '../features/inventario/api.js';
+import { useServicios } from '../features/servicios/api.js';
 
 const pesos = (n: number) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(n);
@@ -897,6 +898,7 @@ function BloqueCobros({
   const navigate = useNavigate();
   const { data: cargos } = useCargos(supabase, internacion.orden_id);
   const { data: pagos } = usePagosInternacion(supabase, internacion.orden_id);
+  const { data: servicios } = useServicios(supabase);
   const agregar = useAgregarCargo(supabase, internacion.id, internacion.orden_id);
   const cobrar = useRegistrarPago(supabase, internacion.id, internacion.orden_id);
   const cerrar = useCerrarInternacion(supabase, internacion.id);
@@ -1007,6 +1009,34 @@ function BloqueCobros({
             );
           }}
         >
+          {servicios && servicios.length > 0 && (
+            <Campo
+              id="cg-servicio"
+              etiqueta="Servicio"
+              ayuda="Opcional. Completa concepto y monto."
+            >
+              <Seleccion
+                id="cg-servicio"
+                value=""
+                onChange={(e) => {
+                  const s = servicios.find((x) => x.id === e.target.value);
+                  if (s) {
+                    setConcepto(s.nombre);
+                    setMonto(String(s.precio));
+                  }
+                }}
+              >
+                <option value="">— Cargo manual —</option>
+                {servicios
+                  .filter((s) => s.activo)
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nombre} ({pesos(Number(s.precio))})
+                    </option>
+                  ))}
+              </Seleccion>
+            </Campo>
+          )}
           <Campo id="cg-concepto" etiqueta="Concepto">
             <Entrada
               id="cg-concepto"

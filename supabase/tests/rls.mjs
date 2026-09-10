@@ -3843,6 +3843,70 @@ console.log('\n=== 113. Hallazgos de la auditoría RLS ===');
     ? ok('eliminar_mascota() sigue frenando lo que tiene datos de la clínica')
     : fail('eliminar_mascota() dejó borrar una mascota con datos clínicos');
 }
+console.log('\n=== 114. Servicios y gastos fijos ===');
+{
+  // servicio: catálogo interno, lo gestiona cualquiera del personal.
+  const { error: errClienteServ } = await ana.sb
+    .from('servicio')
+    .insert({ nombre: 'Consulta', precio: 1000 });
+  errClienteServ ? ok('Un cliente no carga servicios') : fail('FUGA: un cliente cargó un servicio');
+
+  const { data: serv, error: errVetServ } = await vet.sb
+    .from('servicio')
+    .insert({ nombre: 'Consulta de prueba', precio: 1000, categoria: 'Consultas' })
+    .select()
+    .single();
+  errVetServ
+    ? fail(`El veterinario no pudo cargar un servicio: ${errVetServ.message}`)
+    : ok('El personal carga servicios');
+
+  const { data: veServ } = await ana.sb.from('servicio').select('id').eq('id', serv.id);
+  (veServ?.length ?? 0) === 0
+    ? ok('Un cliente no ve el catálogo de servicios')
+    : fail('FUGA: un cliente ve el catálogo de servicios');
+
+  // gasto_fijo / gasto_fijo_registro / gastos_fijos_resumen: sólo administrador.
+  const { error: errRecepGasto } = await recepcion.sb
+    .from('gasto_fijo')
+    .insert({ concepto: 'Alquiler' });
+  errRecepGasto
+    ? ok('Recepción no carga gastos fijos')
+    : fail('FUGA: recepción cargó un gasto fijo');
+
+  const { data: gasto, error: errAdminGasto } = await admin.sb
+    .from('gasto_fijo')
+    .insert({ concepto: 'Alquiler de prueba', categoria: 'Infraestructura' })
+    .select()
+    .single();
+  errAdminGasto
+    ? fail(`El admin no pudo cargar un gasto fijo: ${errAdminGasto.message}`)
+    : ok('El administrador carga gastos fijos');
+
+  const { error: errVetRegistro } = await vet.sb
+    .from('gasto_fijo_registro')
+    .insert({ gasto_fijo_id: gasto.id, periodo: '2026-09-01', monto: 500000 });
+  errVetRegistro
+    ? ok('El veterinario no carga montos de gastos fijos')
+    : fail('FUGA: el veterinario cargó un monto de gasto fijo');
+
+  const { error: errAdminRegistro } = await admin.sb
+    .from('gasto_fijo_registro')
+    .insert({ gasto_fijo_id: gasto.id, periodo: '2026-09-01', monto: 500000 });
+  errAdminRegistro
+    ? fail(`El admin no pudo registrar el monto: ${errAdminRegistro.message}`)
+    : ok('El administrador registra el monto del mes');
+
+  const { error: errRecepResumen } = await recepcion.sb.rpc('gastos_fijos_resumen');
+  errRecepResumen
+    ? ok('Recepción no ve el resumen de gastos fijos')
+    : fail('FUGA: recepción ve el resumen de gastos fijos');
+
+  const { data: resumen, error: errAdminResumen } = await admin.sb.rpc('gastos_fijos_resumen');
+  const propio = resumen?.find((r) => r.gasto_fijo_id === gasto.id);
+  !errAdminResumen && Number(propio?.ultimo_monto) === 500000
+    ? ok('El administrador ve el resumen con el último monto')
+    : fail(`Resumen inesperado: ${errAdminResumen?.message ?? JSON.stringify(propio)}`);
+}
 console.log(
   fallos === 0
     ? '\n\x1b[32m▸ Todas las verificaciones pasaron\x1b[0m\n'

@@ -13,6 +13,8 @@ const SECCIONES = [
   { a: '/reposiciones', texto: 'Reposiciones' },
   { a: '/caja', texto: 'Caja' },
   { a: '/inventario', texto: 'Inventario' },
+  { a: '/servicios', texto: 'Servicios' },
+  { a: '/gastos-fijos', texto: 'Gastos fijos' },
   { a: '/mensajes', texto: 'Mensajes' },
   { a: '/promociones', texto: 'Promociones' },
   { a: '/pedidos', texto: 'Pedidos' },

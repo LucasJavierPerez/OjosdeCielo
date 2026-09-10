@@ -7,6 +7,7 @@ import { Caja } from './paginas/Caja.js';
 import { Equipo } from './paginas/Equipo.js';
 import { FichaInternacion } from './paginas/FichaInternacion.js';
 import { FichaPaciente } from './paginas/FichaPaciente.js';
+import { GastosFijos } from './paginas/GastosFijos.js';
 import { Ingresar } from './paginas/Ingresar.js';
 import { Domicilios, Internaciones } from './paginas/Internaciones.js';
 import { Inventario } from './paginas/Inventario.js';
@@ -18,6 +19,7 @@ import { Pedidos } from './paginas/Pedidos.js';
 import { Promociones } from './paginas/Promociones.js';
 import { RecuperarClave } from './paginas/RecuperarClave.js';
 import { Reposiciones } from './paginas/Reposiciones.js';
+import { Servicios } from './paginas/Servicios.js';
 import { SinAcceso } from './paginas/SinAcceso.js';
 import { Tablero } from './paginas/Tablero.js';
 
@@ -130,6 +132,22 @@ export function App() {
         element={
           <Interna>
             <Inventario />
+          </Interna>
+        }
+      />
+      <Route
+        path="/servicios"
+        element={
+          <Interna>
+            <Servicios />
+          </Interna>
+        }
+      />
+      <Route
+        path="/gastos-fijos"
+        element={
+          <Interna>
+            <GastosFijos />
           </Interna>
         }
       />
