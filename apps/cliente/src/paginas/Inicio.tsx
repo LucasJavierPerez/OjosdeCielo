@@ -1,4 +1,4 @@
-import { calcularEdad, describirMascota } from '@ojosdecielo/core';
+import { calcularEdad, describirMascota, hoyCivil } from '@ojosdecielo/core';
 import type { ClienteSupabase } from '@ojosdecielo/db';
 import { Boton, Cargando, Isotipo, MensajeError, Vacio } from '@ojosdecielo/ui';
 import { useAuth } from '@ojosdecielo/ui/auth';
@@ -13,9 +13,17 @@ function usePrimeraPromocionVigente(supabase: ClienteSupabase) {
   return useQuery({
     queryKey: ['promocion-vigente'],
     queryFn: async (): Promise<{ titulo: string } | null> => {
+      // No alcanza con la política RLS "vigentes": a quien además es
+      // personal de la clínica le aplica también la política de gestión (sin
+      // filtro de fecha/pausa), así que sin este filtro acá vería la última
+      // promo cargada aunque esté vencida o pausada.
+      const hoy = hoyCivil();
       const { data, error } = await supabase
         .from('promocion')
         .select('titulo')
+        .eq('activa', true)
+        .lte('desde', hoy)
+        .gte('hasta', hoy)
         .order('desde', { ascending: false })
         .limit(1);
       if (error) throw error;
